@@ -5,7 +5,7 @@
 
 ## Running test
 
-1. Install dependencies with `forge install`
+1. Install dependencies with `forge install` and `yarn`
 2. Run test with `forge test`
 
 ## Update dependencies
