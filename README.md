@@ -1,7 +1,7 @@
 # Pancake v4 Core
 
 1. `0.8.24` in `foundry.toml` as we need `tload/tstore` support
-2. `..prettierrc` explictly set `singleQuote: false` to overwrite any local dev's settings
+2. `.prettierrc` explictly set `singleQuote: false` to overwrite any local dev's settings
 
 ## Running test
 
