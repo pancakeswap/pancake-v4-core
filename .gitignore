@@ -1,0 +1,13 @@
+artifacts/
+cache/
+crytic-export/
+node_modules/
+typechain/
+foundry-out/
+.vscode/
+.DS_Store
+.idea
+
+# Ignores development broadcast logs
+!/broadcast
+/broadcast/*

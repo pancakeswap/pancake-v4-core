@@ -1,0 +1,34 @@
+[profile.default]
+src = 'src'
+out = 'foundry-out'
+solc_version = '0.8.24'
+optimizer_runs = 800
+via_ir = false
+ffi = true
+fs_permissions = [
+    { access = "read-write", path = ".forge-snapshots/" },
+    { access = "read", path = "./foundry-out" },
+    { access = "read", path = "./script/config"},
+]
+evm_version = 'cancun'
+
+[fuzz]
+# used for both fuzz and invariant tests for local development
+# not sure why but [profile.default.fuzz] just doesn't work for invariant tests
+runs = 1000
+
+[profile.ci.fuzz]
+runs = 10000
+
+[profile.ci.invariant]
+runs = 1000           # The number of calls to make in the invariant tests
+call_override = false  # Override calls
+fail_on_revert = false # Fail the test if the contract reverts
+
+[profile.ci_main.fuzz]
+runs = 100000
+
+[profile.ci_main.invariant]
+runs = 10000           # The number of calls to make in the invariant tests
+call_override = false  # Override calls
+fail_on_revert = false # Fail the test if the contract reverts
