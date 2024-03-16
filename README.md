@@ -37,7 +37,7 @@ Refer to the script source code for the exact command
 
 Example. within `script/01_DeployVault.s.sol`
 ```
-// remove --verify flag if etherscan_api_key is set
+// remove --verify flag if etherscan_api_key is not set
 forge script script/01_DeployVault.s.sol:DeployVaultScript -vvv \
     --rpc-url $RPC_URL \
     --broadcast \
