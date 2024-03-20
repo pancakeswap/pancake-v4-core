@@ -128,6 +128,9 @@ contract FakePoolManagerRouter {
             // settle ETH
             vault.settle{value: 5 ether}(CurrencyLibrary.NATIVE);
             vault.take(CurrencyLibrary.NATIVE, address(this), 5 ether);
+        } else if (data[0] == 0x18) {
+            vault.settleAndRefund(poolKey.currency0);
+            vault.settleAndRefund(poolKey.currency1);
         }
 
         return "";

@@ -67,6 +67,9 @@ interface IVault is IVaultToken {
     /// @notice Called by the user to pay what is owed
     function settle(Currency token) external payable returns (uint256 paid);
 
+    /// @notice Called by the user to pay what is owed. If the payment is more than the debt, the surplus is refunded
+    function settleAndRefund(Currency token) external payable returns (uint256 paid, uint256 refund);
+
     /// @notice move the delta from target to the msg.sender, only payment delta can be moved
     /// @param currency The currency to settle
     /// @param target The address whose delta will be updated

@@ -118,12 +118,28 @@ contract Vault is IVault, VaultToken, Ownable {
     }
 
     /// @inheritdoc IVault
-    function settle(Currency currency) external payable override isLocked returns (uint256 paid) {
+    function settle(Currency currency) public payable override isLocked returns (uint256 paid) {
         uint256 reservesBefore = reservesOfVault[currency];
         reservesOfVault[currency] = currency.balanceOfSelf();
         paid = reservesOfVault[currency] - reservesBefore;
         // subtraction must be safe
         SettlementGuard.accountDelta(msg.sender, currency, -(paid.toInt128()));
+    }
+
+    function settleAndRefund(Currency currency) external payable isLocked returns (uint256 paid, uint256 refund) {
+        paid = settle(currency);
+
+        int256 afterCurrencyDelta = SettlementGuard.getCurrencyDelta(msg.sender, currency);
+        if (afterCurrencyDelta < 0) {
+            /// If user currencyDelta is negative (vault owes owner) after settle: either user have overpaid
+            /// or someone have transfer token to the vault.
+            refund = uint256(-afterCurrencyDelta);
+
+            /// thus refund msg.sender and update accountDelta
+            SettlementGuard.accountDelta(msg.sender, currency, refund.toInt128());
+            reservesOfVault[currency] -= refund;
+            currency.transfer(msg.sender, refund);
+        }
     }
 
     /// @inheritdoc IVault
