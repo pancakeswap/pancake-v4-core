@@ -188,8 +188,8 @@ contract VaultPoolManager is Test {
             token0.transfer(address(vault), action.amt0);
             token1.transfer(address(vault), action.amt1);
 
-            vault.settleAndRefund(currency0);
-            vault.settleAndRefund(currency1);
+            vault.settleAndRefund(currency0, address(this));
+            vault.settleAndRefund(currency1, address(this));
         } else if (action.actionType == ActionType.SettleFor) {
             // hook cash out the fee ahead
             BalanceDelta delta = toBalanceDelta(int128(action.amt0), int128(action.amt1));

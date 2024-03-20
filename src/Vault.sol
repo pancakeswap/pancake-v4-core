@@ -126,7 +126,12 @@ contract Vault is IVault, VaultToken, Ownable {
         SettlementGuard.accountDelta(msg.sender, currency, -(paid.toInt128()));
     }
 
-    function settleAndRefund(Currency currency) external payable isLocked returns (uint256 paid, uint256 refund) {
+    function settleAndRefund(Currency currency, address to)
+        external
+        payable
+        isLocked
+        returns (uint256 paid, uint256 refund)
+    {
         paid = settle(currency);
 
         int256 afterCurrencyDelta = SettlementGuard.getCurrencyDelta(msg.sender, currency);
@@ -138,7 +143,7 @@ contract Vault is IVault, VaultToken, Ownable {
             /// thus refund msg.sender and update accountDelta
             SettlementGuard.accountDelta(msg.sender, currency, refund.toInt128());
             reservesOfVault[currency] -= refund;
-            currency.transfer(msg.sender, refund);
+            currency.transfer(to, refund);
         }
     }
 

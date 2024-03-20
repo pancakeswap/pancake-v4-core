@@ -174,35 +174,39 @@ contract VaultTest is Test, GasSnapshot {
     }
 
     function testSettleAndRefund_WithErc20Transfer() public {
+        address alice = makeAddr("alice");
+
         // simulate someone transferred token to vault
         currency0.transfer(address(vault), 10 ether);
         assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(fakePoolManagerRouter)), 0 ether);
-        assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(fakePoolManagerRouter)), 0 ether);
+        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(alice)), 0 ether);
 
         // settle and refund
         vm.prank(address(fakePoolManagerRouter));
         snapStart("VaultTest#testSettleAndRefund_WithErc20Transfer");
-        vault.lock(hex"18");
+        vault.lock(abi.encodePacked(hex"18", alice));
         snapEnd();
 
         // verify
-        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(fakePoolManagerRouter)), 10 ether);
-        assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(fakePoolManagerRouter)), 0 ether);
+        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(fakePoolManagerRouter)), 0 ether);
+        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(alice)), 10 ether);
     }
 
     function testSettleAndRefund_WithoutErc20Transfer() public {
+        address alice = makeAddr("alice");
+
         assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(fakePoolManagerRouter)), 0 ether);
-        assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(fakePoolManagerRouter)), 0 ether);
+        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(alice)), 0 ether);
 
         // settleAndRefund works even if there's no excess currency
         vm.prank(address(fakePoolManagerRouter));
         snapStart("VaultTest#testSettleAndRefund_WithoutErc20Transfer");
-        vault.lock(hex"18");
+        vault.lock(abi.encodePacked(hex"18", alice));
         snapEnd();
 
         // verify
         assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(fakePoolManagerRouter)), 0 ether);
-        assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(fakePoolManagerRouter)), 0 ether);
+        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(alice)), 0 ether);
     }
 
     function testNotCorrectPoolManager() public {
