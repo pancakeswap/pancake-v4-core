@@ -128,6 +128,18 @@ contract FakePoolManagerRouter {
             // settle ETH
             vault.settle{value: 5 ether}(CurrencyLibrary.NATIVE);
             vault.take(CurrencyLibrary.NATIVE, address(this), 5 ether);
+        } else if (data[0] == 0x18) {
+            // call this method via vault.lock(abi.encodePacked(hex"18", alice));
+            address to = address(uint160(uint256(bytes32(data[1:0x15]) >> 96)));
+            vault.settleAndRefund(poolKey.currency0, to);
+            vault.settleAndRefund(poolKey.currency1, to);
+        } else if (data[0] == 0x19) {
+            poolManager.mockAccounting(poolKey, 3 ether, -3 ether);
+            vault.settle(poolKey.currency0);
+
+            /// try to call settleAndRefund should not revert
+            vault.settleAndRefund(poolKey.currency1, address(this));
+            vault.take(poolKey.currency1, address(this), 3 ether);
         }
 
         return "";

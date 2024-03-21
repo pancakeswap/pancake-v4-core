@@ -31,6 +31,7 @@ contract VaultPoolManager is Test {
     enum ActionType {
         Take,
         Settle,
+        SettleAndRefund,
         SettleFor,
         Mint,
         Burn
@@ -82,6 +83,21 @@ contract VaultPoolManager is Test {
         token0.mint(address(this), amt0);
         token1.mint(address(this), amt1);
         vault.lock(abi.encode(Action(ActionType.Settle, uint128(amt0), uint128(amt1))));
+    }
+
+    /// @dev In settleAndRefund case, assume user add liquidity and paying to the vault
+    ///      but theres another folk who minted extra token to the vault
+    function settleAndRefund(uint256 amt0, uint256 amt1, bool sendToVault) public {
+        amt0 = bound(amt0, 0, MAX_TOKEN_BALANCE - 1 ether);
+        amt1 = bound(amt1, 0, MAX_TOKEN_BALANCE - 1 ether);
+
+        // someone send some token directly to vault
+        if (sendToVault) token0.mint(address(vault), 1 ether);
+
+        // mint token to VaultPoolManager, so VaultPoolManager can pay to the vault
+        token0.mint(address(this), amt0);
+        token1.mint(address(this), amt1);
+        vault.lock(abi.encode(Action(ActionType.SettleAndRefund, uint128(amt0), uint128(amt1))));
     }
 
     /// @dev In settleFor case, assume user is paying for hook
@@ -165,6 +181,15 @@ contract VaultPoolManager is Test {
 
             vault.settle(currency0);
             vault.settle(currency1);
+        } else if (action.actionType == ActionType.SettleAndRefund) {
+            BalanceDelta delta = toBalanceDelta(int128(action.amt0), int128(action.amt1));
+            vault.accountPoolBalanceDelta(poolKey, delta, address(this));
+
+            token0.transfer(address(vault), action.amt0);
+            token1.transfer(address(vault), action.amt1);
+
+            vault.settleAndRefund(currency0, address(this));
+            vault.settleAndRefund(currency1, address(this));
         } else if (action.actionType == ActionType.SettleFor) {
             // hook cash out the fee ahead
             BalanceDelta delta = toBalanceDelta(int128(action.amt0), int128(action.amt1));
@@ -212,13 +237,14 @@ contract VaultInvariant is Test, GasSnapshot {
         // Only call vaultPoolManager, otherwise all other contracts deployed in setUp will be called
         targetContract(address(vaultPoolManager));
 
-        bytes4[] memory selectors = new bytes4[](6);
+        bytes4[] memory selectors = new bytes4[](7);
         selectors[0] = VaultPoolManager.take.selector;
         selectors[1] = VaultPoolManager.mint.selector;
         selectors[2] = VaultPoolManager.settle.selector;
         selectors[3] = VaultPoolManager.burn.selector;
         selectors[4] = VaultPoolManager.settleFor.selector;
         selectors[5] = VaultPoolManager.collectFee.selector;
+        selectors[6] = VaultPoolManager.settleAndRefund.selector;
         targetSelector(FuzzSelector({addr: address(vaultPoolManager), selectors: selectors}));
     }
 
