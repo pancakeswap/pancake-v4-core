@@ -134,12 +134,12 @@ contract Vault is IVault, VaultToken, Ownable {
         returns (uint256 paid, uint256 refund)
     {
         paid = currency.balanceOfSelf() - reservesOfVault[currency];
-        int256 currencyDelta = SettlementGuard.getCurrencyDelta(msg.sender, currency);
+        int256 currentDelta = SettlementGuard.getCurrencyDelta(msg.sender, currency);
 
-        if (currencyDelta >= 0 && paid > currencyDelta.toUint256()) {
+        if (currentDelta >= 0 && paid > currentDelta.toUint256()) {
             // msg.sender owes vault but paid more than than whats owed
-            refund = paid - currencyDelta.toUint256();
-            paid = currencyDelta.toUint256();
+            refund = paid - currentDelta.toUint256();
+            paid = currentDelta.toUint256();
             currency.transfer(to, refund);
         }
 

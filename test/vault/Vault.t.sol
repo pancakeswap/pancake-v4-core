@@ -209,6 +209,19 @@ contract VaultTest is Test, GasSnapshot {
         assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(alice)), 0 ether);
     }
 
+    function testSettleAndRefund_NegativeBalanceDelta() public {
+        // pre-req: ensure vault has some value in reserveOfVault[] before
+        currency0.transfer(address(vault), 10 ether);
+        currency1.transfer(address(vault), 10 ether);
+        vm.prank(address(fakePoolManagerRouter));
+        vault.lock(hex"02");
+
+        // settleAndRefund should not revert even if negative balanceDelta
+        currency0.transfer(address(vault), 3 ether);
+        vm.prank(address(fakePoolManagerRouter));
+        vault.lock(hex"19");
+    }
+
     function testNotCorrectPoolManager() public {
         // router => vault.lock
         // vault.lock => periphery.lockAcquired
