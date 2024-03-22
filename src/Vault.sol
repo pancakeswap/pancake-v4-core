@@ -126,7 +126,7 @@ contract Vault is IVault, VaultToken, Ownable {
         SettlementGuard.accountDelta(msg.sender, currency, -(paid.toInt128()));
     }
 
-    function settleAndRefund(Currency currency, address to)
+    function settleAndMintRefund(Currency currency, address to)
         external
         payable
         override
@@ -134,18 +134,17 @@ contract Vault is IVault, VaultToken, Ownable {
         returns (uint256 paid, uint256 refund)
     {
         paid = currency.balanceOfSelf() - reservesOfVault[currency];
-        int256 currentDelta = SettlementGuard.getCurrencyDelta(msg.sender, currency);
+        reservesOfVault[currency] += paid;
 
+        int256 currentDelta = SettlementGuard.getCurrencyDelta(msg.sender, currency);
         if (currentDelta >= 0 && paid > currentDelta.toUint256()) {
             // msg.sender owes vault but paid more than than whats owed
             refund = paid - currentDelta.toUint256();
             paid = currentDelta.toUint256();
         }
 
-        reservesOfVault[currency] += paid;
         SettlementGuard.accountDelta(msg.sender, currency, -(paid.toInt128()));
-
-        if (refund > 0) currency.transfer(to, refund);
+        if (refund > 0) _mint(to, currency, refund);
     }
 
     /// @inheritdoc IVault
