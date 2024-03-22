@@ -133,8 +133,9 @@ contract Vault is IVault, VaultToken, Ownable {
         isLocked
         returns (uint256 paid, uint256 refund)
     {
-        paid = currency.balanceOfSelf() - reservesOfVault[currency];
-        reservesOfVault[currency] += paid;
+        uint256 reservesBefore = reservesOfVault[currency];
+        reservesOfVault[currency] = currency.balanceOfSelf();
+        paid = reservesOfVault[currency] - reservesBefore;
 
         int256 currentDelta = SettlementGuard.getCurrencyDelta(msg.sender, currency);
         if (currentDelta >= 0 && paid > currentDelta.toUint256()) {
