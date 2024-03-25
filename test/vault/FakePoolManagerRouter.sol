@@ -131,14 +131,14 @@ contract FakePoolManagerRouter {
         } else if (data[0] == 0x18) {
             // call this method via vault.lock(abi.encodePacked(hex"18", alice));
             address to = address(uint160(uint256(bytes32(data[1:0x15]) >> 96)));
-            vault.settleAndRefund(poolKey.currency0, to);
-            vault.settleAndRefund(poolKey.currency1, to);
+            vault.settleAndMintRefund(poolKey.currency0, to);
+            vault.settleAndMintRefund(poolKey.currency1, to);
         } else if (data[0] == 0x19) {
             poolManager.mockAccounting(poolKey, 3 ether, -3 ether);
             vault.settle(poolKey.currency0);
 
-            /// try to call settleAndRefund should not revert
-            vault.settleAndRefund(poolKey.currency1, address(this));
+            /// try to call settleAndMintRefund should not revert
+            vault.settleAndMintRefund(poolKey.currency1, address(this));
             vault.take(poolKey.currency1, address(this), 3 ether);
         }
 

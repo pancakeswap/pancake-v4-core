@@ -67,12 +67,16 @@ interface IVault is IVaultToken {
     /// @notice Called by the user to pay what is owed
     function settle(Currency token) external payable returns (uint256 paid);
 
-    /// @notice Called by the user to pay what is owed. If the payment is more than the debt, the surplus is refunded
+    /// @notice Called by the user to pay what is owed. If the payment is more than the debt, the surplus is refunded by minting
+    /// @dev To claim the refund, caller must eventually call vault.burn() -> vault.take() to take the ERC20 token from vault
     /// @param currency The currency to settle
-    /// @param to The address to refund the surplus to
+    /// @param to The address to mint the refund
     /// @return paid The amount paid
     /// @return refund The amount refunded
-    function settleAndRefund(Currency currency, address to) external payable returns (uint256 paid, uint256 refund);
+    function settleAndMintRefund(Currency currency, address to)
+        external
+        payable
+        returns (uint256 paid, uint256 refund);
 
     /// @notice move the delta from target to the msg.sender, only payment delta can be moved
     /// @param currency The currency to settle

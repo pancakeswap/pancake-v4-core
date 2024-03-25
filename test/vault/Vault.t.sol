@@ -173,43 +173,39 @@ contract VaultTest is Test, GasSnapshot {
         vault.lock(hex"02");
     }
 
-    function testSettleAndRefund_WithErc20Transfer() public {
+    function testSettleAndMintRefund_WithMint() public {
         address alice = makeAddr("alice");
 
         // simulate someone transferred token to vault
         currency0.transfer(address(vault), 10 ether);
-        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(fakePoolManagerRouter)), 0 ether);
-        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(alice)), 0 ether);
+        assertEq(vault.balanceOf(alice, currency0), 0 ether);
 
         // settle and refund
         vm.prank(address(fakePoolManagerRouter));
-        snapStart("VaultTest#testSettleAndRefund_WithErc20Transfer");
+        snapStart("VaultTest#testSettleAndMintRefund_WithMint");
         vault.lock(abi.encodePacked(hex"18", alice));
         snapEnd();
 
-        // verify
-        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(fakePoolManagerRouter)), 0 ether);
-        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(alice)), 10 ether);
+        // verify excess currency minted to alice
+        assertEq(vault.balanceOf(alice, currency0), 10 ether);
     }
 
-    function testSettleAndRefund_WithoutErc20Transfer() public {
+    function testSettleAndMintRefund_WithoutMint() public {
         address alice = makeAddr("alice");
 
-        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(fakePoolManagerRouter)), 0 ether);
-        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(alice)), 0 ether);
+        assertEq(vault.balanceOf(alice, currency0), 0 ether);
 
         // settleAndRefund works even if there's no excess currency
         vm.prank(address(fakePoolManagerRouter));
-        snapStart("VaultTest#testSettleAndRefund_WithoutErc20Transfer");
+        snapStart("VaultTest#testSettleAndMintRefund_WithoutMint");
         vault.lock(abi.encodePacked(hex"18", alice));
         snapEnd();
 
-        // verify
-        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(fakePoolManagerRouter)), 0 ether);
-        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(alice)), 0 ether);
+        // verify no extra token minted
+        assertEq(vault.balanceOf(alice, currency0), 0 ether);
     }
 
-    function testSettleAndRefund_NegativeBalanceDelta() public {
+    function testSettleAndMintRefund_NegativeBalanceDelta() public {
         // pre-req: ensure vault has some value in reserveOfVault[] before
         currency0.transfer(address(vault), 10 ether);
         currency1.transfer(address(vault), 10 ether);
