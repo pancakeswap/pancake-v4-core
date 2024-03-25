@@ -138,10 +138,13 @@ contract Vault is IVault, VaultToken, Ownable {
         paid = reservesOfVault[currency] - reservesBefore;
 
         int256 currentDelta = SettlementGuard.getCurrencyDelta(msg.sender, currency);
-        if (currentDelta >= 0 && paid > currentDelta.toUint256()) {
-            // msg.sender owes vault but paid more than than whats owed
-            refund = paid - currentDelta.toUint256();
-            paid = currentDelta.toUint256();
+        if (currentDelta >= 0) {
+            uint256 currentDeltaUint256 = currentDelta.toUint256();
+            if (paid > currentDeltaUint256) {
+                // msg.sender owes vault but paid more than than whats owed
+                refund = paid - currentDeltaUint256;
+                paid = currentDeltaUint256;
+            }
         }
 
         SettlementGuard.accountDelta(msg.sender, currency, -(paid.toInt128()));
