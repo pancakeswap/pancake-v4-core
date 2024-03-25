@@ -238,6 +238,9 @@ contract VaultTokenTest is Test {
 
         if (mintAmount == type(uint256).max) {
             assertEq(token.allowance(sender, address(this), currency), type(uint256).max);
+        } else if (sender == address(this)) {
+            /// if sender === address(this), transferFrom will not consume allowance
+            assertEq(token.allowance(sender, address(this), currency), mintAmount);
         } else {
             assertEq(token.allowance(sender, address(this), currency), mintAmount - transferAmount);
         }
