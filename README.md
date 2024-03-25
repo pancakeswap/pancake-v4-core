@@ -28,7 +28,7 @@ export RPC_URL=https://
 export PRIVATE_KEY=0x
 
 // optional. Only set if you want to verify contract on explorer
-export ETHERSCAN_API_KEY=
+export ETHERSCAN_API_KEY=xx
 ```
 
 ### Execute
