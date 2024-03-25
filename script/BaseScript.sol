@@ -15,12 +15,14 @@ abstract contract BaseScript is Script {
         console.log("[BaseScript] Reading config from: ", path);
     }
 
-    // reference: https://github.com/foundry-rs/foundry/blob/master/testdata/cheats/Json.t.sol
+    // reference: https://github.com/foundry-rs/foundry/blob/master/testdata/default/cheats/Json.t.sol
     function getAddressFromConfig(string memory key) public view returns (address) {
         string memory json = vm.readFile(path);
         bytes memory data = vm.parseJson(json, string.concat(".", key));
+
+        // seems like foundry decode as 0x20 when address is not set or as "0x"
         address decodedData = abi.decode(data, (address));
-        require(decodedData != address(0), "Address ZERO");
+        require(decodedData != address(0x20), "Address not set");
 
         return decodedData;
     }
