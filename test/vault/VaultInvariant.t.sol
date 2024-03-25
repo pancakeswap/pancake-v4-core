@@ -31,7 +31,7 @@ contract VaultPoolManager is Test {
     enum ActionType {
         Take,
         Settle,
-        SettleAndRefund,
+        SettleAndMintRefund,
         SettleFor,
         Mint,
         Burn
@@ -87,7 +87,7 @@ contract VaultPoolManager is Test {
 
     /// @dev In settleAndRefund case, assume user add liquidity and paying to the vault
     ///      but theres another folk who minted extra token to the vault
-    function settleAndRefund(uint256 amt0, uint256 amt1, bool sendToVault) public {
+    function settleAndMintRefund(uint256 amt0, uint256 amt1, bool sendToVault) public {
         amt0 = bound(amt0, 0, MAX_TOKEN_BALANCE - 1 ether);
         amt1 = bound(amt1, 0, MAX_TOKEN_BALANCE - 1 ether);
 
@@ -97,7 +97,7 @@ contract VaultPoolManager is Test {
         // mint token to VaultPoolManager, so VaultPoolManager can pay to the vault
         token0.mint(address(this), amt0);
         token1.mint(address(this), amt1);
-        vault.lock(abi.encode(Action(ActionType.SettleAndRefund, uint128(amt0), uint128(amt1))));
+        vault.lock(abi.encode(Action(ActionType.SettleAndMintRefund, uint128(amt0), uint128(amt1))));
     }
 
     /// @dev In settleFor case, assume user is paying for hook
@@ -181,15 +181,18 @@ contract VaultPoolManager is Test {
 
             vault.settle(currency0);
             vault.settle(currency1);
-        } else if (action.actionType == ActionType.SettleAndRefund) {
+        } else if (action.actionType == ActionType.SettleAndMintRefund) {
             BalanceDelta delta = toBalanceDelta(int128(action.amt0), int128(action.amt1));
             vault.accountPoolBalanceDelta(poolKey, delta, address(this));
 
             token0.transfer(address(vault), action.amt0);
             token1.transfer(address(vault), action.amt1);
 
-            vault.settleAndRefund(currency0, address(this));
-            vault.settleAndRefund(currency1, address(this));
+            (, uint256 refund0) = vault.settleAndMintRefund(currency0, address(this));
+            (, uint256 refund1) = vault.settleAndMintRefund(currency1, address(this));
+
+            totalMintedCurrency0 += refund0;
+            totalMintedCurrency1 += refund1;
         } else if (action.actionType == ActionType.SettleFor) {
             // hook cash out the fee ahead
             BalanceDelta delta = toBalanceDelta(int128(action.amt0), int128(action.amt1));
@@ -244,7 +247,7 @@ contract VaultInvariant is Test, GasSnapshot {
         selectors[3] = VaultPoolManager.burn.selector;
         selectors[4] = VaultPoolManager.settleFor.selector;
         selectors[5] = VaultPoolManager.collectFee.selector;
-        selectors[6] = VaultPoolManager.settleAndRefund.selector;
+        selectors[6] = VaultPoolManager.settleAndMintRefund.selector;
         targetSelector(FuzzSelector({addr: address(vaultPoolManager), selectors: selectors}));
     }
 
