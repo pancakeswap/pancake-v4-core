@@ -2,6 +2,7 @@
 // Copyright (C) 2024 PancakeSwap
 pragma solidity ^0.8.24;
 
+import "./interfaces/ICLHooks.sol";
 import {Fees} from "../Fees.sol";
 import {ICLPoolManager} from "./interfaces/ICLPoolManager.sol";
 import {IVault} from "../interfaces/IVault.sol";
@@ -10,9 +11,9 @@ import {CLPool} from "./libraries/CLPool.sol";
 import {CLPosition} from "./libraries/CLPosition.sol";
 import {PoolKey} from "../types/PoolKey.sol";
 import {IPoolManager} from "../interfaces/IPoolManager.sol";
-import "./interfaces/ICLHooks.sol";
 import {ICLDynamicFeeManager} from "./interfaces/ICLDynamicFeeManager.sol";
 import {Hooks} from "../libraries/Hooks.sol";
+import {Tick} from "./libraries/Tick.sol";
 import {CLPoolParametersHelper} from "./libraries/CLPoolParametersHelper.sol";
 import {FeeLibrary} from "../libraries/FeeLibrary.sol";
 import {PoolId, PoolIdLibrary} from "../types/PoolId.sol";
@@ -291,6 +292,14 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
                 revert Hooks.InvalidHookResponse();
             }
         }
+    }
+
+    function getPoolTickInfo(PoolId id, int24 tick) external view returns (Tick.Info memory) {
+        return pools[id].ticks[tick];
+    }
+
+    function getPoolBitmapInfo(PoolId id, int16 word) external view returns (uint256 tickBitmap) {
+        return pools[id].tickBitmap[word];
     }
 
     /// @inheritdoc ICLPoolManager
