@@ -99,20 +99,20 @@ contract FakePoolManagerRouter {
             // mint
             uint256 amt = poolKey.currency0.balanceOf(address(vault));
             vault.settle(poolKey.currency0);
-            vault.mint(poolKey.currency0, address(this), amt);
+            vault.mint(address(this), poolKey.currency0, amt);
         } else if (data[0] == 0x14) {
             // mint to someone else, poolKey.currency1 for example
             uint256 amt = poolKey.currency0.balanceOf(address(vault));
             vault.settle(poolKey.currency0);
-            vault.mint(poolKey.currency0, Currency.unwrap(poolKey.currency1), amt);
+            vault.mint(Currency.unwrap(poolKey.currency1), poolKey.currency0, amt);
         } else if (data[0] == 0x15) {
             // burn
 
             uint256 amt = poolKey.currency0.balanceOf(address(vault));
             vault.settle(poolKey.currency0);
-            vault.mint(poolKey.currency0, address(this), amt);
+            vault.mint(address(this), poolKey.currency0, amt);
 
-            vault.burn(poolKey.currency0, amt);
+            vault.burn(address(this), poolKey.currency0, amt);
             vault.take(poolKey.currency0, address(this), amt);
         } else if (data[0] == 0x16) {
             // burn half if possible
@@ -120,9 +120,9 @@ contract FakePoolManagerRouter {
             uint256 amt = poolKey.currency0.balanceOf(address(vault));
             vault.settle(poolKey.currency0);
 
-            vault.mint(poolKey.currency0, address(this), amt);
+            vault.mint(address(this), poolKey.currency0, amt);
 
-            vault.burn(poolKey.currency0, amt / 2);
+            vault.burn(address(this), poolKey.currency0, amt / 2);
             vault.take(poolKey.currency0, address(this), amt / 2);
         } else if (data[0] == 0x17) {
             // settle ETH
@@ -140,6 +140,14 @@ contract FakePoolManagerRouter {
             /// try to call settleAndMintRefund should not revert
             vault.settleAndMintRefund(poolKey.currency1, address(this));
             vault.take(poolKey.currency1, address(this), 3 ether);
+        } else if (data[0] == 0x20) {
+            // burn on behalf of someone else
+            uint256 amt = poolKey.currency0.balanceOf(address(vault));
+            vault.settle(poolKey.currency0);
+            vault.mint(address(0x01), poolKey.currency0, amt);
+
+            vault.burn(address(0x01), poolKey.currency0, amt);
+            vault.take(poolKey.currency0, address(this), amt);
         }
 
         return "";
