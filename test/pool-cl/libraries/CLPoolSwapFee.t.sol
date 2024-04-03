@@ -79,14 +79,14 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
 
     function testPoolInitializeFailsWithTooLargeFee() public {
         // cl pool swap fee is capped at 1_000_000
-        hook.setFee(FeeLibrary.ONE_HUNDRED_PERCENT_FEE);
+        hook.setFee(FeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1);
 
         vm.expectRevert(IFees.FeeTooLarge.selector);
         poolManager.initialize(dynamicFeeKey, SQRT_RATIO_1_1, ZERO_BYTES);
 
         {
             vm.expectRevert(IFees.FeeTooLarge.selector);
-            staticFeeKey.fee = FeeLibrary.ONE_HUNDRED_PERCENT_FEE;
+            staticFeeKey.fee = FeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1;
             poolManager.initialize(staticFeeKey, SQRT_RATIO_1_1, ZERO_BYTES);
         }
     }
@@ -95,7 +95,7 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
         hook.setFee(FeeLibrary.ONE_HUNDRED_PERCENT_FEE / 2);
         poolManager.initialize(dynamicFeeKey, SQRT_RATIO_1_1, ZERO_BYTES);
 
-        hook.setFee(FeeLibrary.ONE_HUNDRED_PERCENT_FEE);
+        hook.setFee(FeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1);
         vm.expectRevert(IFees.FeeTooLarge.selector);
         poolManager.updateDynamicSwapFee(dynamicFeeKey);
     }

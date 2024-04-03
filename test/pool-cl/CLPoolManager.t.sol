@@ -153,14 +153,14 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
             poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
         }
 
-        // 1000000 i.e. 100% overflow
+        // 1000000 i.e. 100% + 1 overflow
         {
             PoolKey memory key = PoolKey({
                 currency0: Currency.wrap(makeAddr("token0")),
                 currency1: Currency.wrap(makeAddr("token1")),
                 hooks: IHooks(address(0)),
                 poolManager: poolManager,
-                fee: uint24(1000000),
+                fee: uint24(1000001),
                 parameters: bytes32(uint256(0xa0000))
             });
 
@@ -2339,7 +2339,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
             parameters: bytes32(uint256(10) << 16)
         });
 
-        clFeeManagerHook.setFee(FeeLibrary.ONE_HUNDRED_PERCENT_FEE);
+        clFeeManagerHook.setFee(FeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1);
 
         vm.expectRevert(IFees.FeeTooLarge.selector);
         poolManager.updateDynamicSwapFee(key);
