@@ -98,4 +98,13 @@ abstract contract VaultToken is IVaultToken {
 
         emit Transfer(msg.sender, sender, address(0), currency, amount);
     }
+
+    function _burnFrom(address from, Currency currency, uint256 amount) internal virtual {
+        if (msg.sender != from && !isOperator[from][msg.sender]) {
+            uint256 allowed = allowance[from][msg.sender][currency];
+            if (allowed != type(uint256).max) allowance[from][msg.sender][currency] = allowed - amount;
+        }
+
+        _burn(from, currency, amount);
+    }
 }

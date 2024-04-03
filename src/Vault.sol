@@ -112,7 +112,7 @@ contract Vault is IVault, VaultToken, Ownable {
     }
 
     /// @inheritdoc IVault
-    function mint(Currency currency, address to, uint256 amount) external override isLocked {
+    function mint(address to, Currency currency, uint256 amount) external override isLocked {
         SettlementGuard.accountDelta(msg.sender, currency, amount.toInt128());
         _mint(to, currency, amount);
     }
@@ -161,9 +161,9 @@ contract Vault is IVault, VaultToken, Ownable {
     }
 
     /// @inheritdoc IVault
-    function burn(Currency currency, uint256 amount) external override isLocked {
+    function burn(address from, Currency currency, uint256 amount) external override isLocked {
         SettlementGuard.accountDelta(msg.sender, currency, -(amount.toInt128()));
-        _burn(msg.sender, currency, amount);
+        _burnFrom(from, currency, amount);
     }
 
     /// @inheritdoc IVault

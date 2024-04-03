@@ -89,8 +89,8 @@ interface IVault is IVaultToken {
     function collectFee(Currency currency, uint256 amount, address recipient) external;
 
     /// @notice Called by the user to store surplus tokens in the vault
-    function mint(Currency currency, address to, uint256 amount) external;
+    function mint(address to, Currency currency, uint256 amount) external;
 
     /// @notice Called by the user to use surplus tokens for payment settlement
-    function burn(Currency currency, uint256 amount) external;
+    function burn(address from, Currency currency, uint256 amount) external;
 }

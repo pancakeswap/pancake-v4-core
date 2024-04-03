@@ -413,6 +413,74 @@ contract VaultTest is Test, GasSnapshot {
         assertEq(vault.balanceOf(address(fakePoolManagerRouter), currency0), amt - amt / 2);
     }
 
+    function testVaultFuzz_burnFrom_withoutApprove(uint256 amt) public {
+        amt = bound(amt, 0, 10 ether);
+        // make sure router has enough tokens
+        currency0.transfer(address(vault), amt);
+
+        if (amt != 0) {
+            vm.expectRevert();
+        }
+
+        vm.startPrank(address(fakePoolManagerRouter));
+        vault.lock(hex"20");
+        vm.stopPrank();
+
+        assertEq(vault.balanceOf(address(fakePoolManagerRouter), currency0), 0);
+    }
+
+    function testVaultFuzz_burnFrom_withApprove(uint256 amt) public {
+        amt = bound(amt, 0, 10 ether);
+        // make sure router has enough tokens
+        currency0.transfer(address(vault), amt);
+
+        vm.prank(address(0x01));
+        vault.approve(address(fakePoolManagerRouter), currency0, amt);
+        assertEq(vault.allowance(address(0x01), address(fakePoolManagerRouter), currency0), amt);
+
+        vm.startPrank(address(fakePoolManagerRouter));
+        vault.lock(hex"20");
+        vm.stopPrank();
+
+        assertEq(vault.balanceOf(address(fakePoolManagerRouter), currency0), 0);
+        assertEq(vault.allowance(address(0x01), address(fakePoolManagerRouter), currency0), 0);
+
+        // approve max
+        {
+            currency0.transfer(address(vault), amt);
+
+            vm.prank(address(0x01));
+            vault.approve(address(fakePoolManagerRouter), currency0, type(uint256).max);
+
+            vm.startPrank(address(fakePoolManagerRouter));
+            vault.lock(hex"20");
+            vm.stopPrank();
+
+            assertEq(vault.balanceOf(address(fakePoolManagerRouter), currency0), 0);
+            assertEq(vault.allowance(address(0x01), address(fakePoolManagerRouter), currency0), type(uint256).max);
+        }
+
+        // operator
+        {
+            currency0.transfer(address(vault), amt);
+
+            // set a insufficient allowance
+            vm.prank(address(0x01));
+            vault.approve(address(fakePoolManagerRouter), currency0, 1);
+
+            vm.prank(address(0x01));
+            vault.setOperator(address(fakePoolManagerRouter), true);
+
+            vm.startPrank(address(fakePoolManagerRouter));
+            vault.lock(hex"20");
+            vm.stopPrank();
+
+            assertEq(vault.balanceOf(address(fakePoolManagerRouter), currency0), 0);
+            // transfer from operator don't consume allowance
+            assertEq(vault.allowance(address(0x01), address(fakePoolManagerRouter), currency0), 1);
+        }
+    }
+
     function testLockInSufficientBalanceWhenMoreThanOnePoolManagers() public {
         // router => vault.lock
         // vault.lock => periphery.lockAcquired
