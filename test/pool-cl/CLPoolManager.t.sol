@@ -2521,6 +2521,129 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         snapEnd();
     }
 
+    function testModifyLiquidity_Add_WhenPaused() public {
+        Currency currency0 = Currency.wrap(address(new ERC20PresetFixedSupply("C0", "C0", 1e10 ether, address(this))));
+        Currency currency1 = Currency.wrap(address(new ERC20PresetFixedSupply("C1", "C1", 1e10 ether, address(this))));
+        if (currency0 > currency1) {
+            (currency0, currency1) = (currency1, currency0);
+        }
+
+        PoolKey memory key = PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            hooks: IHooks(address(0)),
+            poolManager: poolManager,
+            fee: uint24(3000),
+            parameters: bytes32(uint256(0x10000))
+        });
+
+        poolManager.initialize(key, SQRT_RATIO_1_1, new bytes(0));
+        IERC20(Currency.unwrap(currency0)).approve(address(router), 1e10 ether);
+        IERC20(Currency.unwrap(currency1)).approve(address(router), 1e10 ether);
+
+        // pause
+        poolManager.pause();
+
+        vm.expectRevert(ICLPoolManager.PoolPaused.selector);
+        router.modifyPosition(
+            key,
+            ICLPoolManager.ModifyLiquidityParams({
+                tickLower: TickMath.MIN_TICK,
+                tickUpper: TickMath.MAX_TICK,
+                liquidityDelta: 1e24
+            }),
+            ""
+        );
+    }
+
+    function testModifyLiquidity_Remove_WhenPaused() public {
+        Currency currency0 = Currency.wrap(address(new ERC20PresetFixedSupply("C0", "C0", 1e10 ether, address(this))));
+        Currency currency1 = Currency.wrap(address(new ERC20PresetFixedSupply("C1", "C1", 1e10 ether, address(this))));
+        if (currency0 > currency1) {
+            (currency0, currency1) = (currency1, currency0);
+        }
+
+        PoolKey memory key = PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            hooks: IHooks(address(0)),
+            poolManager: poolManager,
+            fee: uint24(3000),
+            parameters: bytes32(uint256(0x10000))
+        });
+
+        poolManager.initialize(key, SQRT_RATIO_1_1, new bytes(0));
+        IERC20(Currency.unwrap(currency0)).approve(address(router), 1e10 ether);
+        IERC20(Currency.unwrap(currency1)).approve(address(router), 1e10 ether);
+
+        // pre-req add liquidity
+        router.modifyPosition(
+            key, ICLPoolManager.ModifyLiquidityParams({tickLower: -120, tickUpper: 120, liquidityDelta: 1e24}), ""
+        );
+
+        // pause
+        poolManager.pause();
+
+        // verify no revert
+        router.modifyPosition(
+            key, ICLPoolManager.ModifyLiquidityParams({tickLower: -120, tickUpper: 120, liquidityDelta: -1e24}), ""
+        );
+    }
+
+    function testSwap_WhenPaused() public {
+        Currency currency0 = Currency.wrap(address(new ERC20PresetFixedSupply("C0", "C0", 1e10 ether, address(this))));
+        Currency currency1 = Currency.wrap(address(new ERC20PresetFixedSupply("C1", "C1", 1e10 ether, address(this))));
+        if (currency0 > currency1) {
+            (currency0, currency1) = (currency1, currency0);
+        }
+
+        PoolKey memory key = PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            hooks: IHooks(address(0)),
+            poolManager: poolManager,
+            fee: uint24(3000),
+            parameters: bytes32(uint256(0x10000))
+        });
+
+        poolManager.initialize(key, SQRT_RATIO_1_1, new bytes(0));
+        IERC20(Currency.unwrap(currency0)).approve(address(router), 1e10 ether);
+        IERC20(Currency.unwrap(currency1)).approve(address(router), 1e10 ether);
+
+        // pause
+        poolManager.pause();
+
+        vm.expectRevert("Pausable: paused");
+        router.swap(
+            key,
+            ICLPoolManager.SwapParams({
+                zeroForOne: true,
+                amountSpecified: 0.1 ether,
+                sqrtPriceLimitX96: TickMath.MIN_SQRT_RATIO + 1
+            }),
+            CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true}),
+            ""
+        );
+    }
+
+    function testDonate_WhenPaused() public {
+        PoolKey memory key = PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            fee: 100,
+            hooks: IHooks(address(0)),
+            poolManager: poolManager,
+            parameters: bytes32(uint256(10 << 16))
+        });
+        poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
+
+        // pause
+        poolManager.pause();
+
+        vm.expectRevert("Pausable: paused");
+        router.donate(key, 100, 200, ZERO_BYTES);
+    }
+
     function _validateHookConfig(PoolKey memory poolKey) internal view returns (bool) {
         uint16 bitmapInParameters = poolKey.parameters.getHooksRegistrationBitmap();
         if (address(poolKey.hooks) == address(0)) {
