@@ -11,10 +11,11 @@ import {IProtocolFeeController} from "../src/interfaces/IProtocolFeeController.s
 
 contract ExtsloadTest is Test, GasSnapshot {
     // Slot
-    // 0	 	PoolManager#Ownable#_owner
-    // 1	 	PooAlManager#Fees#protocolFeesAccrued
-    // 2		PooAlManager#Fees#protocolFeeController
-    // 3 		PooAlManager#pools
+    // 0	 	PoolManager#PausableRole#Pausable#_paused and PooAlManager#PausableRole#Ownable#_owner
+    // 1	 	PoolManager#PausableRole#hasPausableRole
+    // 2	 	PooAlManager#Fees#protocolFeesAccrued
+    // 3		PooAlManager#Fees#protocolFeeController
+    // 4 		PooAlManager#pools
     ICLPoolManager poolManager;
 
     function setUp() public {
@@ -25,19 +26,21 @@ contract ExtsloadTest is Test, GasSnapshot {
     }
 
     function testExtsload() public {
+        // as contract is not paused, slot0 is 0x0...0_owner_address,
+        // if paused, slot0 is 0x0...1_owner_address
         snapStart("ExtsloadTest#extsload");
         bytes32 slot0 = poolManager.extsload(0x00);
         snapEnd();
         assertEq(abi.encode(slot0), abi.encode(address(this)));
 
-        bytes32 slot2 = poolManager.extsload(bytes32(uint256(0x02)));
-        assertEq(abi.encode(slot2), abi.encode(address(0xabcd)));
+        bytes32 slot3 = poolManager.extsload(bytes32(uint256(0x03)));
+        assertEq(abi.encode(slot3), abi.encode(address(0xabcd)));
     }
 
     function testExtsloadInBatch() public {
         bytes32[] memory slots = new bytes32[](2);
         slots[0] = 0x00;
-        slots[1] = bytes32(uint256(0x02));
+        slots[1] = bytes32(uint256(0x03));
         snapStart("ExtsloadTest#extsloadInBatch");
         slots = poolManager.extsload(slots);
         snapEnd();

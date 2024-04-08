@@ -21,6 +21,8 @@ interface ICLPoolManager is IFees, IPoolManager, IExtsload {
     error TickSpacingTooSmall();
     /// @notice Error thrown when Unauthorized caller
     error UnauthorizedCaller();
+    /// @notice Error thrown when add liquidity is called when paused()
+    error PoolPaused();
 
     /// @notice Emitted when a new pool is initialized
     /// @param id The abi encoded hash of the pool key struct for the new pool

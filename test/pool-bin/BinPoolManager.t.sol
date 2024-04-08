@@ -635,7 +635,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         poolManager.initialize(key, activeId, new bytes(0));
 
         // verify poolId.
-        uint256 POOL_SLOT = 3;
+        uint256 POOL_SLOT = 4;
         snapStart("BinPoolManagerTest#testExtLoadPoolActiveId");
         bytes32 slot0Bytes = poolManager.extsload(keccak256(abi.encode(key.toId(), POOL_SLOT)));
         snapEnd();
