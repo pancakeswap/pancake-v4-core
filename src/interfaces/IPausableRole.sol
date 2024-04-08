@@ -1,9 +1,6 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {Currency} from "../types/Currency.sol";
-import {IProtocolFeeController} from "./IProtocolFeeController.sol";
-
 interface IPausableRole {
     /// @notice Thrown when the caller does not have the pausable role or is not owner
     error NoPausableRole();
