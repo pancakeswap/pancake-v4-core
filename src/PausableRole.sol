@@ -12,7 +12,7 @@ abstract contract PausableRole is IPausableRole, Ownable, Pausable {
     mapping(address => bool) public hasPausableRole;
 
     modifier onlyPausableRoleOrOwner() {
-        if (msg.sender != owner() && hasPausableRole[msg.sender] == false) revert NoPausableRole();
+        if (msg.sender != owner() && !hasPausableRole[msg.sender]) revert NoPausableRole();
         _;
     }
 
