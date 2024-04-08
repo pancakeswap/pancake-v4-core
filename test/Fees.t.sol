@@ -18,7 +18,7 @@ import "../src/interfaces/IFees.sol";
 import "../src/interfaces/IVault.sol";
 import "../src/interfaces/IPoolManager.sol";
 import "../src/interfaces/IHooks.sol";
-import "../src/libraries/FeeLibrary.sol";
+import "../src/libraries/SwapFeeLibrary.sol";
 
 contract FeesTest is Test {
     MockFeePoolManager poolManager;

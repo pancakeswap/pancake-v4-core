@@ -15,7 +15,7 @@ import {PoolKey} from "../types/PoolKey.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../types/BalanceDelta.sol";
 import {IVault} from "../interfaces/IVault.sol";
 import {BinPosition} from "./libraries/BinPosition.sol";
-import {FeeLibrary} from "../libraries/FeeLibrary.sol";
+import {SwapFeeLibrary} from "../libraries/SwapFeeLibrary.sol";
 import {PackedUint128Math} from "./libraries/math/PackedUint128Math.sol";
 import {Extsload} from "../Extsload.sol";
 import "./interfaces/IBinHooks.sol";
@@ -26,7 +26,7 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
     using BinPool for *;
     using BinPosition for mapping(bytes32 => BinPosition.Info);
     using BinPoolParametersHelper for bytes32;
-    using FeeLibrary for uint24;
+    using SwapFeeLibrary for uint24;
     using PackedUint128Math for bytes32;
     using Hooks for bytes32;
 
@@ -101,9 +101,6 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         override
         poolManagerMatch(address(key.poolManager))
     {
-        /// @dev Accept up to FeeLibrary.TEN_PERCENT_FEE for fee
-        if (key.fee.isStaticFeeTooLarge(FeeLibrary.TEN_PERCENT_FEE)) revert FeeTooLarge();
-
         uint16 binStep = key.parameters.getBinStep();
         if (binStep < MIN_BIN_STEP) revert BinStepTooSmall();
         if (binStep > MAX_BIN_STEP) revert BinStepTooLarge();
@@ -112,6 +109,10 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         IBinHooks hooks = IBinHooks(address(key.hooks));
         Hooks.validateHookConfig(key);
         _validateHookNoOp(key);
+
+        /// @notice init value for dynamic swap fee is 0, but hook can still set it in afterInitialize
+        uint24 swapFee = key.fee.getSwapFee();
+        if (swapFee.isSwapFeeTooLarge(SwapFeeLibrary.TEN_PERCENT_FEE)) revert FeeTooLarge();
 
         if (key.parameters.shouldCall(HOOKS_BEFORE_INITIALIZE_OFFSET)) {
             if (hooks.beforeInitialize(msg.sender, key, activeId, hookData) != IBinHooks.beforeInitialize.selector) {
@@ -122,7 +123,6 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         PoolId id = key.toId();
 
         (, uint16 protocolFee) = _fetchProtocolFee(key);
-        uint24 swapFee = key.fee.isDynamicFee() ? _fetchDynamicSwapFee(key) : key.fee.getStaticFee();
         pools[id].initialize(activeId, protocolFee, swapFee);
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
@@ -196,14 +196,14 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         _checkPoolInitialized(id);
 
         uint24 totalSwapFee;
-        if (key.fee.isDynamicFee()) {
+        if (key.fee.isDynamicSwapFee()) {
             totalSwapFee = IBinDynamicFeeManager(address(key.hooks)).getFeeForSwapInSwapOut(
                 msg.sender, key, swapForY, 0, amountOut
             );
-            if (totalSwapFee > FeeLibrary.TEN_PERCENT_FEE) revert FeeTooLarge();
+            if (totalSwapFee > SwapFeeLibrary.TEN_PERCENT_FEE) revert FeeTooLarge();
         } else {
             // clear the top 4 bits since they may be flagged
-            totalSwapFee = key.fee.getStaticFee();
+            totalSwapFee = key.fee.getSwapFee();
         }
 
         (amountIn, amountOutLeft, fee) = pools[id].getSwapIn(
@@ -223,12 +223,12 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         _checkPoolInitialized(id);
 
         uint24 totalSwapFee;
-        if (key.fee.isDynamicFee()) {
+        if (key.fee.isDynamicSwapFee()) {
             totalSwapFee =
                 IBinDynamicFeeManager(address(key.hooks)).getFeeForSwapInSwapOut(msg.sender, key, swapForY, amountIn, 0);
-            if (totalSwapFee > FeeLibrary.TEN_PERCENT_FEE) revert FeeTooLarge();
+            if (totalSwapFee > SwapFeeLibrary.TEN_PERCENT_FEE) revert FeeTooLarge();
         } else {
-            totalSwapFee = key.fee.getStaticFee();
+            totalSwapFee = key.fee.getSwapFee();
         }
 
         (amountInLeft, amountOut, fee) = pools[id].getSwapOut(
@@ -393,20 +393,13 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
     }
 
     /// @inheritdoc IPoolManager
-    function updateDynamicSwapFee(PoolKey memory key) external override {
-        if (key.fee.isDynamicFee()) {
-            uint24 newDynamicSwapFee = _fetchDynamicSwapFee(key);
-            PoolId id = key.toId();
-            pools[id].setSwapFee(newDynamicSwapFee);
-            emit DynamicSwapFeeUpdated(id, newDynamicSwapFee);
-        } else {
-            revert FeeNotDynamic();
-        }
-    }
+    function updateDynamicSwapFee(PoolKey memory key, uint24 newDynamicSwapFee) external override {
+        if (!key.fee.isDynamicSwapFee() || msg.sender != address(key.hooks)) revert UnauthorizedDynamicSwapFeeUpdate();
+        if (newDynamicSwapFee.isSwapFeeTooLarge(SwapFeeLibrary.TEN_PERCENT_FEE)) revert FeeTooLarge();
 
-    function _fetchDynamicSwapFee(PoolKey memory key) internal view returns (uint24 dynamicSwapFee) {
-        dynamicSwapFee = IBinDynamicFeeManager(address(key.hooks)).getFee(msg.sender, key);
-        if (dynamicSwapFee > FeeLibrary.TEN_PERCENT_FEE) revert FeeTooLarge();
+        PoolId id = key.toId();
+        pools[id].setSwapFee(newDynamicSwapFee);
+        emit DynamicSwapFeeUpdated(id, newDynamicSwapFee);
     }
 
     function _checkPoolInitialized(PoolId id) internal view {
