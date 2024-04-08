@@ -19,5 +19,5 @@ contract FakePoolManager is IPoolManager {
 
     function setProtocolFee(PoolKey memory key) external override {}
 
-    function updateDynamicSwapFee(PoolKey memory key) external override {}
+    function updateDynamicSwapFee(PoolKey memory key, uint24 newDynamicSwapFee) external override {}
 }

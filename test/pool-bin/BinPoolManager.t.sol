@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
-import {FeeLibrary} from "../../src/libraries/FeeLibrary.sol";
+import {SwapFeeLibrary} from "../../src/libraries/SwapFeeLibrary.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
 import {IFees} from "../../src/interfaces/IFees.sol";
 import {IPoolManager} from "../../src/interfaces/IPoolManager.sol";
@@ -166,7 +166,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     }
 
     function testInitializeDynamicFeeTooLarge(uint24 dynamicSwapFee) public {
-        dynamicSwapFee = uint24(bound(dynamicSwapFee, FeeLibrary.TEN_PERCENT_FEE + 1, type(uint24).max));
+        dynamicSwapFee = uint24(bound(dynamicSwapFee, SwapFeeLibrary.TEN_PERCENT_FEE + 1, type(uint24).max));
 
         uint16 bitMap = 0x0040; // 0000 0000 0100 0000 (before swap call)
         BinFeeManagerHook binFeeManagerHook = new BinFeeManagerHook(poolManager);
@@ -177,18 +177,19 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             currency1: currency1,
             hooks: IHooks(address(binFeeManagerHook)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: FeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000), // 3000 = 0.3%
+            fee: SwapFeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000), // 3000 = 0.3%
             parameters: bytes32(uint256(bitMap)).setBinStep(10)
         });
 
         binFeeManagerHook.setFee(dynamicSwapFee);
 
+        vm.prank(address(binFeeManagerHook));
         vm.expectRevert(IFees.FeeTooLarge.selector);
-        poolManager.updateDynamicSwapFee(key);
+        poolManager.updateDynamicSwapFee(key, dynamicSwapFee);
     }
 
     function testInitializeSwapFeeTooLarge() public {
-        uint24 swapFee = FeeLibrary.TEN_PERCENT_FEE + 1;
+        uint24 swapFee = SwapFeeLibrary.TEN_PERCENT_FEE + 1;
 
         key = PoolKey({
             currency0: currency0,
@@ -714,14 +715,15 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             currency1: currency1,
             hooks: IHooks(address(binFeeManagerHook)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: FeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000), // 3000 = 0.3%
+            fee: SwapFeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000), // 3000 = 0.3%
             parameters: bytes32(uint256(bitMap)).setBinStep(10)
         });
 
-        binFeeManagerHook.setFee(FeeLibrary.TEN_PERCENT_FEE + 1);
+        binFeeManagerHook.setFee(SwapFeeLibrary.TEN_PERCENT_FEE + 1);
 
         vm.expectRevert(IFees.FeeTooLarge.selector);
-        poolManager.updateDynamicSwapFee(key);
+        vm.prank(address(binFeeManagerHook));
+        poolManager.updateDynamicSwapFee(key, SwapFeeLibrary.TEN_PERCENT_FEE + 1);
     }
 
     function testUpdateDynamicSwapFee_FeeNotDynamic() public {
@@ -734,12 +736,12 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             parameters: poolParam
         });
 
-        vm.expectRevert(IFees.FeeNotDynamic.selector);
-        poolManager.updateDynamicSwapFee(key);
+        vm.expectRevert(IPoolManager.UnauthorizedDynamicSwapFeeUpdate.selector);
+        poolManager.updateDynamicSwapFee(key, 3000);
     }
 
     function testFuzzUpdateDynamicSwapFee(uint24 _swapFee) public {
-        _swapFee = uint24(bound(_swapFee, 0, FeeLibrary.TEN_PERCENT_FEE));
+        _swapFee = uint24(bound(_swapFee, 0, SwapFeeLibrary.TEN_PERCENT_FEE));
 
         uint16 bitMap = 0x0004; // 0000 0000 0000 0100 (before mint call)
         BinFeeManagerHook binFeeManagerHook = new BinFeeManagerHook(poolManager);
@@ -750,7 +752,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             currency1: currency1,
             hooks: IHooks(address(binFeeManagerHook)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: FeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000), // 3000 = 0.3%
+            fee: SwapFeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000), // 3000 = 0.3%
             parameters: bytes32(uint256(bitMap)).setBinStep(10)
         });
         poolManager.initialize(key, activeId, new bytes(0));
@@ -761,7 +763,8 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         emit DynamicSwapFeeUpdated(key.toId(), _swapFee);
 
         snapStart("BinPoolManagerTest#testFuzzUpdateDynamicSwapFee");
-        poolManager.updateDynamicSwapFee(key);
+        vm.prank(address(binFeeManagerHook));
+        poolManager.updateDynamicSwapFee(key, _swapFee);
         snapEnd();
 
         (,, uint24 swapFee) = poolManager.getSlot0(key.toId());
