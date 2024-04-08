@@ -821,6 +821,89 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         vm.stopPrank();
     }
 
+    function testSwap_WhenPaused() public {
+        BinSwapHelper.TestSettings memory testSettings;
+
+        // initialize the pool
+        poolManager.initialize(key, activeId, new bytes(0));
+
+        // mint
+        token0.mint(address(this), 10 ether);
+        token1.mint(address(this), 10 ether);
+        IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 10 ether, 10 ether);
+        binLiquidityHelper.mint(key, mintParams, "");
+
+        // pause
+        poolManager.pause();
+
+        // attempt swap
+        token0.mint(address(this), 1 ether);
+        vm.expectRevert("Pausable: paused");
+        testSettings = BinSwapHelper.TestSettings({withdrawTokens: false, settleUsingTransfer: true});
+        binSwapHelper.swap(key, true, 1 ether, testSettings, "");
+    }
+
+    function testMint_WhenPaused() public {
+        token0.mint(address(this), 1 ether);
+        token1.mint(address(this), 1 ether);
+
+        poolManager.initialize(key, activeId, new bytes(0));
+        IBinPoolManager.MintParams memory mintParams;
+
+        // add 1 eth of tokenX and 1 eth of tokenY liquidity at activeId
+        mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
+
+        // pause
+        poolManager.pause();
+
+        vm.expectRevert("Pausable: paused");
+        binLiquidityHelper.mint(key, mintParams, "");
+    }
+
+    // verify remove liquidity is fine when paused
+    function testBurn_WhenPaused() public {
+        // initialize
+        poolManager.initialize(key, activeId, new bytes(0));
+
+        // mint
+        token0.mint(address(this), 2 ether);
+        token1.mint(address(this), 2 ether);
+        IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
+        binLiquidityHelper.mint(key, mintParams, "");
+
+        // pause
+        poolManager.pause();
+
+        // burn
+        IBinPoolManager.BurnParams memory burnParams =
+            _getSingleBinBurnLiquidityParams(key, poolManager, activeId, address(binLiquidityHelper), 100);
+
+        uint256[] memory ids = new uint256[](1);
+        bytes32[] memory amounts = new bytes32[](1);
+        ids[0] = activeId;
+        amounts[0] = uint128(1e18).encode(uint128(1e18));
+
+        // verify no issue even when pause
+        binLiquidityHelper.burn(key, burnParams, "");
+    }
+
+    function testDonate_WhenPaused() public {
+        poolManager.initialize(key, activeId, new bytes(0));
+
+        token0.mint(address(this), 11 ether);
+        token1.mint(address(this), 11 ether);
+
+        // add 1 eth of tokenX and 1 eth of tokenY liquidity at activeId
+        IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
+        binLiquidityHelper.mint(key, mintParams, "");
+
+        // pause
+        poolManager.pause();
+
+        vm.expectRevert("Pausable: paused");
+        binDonateHelper.donate(key, 10 ether, 10 ether, "");
+    }
+
     receive() external payable {}
 
     function supportsInterface(bytes4) external pure returns (bool) {

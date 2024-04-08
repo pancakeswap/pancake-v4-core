@@ -140,6 +140,7 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         external
         override
         poolManagerMatch(address(key.poolManager))
+        whenNotPaused
         returns (BalanceDelta delta)
     {
         PoolId id = key.toId();
@@ -241,6 +242,7 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         external
         override
         poolManagerMatch(address(key.poolManager))
+        whenNotPaused
         returns (BalanceDelta delta, BinPool.MintArrays memory mintArray)
     {
         PoolId id = key.toId();
@@ -329,6 +331,7 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         external
         override
         poolManagerMatch(address(key.poolManager))
+        whenNotPaused
         returns (BalanceDelta delta, uint24 binId)
     {
         PoolId id = key.toId();
