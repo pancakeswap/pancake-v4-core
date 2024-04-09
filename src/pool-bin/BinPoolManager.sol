@@ -101,8 +101,8 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         override
         poolManagerMatch(address(key.poolManager))
     {
-        /// @dev Accept up to FeeLibrary.TEN_PERCENT_FEE for fee. Add +1 as isStaticFeeTooLarge function checks >=
-        if (key.fee.isStaticFeeTooLarge(FeeLibrary.TEN_PERCENT_FEE + 1)) revert FeeTooLarge();
+        /// @dev Accept up to FeeLibrary.TEN_PERCENT_FEE for fee
+        if (key.fee.isStaticFeeTooLarge(FeeLibrary.TEN_PERCENT_FEE)) revert FeeTooLarge();
 
         uint16 binStep = key.parameters.getBinStep();
         if (binStep < MIN_BIN_STEP) revert BinStepTooSmall();

@@ -38,6 +38,6 @@ contract FeeLibraryTest is Test {
     }
 
     function testFuzzIsStaicFeeTooLarge(uint24 self, uint24 maxFee) public {
-        assertEq(FeeLibrary.getStaticFee(self) >= maxFee, FeeLibrary.isStaticFeeTooLarge(self, maxFee));
+        assertEq(FeeLibrary.getStaticFee(self) > maxFee, FeeLibrary.isStaticFeeTooLarge(self, maxFee));
     }
 }

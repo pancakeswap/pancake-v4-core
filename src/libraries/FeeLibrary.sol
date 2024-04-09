@@ -24,7 +24,7 @@ library FeeLibrary {
     }
 
     function isStaticFeeTooLarge(uint24 self, uint24 maxFee) internal pure returns (bool) {
-        return self & STATIC_FEE_MASK >= maxFee;
+        return self & STATIC_FEE_MASK > maxFee;
     }
 
     function getStaticFee(uint24 self) internal pure returns (uint24) {

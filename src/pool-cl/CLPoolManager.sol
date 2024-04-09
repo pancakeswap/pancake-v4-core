@@ -331,7 +331,7 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
 
     function _fetchDynamicSwapFee(PoolKey memory key) internal view returns (uint24 dynamicSwapFee) {
         dynamicSwapFee = ICLDynamicFeeManager(address(key.hooks)).getFee(msg.sender, key);
-        if (dynamicSwapFee >= FeeLibrary.ONE_HUNDRED_PERCENT_FEE) revert FeeTooLarge();
+        if (dynamicSwapFee > FeeLibrary.ONE_HUNDRED_PERCENT_FEE) revert FeeTooLarge();
     }
 
     function _checkPoolInitialized(PoolId id) internal view {
