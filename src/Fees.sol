@@ -2,15 +2,14 @@
 // Copyright (C) 2024 PancakeSwap
 pragma solidity ^0.8.24;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-
+import {PausableRole} from "./PausableRole.sol";
 import {Currency} from "./types/Currency.sol";
 import {IProtocolFeeController} from "./interfaces/IProtocolFeeController.sol";
 import {IFees} from "./interfaces/IFees.sol";
 import {PoolKey} from "./types/PoolKey.sol";
 import {IVault} from "./interfaces/IVault.sol";
 
-abstract contract Fees is IFees, Ownable {
+abstract contract Fees is IFees, PausableRole {
     uint8 public constant MIN_PROTOCOL_FEE_DENOMINATOR = 4;
 
     mapping(Currency currency => uint256) public protocolFeesAccrued;

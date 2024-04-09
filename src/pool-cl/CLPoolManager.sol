@@ -137,6 +137,9 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
         ICLPoolManager.ModifyLiquidityParams memory params,
         bytes calldata hookData
     ) external override poolManagerMatch(address(key.poolManager)) returns (BalanceDelta delta) {
+        // Do not allow add liquidity when paused()
+        if (paused() && params.liquidityDelta > 0) revert PoolPaused();
+
         PoolId id = key.toId();
         _checkPoolInitialized(id);
 
@@ -196,6 +199,7 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
         external
         override
         poolManagerMatch(address(key.poolManager))
+        whenNotPaused
         returns (BalanceDelta delta)
     {
         PoolId id = key.toId();
@@ -258,6 +262,7 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
         external
         override
         poolManagerMatch(address(key.poolManager))
+        whenNotPaused
         returns (BalanceDelta delta)
     {
         PoolId id = key.toId();
