@@ -300,7 +300,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         key.hooks = IHooks(address(0));
         key.poolManager = poolManager;
 
-        if (key.fee & FeeLibrary.STATIC_FEE_MASK >= FeeLibrary.ONE_HUNDRED_PERCENT_FEE) {
+        if (key.fee & FeeLibrary.STATIC_FEE_MASK > FeeLibrary.ONE_HUNDRED_PERCENT_FEE) {
             vm.expectRevert(abi.encodeWithSelector(IFees.FeeTooLarge.selector));
             poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
         } else if (key.parameters.getTickSpacing() > poolManager.MAX_TICK_SPACING()) {
