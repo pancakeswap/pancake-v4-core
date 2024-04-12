@@ -5,12 +5,11 @@ import {ICLPoolManager} from "../../../src/pool-cl/interfaces/ICLPoolManager.sol
 import {ICLHooks} from "../../../src/pool-cl/interfaces/ICLHooks.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {IHooks} from "../../../src/interfaces/IHooks.sol";
-import {ICLDynamicFeeManager} from "../../../src/pool-cl/interfaces/ICLDynamicFeeManager.sol";
 import {PoolId, PoolIdLibrary} from "../../../src/types/PoolId.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {BaseCLTestHook} from "./BaseCLTestHook.sol";
 
-contract CLFeeManagerHook is BaseCLTestHook, ICLDynamicFeeManager {
+contract CLFeeManagerHook is BaseCLTestHook {
     using PoolIdLibrary for PoolKey;
 
     uint16 bitmap;
@@ -37,6 +36,16 @@ contract CLFeeManagerHook is BaseCLTestHook, ICLDynamicFeeManager {
         return fee;
     }
 
+    /// @dev update swap fee once pool is initialized
+    function afterInitialize(address, PoolKey calldata key, uint160, int24, bytes calldata)
+        external
+        override
+        returns (bytes4)
+    {
+        clManager.updateDynamicSwapFee(key, fee);
+        return ICLHooks.afterInitialize.selector;
+    }
+
     function beforeSwap(address, PoolKey calldata key, ICLPoolManager.SwapParams calldata, bytes calldata hookData)
         external
         override
@@ -46,7 +55,7 @@ contract CLFeeManagerHook is BaseCLTestHook, ICLDynamicFeeManager {
             (bool _update, uint24 _fee) = abi.decode(hookData, (bool, uint24));
             if (_update) {
                 fee = _fee;
-                clManager.updateDynamicSwapFee(key);
+                clManager.updateDynamicSwapFee(key, _fee);
             }
         }
 

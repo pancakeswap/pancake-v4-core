@@ -6,7 +6,7 @@ import {PoolId, PoolIdLibrary} from "../types/PoolId.sol";
 import {PoolKey} from "../types/PoolKey.sol";
 import {BalanceDelta} from "../types/BalanceDelta.sol";
 import {Fees} from "../Fees.sol";
-import {FeeLibrary} from "../libraries/FeeLibrary.sol";
+import {SwapFeeLibrary} from "../libraries/SwapFeeLibrary.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
 /**
@@ -14,7 +14,6 @@ import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
  */
 contract MockFeePoolManager is Fees {
     using PoolIdLibrary for PoolKey;
-    using FeeLibrary for uint24;
     using FixedPointMathLib for uint256;
 
     mapping(PoolId poolId => BalanceDelta delta) public balanceDeltaOfPool;

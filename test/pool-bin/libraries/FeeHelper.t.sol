@@ -4,14 +4,14 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 import {FeeHelper} from "../../../src/pool-bin/libraries/FeeHelper.sol";
 import {Uint256x256Math} from "../../../src/pool-bin/libraries/math/Uint256x256Math.sol";
-import {FeeLibrary} from "../../../src/libraries/FeeLibrary.sol";
+import {SwapFeeLibrary} from "../../../src/libraries/SwapFeeLibrary.sol";
 
 contract FeeHelperTest is Test {
     using FeeHelper for uint128;
     using Uint256x256Math for uint256;
 
     function testFuzz_GetFeeAmountFrom(uint128 amountWithFee, uint24 feeBips) external {
-        feeBips = uint24(bound(feeBips, 0, FeeLibrary.TEN_PERCENT_FEE));
+        feeBips = uint24(bound(feeBips, 0, SwapFeeLibrary.TEN_PERCENT_FEE));
 
         uint128 fee = uint128(feeBips) * 1e12;
         uint256 expectedFeeAmount = (uint256(amountWithFee) * fee + 1e18 - 1) / 1e18;
@@ -21,7 +21,7 @@ contract FeeHelperTest is Test {
     }
 
     function testFuzz_GetFeeAmount(uint128 amount, uint24 feeBips) external {
-        feeBips = uint24(bound(feeBips, 0, FeeLibrary.TEN_PERCENT_FEE));
+        feeBips = uint24(bound(feeBips, 0, SwapFeeLibrary.TEN_PERCENT_FEE));
 
         uint128 fee = uint128(feeBips) * 1e12;
         uint128 denominator = 1e18 - fee;
@@ -33,7 +33,7 @@ contract FeeHelperTest is Test {
     }
 
     function testFuzz_GetCompositionFee(uint128 amountWithFee, uint24 feeBips) external {
-        feeBips = uint24(bound(feeBips, 0, FeeLibrary.TEN_PERCENT_FEE));
+        feeBips = uint24(bound(feeBips, 0, SwapFeeLibrary.TEN_PERCENT_FEE));
 
         uint128 fee = uint128(feeBips) * 1e12;
         uint256 denominator = 1e36;

@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {IHooks} from "../../src/interfaces/IHooks.sol";
 import {Hooks} from "../../src/libraries/Hooks.sol";
-import {FeeLibrary} from "../../src/libraries/FeeLibrary.sol";
+import {SwapFeeLibrary} from "../../src/libraries/SwapFeeLibrary.sol";
 import {IPoolManager} from "../../src/interfaces/IPoolManager.sol";
 import {IFees} from "../../src/interfaces/IFees.sol";
 import {ICLPoolManager} from "../../src/pool-cl/interfaces/ICLPoolManager.sol";

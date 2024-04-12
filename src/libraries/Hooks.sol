@@ -5,13 +5,13 @@ pragma solidity ^0.8.24;
 import {IHooks} from "../interfaces/IHooks.sol";
 import {PoolKey} from "../types/PoolKey.sol";
 import {Encoded} from "./math/Encoded.sol";
-import {FeeLibrary} from "./FeeLibrary.sol";
+import {SwapFeeLibrary} from "./SwapFeeLibrary.sol";
 import {ParametersHelper} from "./math/ParametersHelper.sol";
 
 library Hooks {
     using Encoded for bytes32;
     using ParametersHelper for bytes32;
-    using FeeLibrary for uint24;
+    using SwapFeeLibrary for uint24;
 
     bytes4 constant NO_OP_SELECTOR = bytes4(keccak256(abi.encodePacked("NoOp")));
 
@@ -34,7 +34,7 @@ library Hooks {
         if (address(poolKey.hooks) == address(0)) {
             /// @notice If the hooks address is 0, then the bitmap must be 0,
             /// in the same time, the dynamic fee should be disabled as well
-            if (bitmapInParameters == 0 && !poolKey.fee.isDynamicFee()) {
+            if (bitmapInParameters == 0 && !poolKey.fee.isDynamicSwapFee()) {
                 return;
             }
             revert HookConfigValidationError();

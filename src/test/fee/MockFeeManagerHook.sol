@@ -40,4 +40,10 @@ contract MockFeeManagerHook is IHooks, IBinDynamicFeeManager {
     function getFeeForSwapInSwapOut(address, PoolKey calldata, bool, uint128, uint128) external view returns (uint24) {
         return swapfeeForSwapInSwapOut;
     }
+
+    // swap fee for dynamic fee pool is 0 by default, so we need to update it after pool initialization
+    function afterInitialize(address, PoolKey calldata key, uint24, bytes calldata) external returns (bytes4) {
+        IBinPoolManager(msg.sender).updateDynamicSwapFee(key, swapfee);
+        return MockFeeManagerHook.afterInitialize.selector;
+    }
 }

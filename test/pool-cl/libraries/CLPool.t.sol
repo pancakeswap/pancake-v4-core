@@ -14,7 +14,7 @@ import {FixedPoint96} from "../../../src/pool-cl/libraries/FixedPoint96.sol";
 import {SafeCast} from "../../../src/libraries/SafeCast.sol";
 import {LiquidityAmounts} from "../helpers/LiquidityAmounts.sol";
 import {CLLmPool} from "../helpers/CLLmPool.sol";
-import {FeeLibrary} from "../../../src/libraries/FeeLibrary.sol";
+import {SwapFeeLibrary} from "../../../src/libraries/SwapFeeLibrary.sol";
 import {FullMath} from "../../../src/pool-cl/libraries/FullMath.sol";
 import {FixedPoint128} from "../../../src/pool-cl/libraries/FixedPoint128.sol";
 
@@ -46,7 +46,7 @@ contract PoolTest is Test {
     {
         // Assumptions tested in PoolManager.t.sol
         params.tickSpacing = int24(bound(params.tickSpacing, 1, 32767));
-        swapFee = uint24(bound(swapFee, 0, FeeLibrary.ONE_HUNDRED_PERCENT_FEE - 1));
+        swapFee = uint24(bound(swapFee, 0, SwapFeeLibrary.ONE_HUNDRED_PERCENT_FEE - 1));
 
         testPoolInitialize(sqrtPriceX96, 0, swapFee);
 
