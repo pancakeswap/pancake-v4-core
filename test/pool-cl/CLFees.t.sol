@@ -97,9 +97,10 @@ contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
     }
 
     function testNoProtocolFee(uint16 protocolSwapFee) public {
-        vm.assume(protocolSwapFee < 2 ** 16);
-        vm.assume(protocolSwapFee >> 8 >= 4);
-        vm.assume(protocolSwapFee % 256 >= 4);
+        // Early return instead of vm.assume (too many input rejected)
+        if (protocolSwapFee >= 2 ** 16) return;
+        if (protocolSwapFee >> 8 < 4) return;
+        if (protocolSwapFee % 256 < 4) return;
 
         protocolFeeController.setSwapFeeForPool(key.toId(), protocolSwapFee);
         manager.setProtocolFeeController(IProtocolFeeController(protocolFeeController));

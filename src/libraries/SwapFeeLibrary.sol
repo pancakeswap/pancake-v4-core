@@ -5,7 +5,7 @@ pragma solidity ^0.8.24;
 /// @dev Library for parsing swap fee info from PoolKey.fee:
 /// 24 bits (upper 4 bits are used to store flag, if swap fee is static, parse lower 20 bits to get swap fee)
 /// 1. flag to indicate the activation of dynamic swap fee, otherwise static swap fee is used
-///     - if dynamic swap fee is activated, then the swap fee is controlled by hook
+///     - if dynamic swap fee is activated, then the swap fee can be updated by hook
 ///     - if dynamic swap fee is not activated, then the swap fee is controlled by PoolKey.fee itself
 /// 2. protocol fee is controlled by protocolFeeController, not PoolKey.fee
 ///     - protocol fee is controlled by IProtocolFeeController(hook).protocolFeeForPool()
