@@ -158,7 +158,7 @@ contract VaultReentrancyTest is Test, TokenFixture {
             vm.prank(callerAddr);
             vault.settle(currency0);
             vm.prank(callerAddr);
-            vault.mint(currency0, address(callerAddr), 1 ether);
+            vault.mint(address(callerAddr), currency0, 1 ether);
 
             vaultTokenBalance[i] = vault.balanceOf(callerAddr, currency0);
         }
@@ -194,14 +194,14 @@ contract VaultReentrancyTest is Test, TokenFixture {
             } else if (i % 6 == 2) {
                 // mint
                 vm.prank(callerAddr);
-                vault.mint(currency0, callerAddr, paidAmount);
+                vault.mint(callerAddr, currency0, paidAmount);
 
                 currencyDelta[i % SETTLERS_AMOUNT] += int256(paidAmount);
                 vaultTokenBalance[i % SETTLERS_AMOUNT] += paidAmount;
             } else if (i % 6 == 3) {
                 // burn
                 vm.prank(callerAddr);
-                vault.burn(currency0, paidAmount);
+                vault.burn(callerAddr, currency0, paidAmount);
 
                 currencyDelta[i % SETTLERS_AMOUNT] -= int256(paidAmount);
                 vaultTokenBalance[i % SETTLERS_AMOUNT] -= paidAmount;

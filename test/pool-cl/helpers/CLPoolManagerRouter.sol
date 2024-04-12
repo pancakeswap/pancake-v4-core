@@ -159,14 +159,14 @@ contract CLPoolManagerRouter {
                 } else {
                     // the received hook on this transfer will burn the tokens
                     vault.transferFrom(data.sender, address(this), data.key.currency0, uint128(delta.amount0()));
-                    vault.burn(data.key.currency0, uint128(delta.amount0()));
+                    vault.burn(address(this), data.key.currency0, uint128(delta.amount0()));
                 }
             }
             if (delta.amount1() < 0) {
                 if (data.testSettings.withdrawTokens) {
                     vault.take(data.key.currency1, data.sender, uint128(-delta.amount1()));
                 } else {
-                    vault.mint(data.key.currency1, data.sender, uint128(-delta.amount1()));
+                    vault.mint(data.sender, data.key.currency1, uint128(-delta.amount1()));
                 }
             }
         } else {
@@ -183,14 +183,14 @@ contract CLPoolManagerRouter {
                 } else {
                     // the received hook on this transfer will burn the tokens
                     vault.transferFrom(data.sender, address(this), data.key.currency1, uint128(delta.amount1()));
-                    vault.burn(data.key.currency1, uint128(delta.amount1()));
+                    vault.burn(address(this), data.key.currency1, uint128(delta.amount1()));
                 }
             }
             if (delta.amount0() < 0) {
                 if (data.testSettings.withdrawTokens) {
                     vault.take(data.key.currency0, data.sender, uint128(-delta.amount0()));
                 } else {
-                    vault.mint(data.key.currency0, data.sender, uint128(-delta.amount0()));
+                    vault.mint(data.sender, data.key.currency0, uint128(-delta.amount0()));
                 }
             }
         }
