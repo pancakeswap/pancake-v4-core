@@ -6,7 +6,7 @@ import "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {TokenFixture} from "../../helpers/TokenFixture.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
-import {FeeLibrary} from "../../../src/libraries/FeeLibrary.sol";
+import {SwapFeeLibrary} from "../../../src/libraries/SwapFeeLibrary.sol";
 import {CLFeeManagerHook} from "../helpers/CLFeeManagerHook.sol";
 import {Deployers} from "../helpers/Deployers.sol";
 import {Vault} from "../../../src/Vault.sol";
@@ -18,7 +18,7 @@ import {CLPoolManagerRouter} from "../helpers/CLPoolManagerRouter.sol";
 import {Currency} from "../../../src/types/Currency.sol";
 import {PoolId, PoolIdLibrary} from "../../../src/types/PoolId.sol";
 import {FixedPoint96} from "../../../src/pool-cl/libraries/FixedPoint96.sol";
-import {HOOKS_BEFORE_SWAP_OFFSET} from "../../../src/pool-cl/interfaces/ICLHooks.sol";
+import {HOOKS_AFTER_INITIALIZE_OFFSET, HOOKS_BEFORE_SWAP_OFFSET} from "../../../src/pool-cl/interfaces/ICLHooks.sol";
 import {IHooks} from "../../../src/interfaces/IHooks.sol";
 import {Hooks} from "../../../src/libraries/Hooks.sol";
 
@@ -56,54 +56,50 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
 
         hook = new CLFeeManagerHook(poolManager);
 
-        hook.setHooksRegistrationBitmap(uint16(1 << HOOKS_BEFORE_SWAP_OFFSET));
+        hook.setHooksRegistrationBitmap(uint16((1 << HOOKS_BEFORE_SWAP_OFFSET) | (1 << HOOKS_AFTER_INITIALIZE_OFFSET)));
         dynamicFeeKey = PoolKey({
             currency0: currency0,
             currency1: currency1,
             hooks: hook,
             poolManager: poolManager,
-            fee: FeeLibrary.DYNAMIC_FEE_FLAG,
+            fee: SwapFeeLibrary.DYNAMIC_FEE_FLAG,
             parameters: CLPoolParametersHelper.setTickSpacing(bytes32(uint256(hook.getHooksRegistrationBitmap())), 1)
         });
 
+        hook.setHooksRegistrationBitmap(uint16(1 << HOOKS_BEFORE_SWAP_OFFSET));
         staticFeeKey = PoolKey({
             currency0: currency0,
             currency1: currency1,
             hooks: hook,
             poolManager: poolManager,
             // 50%
-            fee: FeeLibrary.ONE_HUNDRED_PERCENT_FEE / 2,
+            fee: SwapFeeLibrary.ONE_HUNDRED_PERCENT_FEE / 2,
             parameters: CLPoolParametersHelper.setTickSpacing(bytes32(uint256(hook.getHooksRegistrationBitmap())), 1)
         });
     }
 
     function testPoolInitializeFailsWithTooLargeFee() public {
-        // cl pool swap fee is capped at 1_000_000
-        hook.setFee(FeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1);
-
         vm.expectRevert(IFees.FeeTooLarge.selector);
-        poolManager.initialize(dynamicFeeKey, SQRT_RATIO_1_1, ZERO_BYTES);
-
-        {
-            vm.expectRevert(IFees.FeeTooLarge.selector);
-            staticFeeKey.fee = FeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1;
-            poolManager.initialize(staticFeeKey, SQRT_RATIO_1_1, ZERO_BYTES);
-        }
+        staticFeeKey.fee = SwapFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1;
+        poolManager.initialize(staticFeeKey, SQRT_RATIO_1_1, ZERO_BYTES);
     }
 
     function testUpdateFailsWithTooLargeFee() public {
-        hook.setFee(FeeLibrary.ONE_HUNDRED_PERCENT_FEE / 2);
+        hook.setFee(SwapFeeLibrary.ONE_HUNDRED_PERCENT_FEE / 2);
+        hook.setHooksRegistrationBitmap(uint16((1 << HOOKS_BEFORE_SWAP_OFFSET) | (1 << HOOKS_AFTER_INITIALIZE_OFFSET)));
         poolManager.initialize(dynamicFeeKey, SQRT_RATIO_1_1, ZERO_BYTES);
 
-        hook.setFee(FeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1);
+        hook.setFee(SwapFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1);
         vm.expectRevert(IFees.FeeTooLarge.selector);
-        poolManager.updateDynamicSwapFee(dynamicFeeKey);
+        vm.prank(address(dynamicFeeKey.hooks));
+        poolManager.updateDynamicSwapFee(dynamicFeeKey, SwapFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1);
     }
 
     function testSwapWorks() public {
-        hook.setFee(FeeLibrary.ONE_HUNDRED_PERCENT_FEE / 2);
+        hook.setFee(SwapFeeLibrary.ONE_HUNDRED_PERCENT_FEE / 2);
 
         // starts from price = 1
+        hook.setHooksRegistrationBitmap(uint16((1 << HOOKS_BEFORE_SWAP_OFFSET) | (1 << HOOKS_AFTER_INITIALIZE_OFFSET)));
         poolManager.initialize(dynamicFeeKey, SQRT_RATIO_1_1, ZERO_BYTES);
 
         ICLPoolManager.ModifyLiquidityParams memory modifyPositionParams =
@@ -163,7 +159,8 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
     }
 
     function testCacheDynamicFeeAndSwap() public {
-        hook.setFee(FeeLibrary.ONE_HUNDRED_PERCENT_FEE / 2);
+        hook.setFee(SwapFeeLibrary.ONE_HUNDRED_PERCENT_FEE / 2);
+        hook.setHooksRegistrationBitmap(uint16((1 << HOOKS_BEFORE_SWAP_OFFSET) | (1 << HOOKS_AFTER_INITIALIZE_OFFSET)));
 
         // starts from price = 1
         poolManager.initialize(dynamicFeeKey, SQRT_RATIO_1_1, ZERO_BYTES);
@@ -182,7 +179,7 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
         CLPoolManagerRouter.SwapTestSettings memory testSettings =
             CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true});
 
-        bytes memory data = abi.encode(true, uint24(FeeLibrary.ONE_HUNDRED_PERCENT_FEE - 1));
+        bytes memory data = abi.encode(true, uint24(SwapFeeLibrary.ONE_HUNDRED_PERCENT_FEE - 1));
         router.swap(dynamicFeeKey, params, testSettings, data);
     }
 
@@ -192,7 +189,7 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
             currency1: currency1,
             hooks: IHooks(address(0)),
             poolManager: poolManager,
-            fee: FeeLibrary.DYNAMIC_FEE_FLAG,
+            fee: SwapFeeLibrary.DYNAMIC_FEE_FLAG,
             parameters: CLPoolParametersHelper.setTickSpacing(bytes32(uint256(hook.getHooksRegistrationBitmap())), 1)
         });
 

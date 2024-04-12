@@ -11,11 +11,10 @@ import {CLPool} from "./libraries/CLPool.sol";
 import {CLPosition} from "./libraries/CLPosition.sol";
 import {PoolKey} from "../types/PoolKey.sol";
 import {IPoolManager} from "../interfaces/IPoolManager.sol";
-import {ICLDynamicFeeManager} from "./interfaces/ICLDynamicFeeManager.sol";
 import {Hooks} from "../libraries/Hooks.sol";
 import {Tick} from "./libraries/Tick.sol";
 import {CLPoolParametersHelper} from "./libraries/CLPoolParametersHelper.sol";
-import {FeeLibrary} from "../libraries/FeeLibrary.sol";
+import {SwapFeeLibrary} from "../libraries/SwapFeeLibrary.sol";
 import {PoolId, PoolIdLibrary} from "../types/PoolId.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../types/BalanceDelta.sol";
 import {Extsload} from "../Extsload.sol";
@@ -25,7 +24,7 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
     using SafeCast for int256;
     using PoolIdLibrary for PoolKey;
     using Hooks for bytes32;
-    using FeeLibrary for uint24;
+    using SwapFeeLibrary for uint24;
     using CLPoolParametersHelper for bytes32;
     using CLPool for *;
     using CLPosition for mapping(bytes32 => CLPosition.Info);
@@ -97,8 +96,6 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
         poolManagerMatch(address(key.poolManager))
         returns (int24 tick)
     {
-        if (key.fee.isStaticFeeTooLarge(FeeLibrary.ONE_HUNDRED_PERCENT_FEE)) revert FeeTooLarge();
-
         int24 tickSpacing = key.parameters.getTickSpacing();
         if (tickSpacing > MAX_TICK_SPACING) revert TickSpacingTooLarge();
         if (tickSpacing < MIN_TICK_SPACING) revert TickSpacingTooSmall();
@@ -108,6 +105,10 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
         Hooks.validateHookConfig(key);
         _validateHookNoOp(key);
 
+        /// @notice init value for dynamic swap fee is 0, but hook can still set it in afterInitialize
+        uint24 swapFee = key.fee.getSwapFee();
+        if (swapFee.isSwapFeeTooLarge(SwapFeeLibrary.ONE_HUNDRED_PERCENT_FEE)) revert FeeTooLarge();
+
         if (key.parameters.shouldCall(HOOKS_BEFORE_INITIALIZE_OFFSET)) {
             if (hooks.beforeInitialize(msg.sender, key, sqrtPriceX96, hookData) != ICLHooks.beforeInitialize.selector) {
                 revert Hooks.InvalidHookResponse();
@@ -116,7 +117,6 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
 
         PoolId id = key.toId();
         (, uint16 protocolFee) = _fetchProtocolFee(key);
-        uint24 swapFee = key.fee.isDynamicFee() ? _fetchDynamicSwapFee(key) : key.fee.getStaticFee();
         tick = pools[id].initialize(sqrtPriceX96, protocolFee, swapFee);
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
@@ -327,20 +327,13 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
     }
 
     /// @inheritdoc IPoolManager
-    function updateDynamicSwapFee(PoolKey memory key) external override {
-        if (key.fee.isDynamicFee()) {
-            uint24 newDynamicSwapFee = _fetchDynamicSwapFee(key);
-            PoolId id = key.toId();
-            pools[id].setSwapFee(newDynamicSwapFee);
-            emit DynamicSwapFeeUpdated(id, newDynamicSwapFee);
-        } else {
-            revert FeeNotDynamic();
-        }
-    }
+    function updateDynamicSwapFee(PoolKey memory key, uint24 newDynamicSwapFee) external override {
+        if (!key.fee.isDynamicSwapFee() || msg.sender != address(key.hooks)) revert UnauthorizedDynamicSwapFeeUpdate();
+        if (newDynamicSwapFee.isSwapFeeTooLarge(SwapFeeLibrary.ONE_HUNDRED_PERCENT_FEE)) revert FeeTooLarge();
 
-    function _fetchDynamicSwapFee(PoolKey memory key) internal view returns (uint24 dynamicSwapFee) {
-        dynamicSwapFee = ICLDynamicFeeManager(address(key.hooks)).getFee(msg.sender, key);
-        if (dynamicSwapFee > FeeLibrary.ONE_HUNDRED_PERCENT_FEE) revert FeeTooLarge();
+        PoolId id = key.toId();
+        pools[id].setSwapFee(newDynamicSwapFee);
+        emit DynamicSwapFeeUpdated(id, newDynamicSwapFee);
     }
 
     function _checkPoolInitialized(PoolId id) internal view {

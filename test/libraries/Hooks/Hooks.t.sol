@@ -8,7 +8,7 @@ import {IPoolManager} from "../../../src/interfaces/IPoolManager.sol";
 import {Currency} from "../../../src/types/Currency.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {HooksContract} from "./HooksContract.sol";
-import {FeeLibrary} from "../../../src/libraries/FeeLibrary.sol";
+import {SwapFeeLibrary} from "../../../src/libraries/SwapFeeLibrary.sol";
 
 contract HooksTest is Test {
     /// @dev trick to convert poolKey to calldata
@@ -64,7 +64,7 @@ contract HooksTest is Test {
             bitmap := and(parameters, 0xFFFF)
         }
 
-        if (bitmap != 0 || FeeLibrary.isDynamicFee(fee)) {
+        if (bitmap != 0 || SwapFeeLibrary.isDynamicSwapFee(fee)) {
             vm.expectRevert(Hooks.HookConfigValidationError.selector);
         }
 

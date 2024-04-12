@@ -11,6 +11,10 @@ interface IPoolManager {
     /// @notice PoolKey must have currencies where address(currency0) < address(currency1)
     error CurrenciesInitializedOutOfOrder();
 
+    /// @notice Thrown when a call to updateDynamicSwapFee is made by an address that is not the hook,
+    /// or on a pool that does not have a dynamic swap fee.
+    error UnauthorizedDynamicSwapFeeUpdate();
+
     /// @notice Emitted when protocol fee is updated
     /// @dev The event is emitted even if the updated protocolFee is the same as previous protocolFee
     event ProtocolFeeUpdated(PoolId indexed id, uint16 protocolFee);
@@ -28,5 +32,5 @@ interface IPoolManager {
     ///   1) when hook#beforeSwap() is called and hook call this function to update the swap fee
     ///   2) For BinPool only, when hook#beforeMint() is called and hook call this function to update the swap fee
     ///   3) other use case where the hook might want to on an ad-hoc basis increase/reduce swap fee
-    function updateDynamicSwapFee(PoolKey memory key) external;
+    function updateDynamicSwapFee(PoolKey memory key, uint24 newDynamicSwapFee) external;
 }
