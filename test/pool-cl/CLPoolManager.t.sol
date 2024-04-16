@@ -620,7 +620,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
             poolManager: poolManager,
             parameters: CLPoolParametersHelper.setTickSpacing(
                 bytes32(uint256(clFeeManagerHook.getHooksRegistrationBitmap())), 10
-            )
+                )
         });
 
         clFeeManagerHook.setFee(dynamicSwapFee);
