@@ -160,7 +160,7 @@ contract BinPoolFeeTest is BinTestHelper {
             fee: SwapFeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000),
             parameters: BinPoolParametersHelper.setBinStep(
                 bytes32(uint256(mockFeeManagerHook.getHooksRegistrationBitmap())), 10
-                )
+            )
         });
 
         // this could be sync to pool through beforeInitialize hook
