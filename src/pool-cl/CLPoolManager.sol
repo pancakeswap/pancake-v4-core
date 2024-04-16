@@ -302,6 +302,14 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
         return pools[id].tickBitmap[word];
     }
 
+    function getPoolFeeGrowthInside(PoolId id, int24 tickLower, int24 tickUpper)
+        external
+        view
+        returns (uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128)
+    {
+        return pools[id].getFeeGrowthInside(tickLower, tickUpper);
+    }
+
     /// @inheritdoc ICLPoolManager
     function setMasterChef(address _masterChef) external override onlyOwner {
         masterChef = _masterChef;
