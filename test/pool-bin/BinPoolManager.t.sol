@@ -35,7 +35,6 @@ import {BinDonateHelper} from "./helpers/BinDonateHelper.sol";
 import {BinTestHelper} from "./helpers/BinTestHelper.sol";
 import {BinNoOpTestHook} from "./helpers/BinNoOpTestHook.sol";
 import {Hooks} from "../../src/libraries/Hooks.sol";
-import {MockBinLmPool} from "./helpers/MockBinLmPool.sol";
 
 contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     using PoolIdLibrary for PoolKey;
@@ -50,7 +49,6 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     error BinStepTooSmall();
     error BinStepTooLarge();
     error MaxBinStepTooSmall(uint16 maxBinStep);
-    error UnauthorizedCaller();
 
     event Initialize(
         PoolId indexed id,
@@ -82,8 +80,6 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     event ProtocolFeeUpdated(PoolId indexed id, uint16 protocolFees);
     event SetMaxBinStep(uint16 maxBinStep);
     event DynamicSwapFeeUpdated(PoolId indexed id, uint24 dynamicSwapFee);
-    event SetMasterChef(address masterChef);
-    event SetLmPool(PoolId indexed id, address lmPool);
 
     Vault public vault;
     BinPoolManager public poolManager;
@@ -769,59 +765,6 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
         (,, uint24 swapFee) = poolManager.getSlot0(key.toId());
         assertEq(swapFee, _swapFee);
-    }
-
-    function testSetMasterChef(address masterChef) public {
-        assertEq(poolManager.masterChef(), address(0));
-
-        vm.expectEmit();
-        emit SetMasterChef(masterChef);
-        snapStart("BinPoolManagerTest#testSetMasterChef");
-        poolManager.setMasterChef(masterChef);
-        snapEnd();
-
-        assertEq(poolManager.masterChef(), masterChef);
-    }
-
-    function testSetMasterChef_Owner() public {
-        vm.prank(makeAddr("bob"));
-        vm.expectRevert("Ownable: caller is not the owner");
-        poolManager.setMasterChef(makeAddr("masterChef"));
-    }
-
-    function testSetLmPool() public {
-        MockBinLmPool lmPool1 = new MockBinLmPool(IBinPoolManager(poolManager), key.toId());
-        MockBinLmPool lmPool2 = new MockBinLmPool(IBinPoolManager(poolManager), key.toId());
-        address masterChef = makeAddr("masterChef");
-
-        // error when not initialized
-        vm.expectRevert(PoolNotInitialized.selector);
-        poolManager.getLmPool(key.toId());
-
-        // address(0) by default when initialized
-        poolManager.initialize(key, activeId, new bytes(0));
-        assertEq(poolManager.getLmPool(key.toId()), address(0));
-
-        // error when setting when not masterChef
-        vm.prank(makeAddr("alice"));
-        vm.expectRevert(UnauthorizedCaller.selector);
-        poolManager.setLmPool(key, address(lmPool1));
-
-        // success when caller is owner
-        address owner = poolManager.owner();
-        vm.prank(owner);
-        poolManager.setLmPool(key, address(lmPool1));
-        assertEq(poolManager.getLmPool(key.toId()), address(lmPool1));
-
-        // success when caller is masterchef
-        poolManager.setMasterChef(masterChef);
-        vm.startPrank(masterChef);
-        vm.expectEmit();
-        emit SetLmPool(key.toId(), address(lmPool2));
-        poolManager.setLmPool(key, address(lmPool2));
-        assertEq(poolManager.getLmPool(key.toId()), address(lmPool2));
-        assertEq(PoolId.unwrap(lmPool2.poolId()), PoolId.unwrap(key.toId()));
-        vm.stopPrank();
     }
 
     function testSwap_WhenPaused() public {

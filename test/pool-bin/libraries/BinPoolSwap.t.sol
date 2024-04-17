@@ -18,7 +18,6 @@ import {BinPoolParametersHelper} from "../../../src/pool-bin/libraries/BinPoolPa
 import {BinTestHelper} from "../helpers/BinTestHelper.sol";
 import {IProtocolFeeController} from "../../../src/interfaces/IProtocolFeeController.sol";
 import {MockProtocolFeeController} from "../../../src/test/fee/MockProtocolFeeController.sol";
-import {MockBinLmPool} from "../helpers/MockBinLmPool.sol";
 
 contract BinPoolSwapTest is BinTestHelper {
     using PoolIdLibrary for PoolKey;
@@ -145,50 +144,6 @@ contract BinPoolSwapTest is BinTestHelper {
         // should be very close to 1/10 of fee. add 0.1% approxEq due to math
         assertApproxEqRel(poolManager.protocolFeesAccrued(key.currency0), fee1 / 10, 0.001e18);
         assertEq(poolManager.protocolFeesAccrued(key.currency1), 0);
-    }
-
-    function test_SwapSingleBin_WithLmPool() public {
-        // add 1 ether on each side to active bin
-        poolManager.initialize(key, activeId, new bytes(0));
-        addLiquidityToBin(key, poolManager, bob, activeId, 1e18, 1e18, 1e18, 1e18, "");
-
-        // setup lm pool
-        poolManager.setMasterChef(address(this));
-        MockBinLmPool lmPool = new MockBinLmPool(IBinPoolManager(poolManager), key.toId());
-        poolManager.setLmPool(key, address(lmPool));
-
-        // before swap, verify accCakePerShare = 0
-        (uint24 _activeId,,) = poolManager.getSlot0(key.toId());
-        (uint256 accCakePerShareBefore,) = lmPool.binIdToBinInfo(_activeId);
-
-        vm.warp(10_000);
-        poolManager.swap(key, true, 0.5e18, "");
-
-        // after swap, vericy accCakePerShare += 1
-        (uint256 accCakePerShareAfter,) = lmPool.binIdToBinInfo(_activeId);
-        assertEq(accCakePerShareBefore + 1, accCakePerShareAfter);
-        assertEq(lmPool.lastRewardTimestamp(), 10_000);
-    }
-
-    function test_SwapMultipleBin_WithLmPool() public {
-        // add 1 ether on each side to 10 bins
-        poolManager.initialize(key, activeId, new bytes(0));
-        addLiquidity(key, poolManager, bob, activeId, 1e18, 1e18, 10, 10);
-
-        // setup lm pool
-        poolManager.setMasterChef(address(this));
-        MockBinLmPool lmPool = new MockBinLmPool(IBinPoolManager(poolManager), key.toId());
-        poolManager.setLmPool(key, address(lmPool));
-
-        // before swap verify
-        assertEq(lmPool.accumulateRewardCounter(), 0);
-
-        vm.warp(10_000);
-        poolManager.swap(key, true, 0.5e18, "");
-
-        // after swap, verify active id updated and accumulateReward happened
-        assertEq(lmPool.accumulateRewardCounter(), 1);
-        assertEq(lmPool.lastRewardTimestamp(), 10_000);
     }
 
     function testFuzz_SwapInForY(uint128 amountOut) public {
