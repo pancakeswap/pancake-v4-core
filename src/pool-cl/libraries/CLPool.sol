@@ -13,7 +13,6 @@ import {FixedPoint128} from "./FixedPoint128.sol";
 import {FullMath} from "./FullMath.sol";
 import {SwapMath} from "./SwapMath.sol";
 import {LiquidityMath} from "./LiquidityMath.sol";
-import {ICLLmPool} from "../interfaces/ICLLmPool.sol";
 
 library CLPool {
     using SafeCast for int256;
@@ -68,8 +67,6 @@ library CLPool {
         uint256 feeGrowthGlobal1X128;
         /// @dev current active liquidity
         uint128 liquidity;
-        /// @notice liquidity mining pool, if set, indicate a farm is present for this pool
-        ICLLmPool lmPool;
         mapping(int24 => Tick.Info) ticks;
         mapping(int16 => uint256) tickBitmap;
         mapping(bytes32 => CLPosition.Info) positions;
@@ -228,12 +225,6 @@ library CLPool {
             protocolFee: params.zeroForOne ? uint8(slot0Start.protocolFee % 256) : uint8(slot0Start.protocolFee >> 8)
         });
 
-        // accumulate farming reward before swap if possible
-        ICLLmPool lmPool = self.lmPool;
-        if (address(lmPool) != address(0)) {
-            lmPool.accumulateReward(uint32(block.timestamp));
-        }
-
         bool exactInput = params.amountSpecified > 0;
 
         state = SwapState({
@@ -313,11 +304,6 @@ library CLPool {
             if (state.sqrtPriceX96 == step.sqrtPriceNextX96) {
                 // if the tick is initialized, run the tick transition
                 if (step.initialized) {
-                    // sync LmPool when tick is crossed
-                    if (address(lmPool) != address(0)) {
-                        lmPool.crossLmTick(step.tickNext, params.zeroForOne);
-                    }
-
                     int128 liquidityNet = self.ticks.cross(
                         step.tickNext,
                         (params.zeroForOne ? state.feeGrowthGlobalX128 : self.feeGrowthGlobal0X128),
@@ -461,17 +447,6 @@ library CLPool {
             }
             tick = state.slot0.tick;
         }
-    }
-
-    function setLmPool(State storage self, address lmPool) internal {
-        if (self.isNotInitialized()) revert PoolNotInitialized();
-        self.lmPool = ICLLmPool(lmPool);
-    }
-
-    function getLmPool(State storage self) internal view returns (address) {
-        if (self.isNotInitialized()) revert PoolNotInitialized();
-
-        return address(self.lmPool);
     }
 
     function setProtocolFee(State storage self, uint16 protocolFee) internal {

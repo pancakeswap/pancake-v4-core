@@ -9,11 +9,9 @@ import {CLPosition} from "../../../src/pool-cl/libraries/CLPosition.sol";
 import {TickMath} from "../../../src/pool-cl/libraries/TickMath.sol";
 import {TickBitmap} from "../../../src/pool-cl/libraries/TickBitmap.sol";
 import {Tick} from "../../../src/pool-cl/libraries/Tick.sol";
-import {ICLLmPool} from "../../../src/pool-cl/interfaces/ICLLmPool.sol";
 import {FixedPoint96} from "../../../src/pool-cl/libraries/FixedPoint96.sol";
 import {SafeCast} from "../../../src/libraries/SafeCast.sol";
 import {LiquidityAmounts} from "../helpers/LiquidityAmounts.sol";
-import {CLLmPool} from "../helpers/CLLmPool.sol";
 import {SwapFeeLibrary} from "../../../src/libraries/SwapFeeLibrary.sol";
 import {FullMath} from "../../../src/pool-cl/libraries/FullMath.sol";
 import {FixedPoint128} from "../../../src/pool-cl/libraries/FixedPoint128.sol";
@@ -93,27 +91,12 @@ contract PoolTest is Test {
         uint160 sqrtPriceX96,
         CLPool.ModifyLiquidityParams memory modifyLiquidityParams,
         CLPool.SwapParams memory swapParams,
-        uint24 swapFee,
-        ICLLmPool lmPool
+        uint24 swapFee
     ) public {
         testModifyPosition(sqrtPriceX96, modifyLiquidityParams, swapFee);
 
         swapParams.tickSpacing = modifyLiquidityParams.tickSpacing;
         CLPool.Slot0 memory slot0 = state.slot0;
-
-        if (address(lmPool) != address(0)) {
-            state.lmPool = new CLLmPool();
-            /// @dev Calls to mocked addresses may revert if there is no code on the address.
-            /// This is because Solidity inserts an extcodesize check before some contract calls.
-            /// To circumvent this, use the etch cheatcode if the mocked address has no code.
-            vm.mockCall(address(state.lmPool), abi.encodeWithSelector(ICLLmPool.accumulateReward.selector), "");
-            vm.mockCall(address(state.lmPool), abi.encodeWithSelector(ICLLmPool.crossLmTick.selector), "");
-
-            vm.warp(1641070800);
-            vm.expectCall(
-                address(state.lmPool), abi.encodeWithSelector(ICLLmPool.accumulateReward.selector, 1641070800), 1
-            );
-        }
 
         if (swapParams.amountSpecified == 0) {
             vm.expectRevert(CLPool.SwapAmountCannotBeZero.selector);
