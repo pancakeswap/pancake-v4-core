@@ -75,7 +75,7 @@ contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
     function testSetProtocolFeeControllerFuzz(uint16 protocolSwapFee) public {
         vm.assume(protocolSwapFee < 2 ** 16);
 
-        (CLPool.Slot0 memory slot0,,,,) = manager.pools(key.toId());
+        (CLPool.Slot0 memory slot0,,,) = manager.pools(key.toId());
         assertEq(slot0.protocolFee, 0);
 
         protocolFeeController.setSwapFeeForPool(key.toId(), protocolSwapFee);
@@ -91,7 +91,7 @@ contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
         }
         manager.setProtocolFee(key);
 
-        (slot0,,,,) = manager.pools(key.toId());
+        (slot0,,,) = manager.pools(key.toId());
 
         assertEq(slot0.protocolFee, protocolSwapFee);
     }
@@ -106,7 +106,7 @@ contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
         manager.setProtocolFeeController(IProtocolFeeController(protocolFeeController));
         manager.setProtocolFee(key);
 
-        (CLPool.Slot0 memory slot0,,,,) = manager.pools(key.toId());
+        (CLPool.Slot0 memory slot0,,,) = manager.pools(key.toId());
         assertEq(slot0.protocolFee, protocolSwapFee);
 
         int256 liquidityDelta = 10000;
@@ -153,7 +153,7 @@ contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
         manager.setProtocolFeeController(IProtocolFeeController(protocolFeeController));
         manager.setProtocolFee(key);
 
-        (CLPool.Slot0 memory slot0,,,,) = manager.pools(key.toId());
+        (CLPool.Slot0 memory slot0,,,) = manager.pools(key.toId());
         assertEq(slot0.protocolFee, protocolFee);
 
         ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-120, 120, 10e18);

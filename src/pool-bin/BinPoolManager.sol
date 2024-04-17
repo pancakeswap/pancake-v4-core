@@ -38,9 +38,6 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
 
     mapping(PoolId id => BinPool.State) public pools;
 
-    /// @inheritdoc IBinPoolManager
-    address public override masterChef;
-
     constructor(IVault vault, uint256 controllerGasLimit) Fees(vault, controllerGasLimit) {}
 
     /// @notice pool manager specified in the pool key must match current contract
@@ -88,11 +85,6 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         returns (uint24 nextId)
     {
         nextId = pools[id].getNextNonEmptyBin(swapForY, binId);
-    }
-
-    /// @inheritdoc IBinPoolManager
-    function getLmPool(PoolId id) external view override returns (address lmPool) {
-        lmPool = pools[id].getLmPool();
     }
 
     /// @inheritdoc IBinPoolManager
@@ -376,20 +368,6 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
 
         MAX_BIN_STEP = maxBinStep;
         emit SetMaxBinStep(maxBinStep);
-    }
-
-    /// @inheritdoc IBinPoolManager
-    function setMasterChef(address _masterChef) external override onlyOwner {
-        masterChef = _masterChef;
-        emit SetMasterChef(_masterChef);
-    }
-
-    /// @inheritdoc IBinPoolManager
-    function setLmPool(PoolKey memory key, address lmPool) external override {
-        if (msg.sender != masterChef && msg.sender != owner()) revert UnauthorizedCaller();
-        PoolId id = key.toId();
-        pools[id].setLmPool(lmPool);
-        emit SetLmPool(id, lmPool);
     }
 
     /// @inheritdoc IPoolManager

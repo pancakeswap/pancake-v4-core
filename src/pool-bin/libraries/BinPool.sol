@@ -3,7 +3,6 @@
 pragma solidity ^0.8.24;
 
 import {BalanceDelta, toBalanceDelta} from "../../types/BalanceDelta.sol";
-import {IBinLmPool} from "../interfaces/IBinLmPool.sol";
 import {LiquidityConfigurations} from "./math/LiquidityConfigurations.sol";
 import {PackedUint128Math} from "./math/PackedUint128Math.sol";
 import {Uint256x256Math} from "./math/Uint256x256Math.sol";
@@ -77,8 +76,6 @@ library BinPool {
         bytes32 level0;
         mapping(bytes32 => bytes32) level1;
         mapping(bytes32 => bytes32) level2;
-        /// @notice liquidity mining pool, if set, indicate a farm is present for this pool
-        IBinLmPool lmPool;
     }
 
     function initialize(State storage self, uint24 activeId, uint16 protocolFee, uint24 swapFee) internal {
@@ -98,17 +95,6 @@ library BinPool {
         if (self.isNotInitialized()) revert PoolNotInitialized();
 
         self.slot0.swapFee = swapFee;
-    }
-
-    function setLmPool(State storage self, address lmPool) internal {
-        if (self.isNotInitialized()) revert PoolNotInitialized();
-        self.lmPool = IBinLmPool(lmPool);
-    }
-
-    function getLmPool(State storage self) internal view returns (address) {
-        if (self.isNotInitialized()) revert PoolNotInitialized();
-
-        return address(self.lmPool);
     }
 
     struct SwapViewParams {
@@ -203,10 +189,6 @@ library BinPool {
         activeId = self.slot0.activeId;
 
         if (amountIn == 0) revert BinPool__InsufficientAmountIn();
-
-        if (address(self.lmPool) != address(0)) {
-            self.lmPool.accumulateReward(uint32(block.timestamp));
-        }
 
         bytes32 amountsLeft = params.swapForY ? amountIn.encodeFirst() : amountIn.encodeSecond();
         bytes32 amountsOut;

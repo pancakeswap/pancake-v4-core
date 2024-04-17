@@ -24,9 +24,6 @@ interface IBinPoolManager is IFees, IPoolManager, IExtsload {
     /// @notice Error thrown when owner set max bin step too small
     error MaxBinStepTooSmall(uint16 maxBinStep);
 
-    /// @notice Error thrown when Unauthorized caller
-    error UnauthorizedCaller();
-
     /// @notice Returns the constant representing the max bin step
     /// @return maxBinStep a value of 100 would represent a 1% price jump between bin (limit can be raised by owner)
     function MAX_BIN_STEP() external view returns (uint16);
@@ -102,12 +99,6 @@ interface IBinPoolManager is IFees, IPoolManager, IExtsload {
 
     /// @notice Emitted when bin step is updated
     event SetMaxBinStep(uint16 maxBinStep);
-
-    /// @notice Emitted when masterChef is updated
-    event SetMasterChef(address masterChef);
-
-    /// @notice Emitted when LMPool is set for a pool
-    event SetLmPool(PoolId indexed id, address lmPool);
 
     struct MintParams {
         bytes32[] liquidityConfigs;
@@ -200,20 +191,4 @@ interface IBinPoolManager is IFees, IPoolManager, IExtsload {
     /// @notice Set max bin step for BinPool
     /// @dev To be realistic, its highly unlikely a pool type with > 100 bin step is required. (>1% price jump per bin)
     function setMaxBinStep(uint16 maxBinStep) external;
-
-    /// @notice Set masterChef address, in case when farming incentive for a pool begin.
-    /// @dev If farming is migrated to off-chain in the future, masterChef can be reverted to address(0)
-    function setMasterChef(address masterChef) external;
-
-    /// @notice Return the masterChef address set
-    function masterChef() external returns (address);
-
-    /// @notice Set liquidity mining pool for a poolId. if a pool has farmining incentive, masterChef
-    ///         will deploy and assign an LM Pool to a pool.
-    /// @dev The only reason why owner call is when we no longer rely on lmPool for farming incentives or
-    ///      there is an issue with the existing lmPool and we need to change it.
-    function setLmPool(PoolKey memory key, address lmPool) external;
-
-    /// @notice Return the lmPool for a poolId, address(0) if not set
-    function getLmPool(PoolId id) external view returns (address);
 }

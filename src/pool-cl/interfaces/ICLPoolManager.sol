@@ -19,8 +19,6 @@ interface ICLPoolManager is IFees, IPoolManager, IExtsload {
     error TickSpacingTooLarge();
     /// @notice Pools must have a positive non-zero tickSpacing passed to #initialize
     error TickSpacingTooSmall();
-    /// @notice Error thrown when Unauthorized caller
-    error UnauthorizedCaller();
     /// @notice Error thrown when add liquidity is called when paused()
     error PoolPaused();
 
@@ -79,12 +77,6 @@ interface ICLPoolManager is IFees, IPoolManager, IExtsload {
     /// @param amount1 The delta of the currency1 balance of the pool
     /// @param tick The donated tick
     event Donate(PoolId indexed id, address indexed sender, uint256 amount0, uint256 amount1, int24 tick);
-
-    /// @notice Emitted when masterChef is updated
-    event SetMasterChef(address masterChef);
-
-    /// @notice Emitted when LMPool is set for a pool
-    event SetLmPool(PoolId indexed id, address lmPool);
 
     /// @notice Returns the constant representing the maximum tickSpacing for an initialized pool key
     function MAX_TICK_SPACING() external view returns (int24);
@@ -146,21 +138,4 @@ interface ICLPoolManager is IFees, IPoolManager, IExtsload {
     function donate(PoolKey memory key, uint256 amount0, uint256 amount1, bytes calldata hookData)
         external
         returns (BalanceDelta);
-
-    /// @notice Set masterChef address, in case when farming incentive for a pool begin.
-    /// @dev If farming is migrated to off-chain in the future, masterChef can be reverted to address(0)
-    function setMasterChef(address masterChef) external;
-
-    /// @notice Return the masterChef address set
-    function masterChef() external returns (address);
-
-    /// @notice Set liquidity mining pool for a poolId. if a pool has farmining incentive, masterChef
-    ///         will deploy and assign an LM Pool to a pool.
-    /// @dev During swap, pool will call LMPool to accumulate reward or notify when current tick is crossed.
-    ///      The only reason why owner call is when we no longer rely on lmPool for farming incentives or
-    ///      there is an issue with the existing lmPool and we need to change it.
-    function setLmPool(PoolKey memory key, address lmPool) external;
-
-    /// @notice Return the lmPool for a poolId, address(0) if not set
-    function getLmPool(PoolId id) external view returns (address);
 }
