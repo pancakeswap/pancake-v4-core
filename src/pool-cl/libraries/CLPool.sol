@@ -42,9 +42,6 @@ library CLPool {
     /// @notice Thrown by donate if there is currently 0 liquidity, since the fees will not go to any liquidity providers
     error NoLiquidityToReceiveFees();
 
-    /// @dev for off-chain farming
-    event SwapFees(uint256 feesOwed0, uint256 feesOwed1);
-
     struct Slot0 {
         // the current price
         uint160 sqrtPriceX96;
@@ -113,8 +110,6 @@ library CLPool {
         Tick.checkTicks(params.tickLower, params.tickUpper);
 
         (uint256 feesOwed0, uint256 feesOwed1) = _updatePosition(self, params, _slot0.tick);
-        // @dev track swap fees for off-chain farming
-        emit SwapFees(feesOwed0, feesOwed1);
 
         ///@dev calculate the tokens delta needed
         if (params.liquidityDelta != 0) {
@@ -501,6 +496,8 @@ library CLPool {
         view
         returns (uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128)
     {
-        return self.ticks.getFeeGrowthInside(tickLower, tickUpper, self.slot0.tick, self.feeGrowthGlobal0X128, self.feeGrowthGlobal1X128);
+        return self.ticks.getFeeGrowthInside(
+            tickLower, tickUpper, self.slot0.tick, self.feeGrowthGlobal0X128, self.feeGrowthGlobal1X128
+        );
     }
 }
