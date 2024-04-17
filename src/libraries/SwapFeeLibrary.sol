@@ -29,7 +29,9 @@ library SwapFeeLibrary {
         return self > maxFee;
     }
 
-    function getSwapFee(uint24 self) internal pure returns (uint24 swapFee) {
+    /// @return swapFee initial swap fee for the pool. For dynamic fee pool, query
+    ///         poolManager.getSlot0(poolId) to get the current swapFee instead
+    function getInitialSwapFee(uint24 self) internal pure returns (uint24 swapFee) {
         // the initial fee for a dynamic fee pool is 0
         if (self.isDynamicSwapFee()) return 0;
         swapFee = self & STATIC_FEE_MASK;

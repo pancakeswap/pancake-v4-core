@@ -106,7 +106,7 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
         _validateHookNoOp(key);
 
         /// @notice init value for dynamic swap fee is 0, but hook can still set it in afterInitialize
-        uint24 swapFee = key.fee.getSwapFee();
+        uint24 swapFee = key.fee.getInitialSwapFee();
         if (swapFee.isSwapFeeTooLarge(SwapFeeLibrary.ONE_HUNDRED_PERCENT_FEE)) revert FeeTooLarge();
 
         if (key.parameters.shouldCall(HOOKS_BEFORE_INITIALIZE_OFFSET)) {

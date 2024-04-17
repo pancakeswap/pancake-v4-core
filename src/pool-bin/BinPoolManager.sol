@@ -111,7 +111,7 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         _validateHookNoOp(key);
 
         /// @notice init value for dynamic swap fee is 0, but hook can still set it in afterInitialize
-        uint24 swapFee = key.fee.getSwapFee();
+        uint24 swapFee = key.fee.getInitialSwapFee();
         if (swapFee.isSwapFeeTooLarge(SwapFeeLibrary.TEN_PERCENT_FEE)) revert FeeTooLarge();
 
         if (key.parameters.shouldCall(HOOKS_BEFORE_INITIALIZE_OFFSET)) {
@@ -203,7 +203,7 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
             if (totalSwapFee > SwapFeeLibrary.TEN_PERCENT_FEE) revert FeeTooLarge();
         } else {
             // clear the top 4 bits since they may be flagged
-            totalSwapFee = key.fee.getSwapFee();
+            totalSwapFee = key.fee.getInitialSwapFee();
         }
 
         (amountIn, amountOutLeft, fee) = pools[id].getSwapIn(
@@ -228,7 +228,7 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
                 IBinDynamicFeeManager(address(key.hooks)).getFeeForSwapInSwapOut(msg.sender, key, swapForY, amountIn, 0);
             if (totalSwapFee > SwapFeeLibrary.TEN_PERCENT_FEE) revert FeeTooLarge();
         } else {
-            totalSwapFee = key.fee.getSwapFee();
+            totalSwapFee = key.fee.getInitialSwapFee();
         }
 
         (amountInLeft, amountOut, fee) = pools[id].getSwapOut(

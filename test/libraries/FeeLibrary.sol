@@ -30,19 +30,19 @@ contract SwapFeeLibraryTest is Test {
 
     function testGetSwapFee() public {
         // static
-        assertEq(SwapFeeLibrary.getSwapFee(0x000001), 0x000001);
-        assertEq(SwapFeeLibrary.getSwapFee(0x000002), 0x000002);
-        assertEq(SwapFeeLibrary.getSwapFee(0x0F0003), 0x0F0003);
-        assertEq(SwapFeeLibrary.getSwapFee(0x001004), 0x001004);
-        assertEq(SwapFeeLibrary.getSwapFee(0x111020), 0x011020);
-        assertEq(SwapFeeLibrary.getSwapFee(0x101020), 0x001020);
+        assertEq(SwapFeeLibrary.getInitialSwapFee(0x000001), 0x000001);
+        assertEq(SwapFeeLibrary.getInitialSwapFee(0x000002), 0x000002);
+        assertEq(SwapFeeLibrary.getInitialSwapFee(0x0F0003), 0x0F0003);
+        assertEq(SwapFeeLibrary.getInitialSwapFee(0x001004), 0x001004);
+        assertEq(SwapFeeLibrary.getInitialSwapFee(0x111020), 0x011020);
+        assertEq(SwapFeeLibrary.getInitialSwapFee(0x101020), 0x001020);
 
         // dynamic
-        assertEq(SwapFeeLibrary.getSwapFee(0xF00F05), 0);
-        assertEq(SwapFeeLibrary.getSwapFee(0x800310), 0);
+        assertEq(SwapFeeLibrary.getInitialSwapFee(0xF00F05), 0);
+        assertEq(SwapFeeLibrary.getInitialSwapFee(0x800310), 0);
     }
 
     function testFuzzIsStaicFeeTooLarge(uint24 self, uint24 maxFee) public {
-        assertEq(self.getSwapFee() > maxFee, self.getSwapFee().isSwapFeeTooLarge(maxFee));
+        assertEq(self.getInitialSwapFee() > maxFee, self.getInitialSwapFee().isSwapFeeTooLarge(maxFee));
     }
 }
