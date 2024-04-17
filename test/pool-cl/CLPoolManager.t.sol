@@ -34,8 +34,6 @@ import {ProtocolFeeControllerTest} from "./helpers/ProtocolFeeControllerTest.sol
 import {IProtocolFeeController} from "../../src/interfaces/IProtocolFeeController.sol";
 import {CLFeeManagerHook} from "./helpers/CLFeeManagerHook.sol";
 import {CLNoOpTestHook} from "./helpers/CLNoOpTestHook.sol";
-import {ICLLmPool} from "../../src/pool-cl/interfaces/ICLLmPool.sol";
-import {CLLmPool} from "./helpers/CLLmPool.sol";
 
 contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
     using PoolIdLibrary for PoolKey;
@@ -71,8 +69,6 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
     event ProtocolFeeUpdated(PoolId indexed id, uint16 protocolFees);
     event DynamicSwapFeeUpdated(PoolId indexed id, uint24 dynamicSwapFee);
     event Donate(PoolId indexed id, address indexed sender, uint256 amount0, uint256 amount1, int24 tick);
-    event SetMasterChef(address masterChef);
-    event SetLmPool(PoolId indexed id, address lmPool);
 
     IVault public vault;
     CLPoolManager public poolManager;
@@ -257,7 +253,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
 
-        (CLPool.Slot0 memory slot0, uint256 feeGrowthGlobal0X128, uint256 feeGrowthGlobal1X128, uint128 liquidity,) =
+        (CLPool.Slot0 memory slot0, uint256 feeGrowthGlobal0X128, uint256 feeGrowthGlobal1X128, uint128 liquidity) =
             poolManager.pools(key.toId());
 
         assertEq(slot0.sqrtPriceX96, TickMath.MIN_SQRT_RATIO);
@@ -327,7 +323,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
             );
             poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
 
-            (CLPool.Slot0 memory slot0,,,,) = poolManager.pools(key.toId());
+            (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
             assertEq(slot0.sqrtPriceX96, sqrtPriceX96);
             assertEq(slot0.protocolFee, 0);
         }
@@ -357,7 +353,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         );
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
 
-        (CLPool.Slot0 memory slot0,,,,) = poolManager.pools(key.toId());
+        (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
         assertEq(slot0.sqrtPriceX96, sqrtPriceX96);
         assertEq(slot0.protocolFee, 0);
         assertEq(slot0.tick, TickMath.getTickAtSqrtRatio(sqrtPriceX96));
@@ -390,7 +386,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         vm.expectCall(address(hookAddr), 0, afterPayload, 1);
 
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
-        (CLPool.Slot0 memory slot0,,,,) = poolManager.pools(key.toId());
+        (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
         assertEq(slot0.sqrtPriceX96, sqrtPriceX96);
     }
 
@@ -436,7 +432,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         });
 
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
-        (CLPool.Slot0 memory slot0,,,,) = poolManager.pools(key.toId());
+        (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
         assertEq(slot0.sqrtPriceX96, sqrtPriceX96);
     }
 
@@ -1326,17 +1322,6 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
-        address masterChef = makeAddr("masterChef");
-        ICLLmPool lmPool = new CLLmPool();
-        poolManager.setMasterChef(masterChef);
-        vm.prank(masterChef);
-        poolManager.setLmPool(key, address(lmPool));
-
-        vm.mockCall(address(lmPool), abi.encodeWithSelector(ICLLmPool.accumulateReward.selector), "");
-        vm.mockCall(address(lmPool), abi.encodeWithSelector(ICLLmPool.crossLmTick.selector), "");
-
-        // vm.expectCall(address(lmPool), abi.encodeWithSelector(ICLLmPool.crossLmTick.selector, int24(0), true));
-
         ICLPoolManager.ModifyLiquidityParams memory modifyPositionParams =
             ICLPoolManager.ModifyLiquidityParams({tickLower: -60, tickUpper: 60, liquidityDelta: 1 ether});
 
@@ -1350,85 +1335,6 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         // sell base token(x) for quote token(y), pricea(y / x) decreases
         ICLPoolManager.SwapParams memory params =
             ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: 100, sqrtPriceLimitX96: SQRT_RATIO_1_2});
-
-        CLPoolManagerRouter.SwapTestSettings memory testSettings =
-            CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true});
-
-        router.swap(key, params, testSettings, ZERO_BYTES);
-    }
-
-    function testSwap_crossLmTickUncalled() public {
-        PoolKey memory key = PoolKey({
-            currency0: currency0,
-            currency1: currency1,
-            fee: 3000,
-            hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(60) << 16)
-        });
-
-        poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
-
-        ICLPoolManager.ModifyLiquidityParams memory modifyPositionParams =
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -6000, tickUpper: 6000, liquidityDelta: 1 ether});
-
-        router.modifyPosition(key, modifyPositionParams, ZERO_BYTES);
-
-        // sell base token(x) for quote token(y), pricea(y / x) decreases
-        ICLPoolManager.SwapParams memory params =
-            ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: 0.1 ether, sqrtPriceLimitX96: SQRT_RATIO_1_2});
-
-        CLPoolManagerRouter.SwapTestSettings memory testSettings =
-            CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true});
-
-        router.swap(key, params, testSettings, ZERO_BYTES);
-    }
-
-    function testSwap_crossLmTickCalled() public {
-        PoolKey memory key = PoolKey({
-            currency0: currency0,
-            currency1: currency1,
-            fee: 3000,
-            hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(60) << 16)
-        });
-
-        poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
-
-        address masterChef = makeAddr("masterChef");
-        ICLLmPool lmPool = new CLLmPool();
-        poolManager.setMasterChef(masterChef);
-        vm.prank(masterChef);
-        poolManager.setLmPool(key, address(lmPool));
-
-        vm.mockCall(address(lmPool), abi.encodeWithSelector(ICLLmPool.accumulateReward.selector), "");
-        vm.mockCall(address(lmPool), abi.encodeWithSelector(ICLLmPool.crossLmTick.selector), "");
-
-        vm.expectCall(address(lmPool), abi.encodeWithSelector(ICLLmPool.crossLmTick.selector, int24(-60), true));
-        vm.expectCall(address(lmPool), abi.encodeWithSelector(ICLLmPool.crossLmTick.selector, int24(0), true), 0);
-
-        ICLPoolManager.ModifyLiquidityParams memory modifyPositionParams =
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -60, tickUpper: 60, liquidityDelta: 1 ether});
-
-        router.modifyPosition(key, modifyPositionParams, ZERO_BYTES);
-
-        // vm.expectEmit(true, true, true, true);
-        // emit Swap(
-        //     key.toId(),
-        //     address(router),
-        //     3013394245478362,
-        //     -2995354955910780,
-        //     56022770974786139918731938227,
-        //     0,
-        //     -6932,
-        //     3000,
-        //     0
-        // );
-
-        // sell base token(x) for quote token(y), pricea(y / x) decreases
-        ICLPoolManager.SwapParams memory params =
-            ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: 0.1 ether, sqrtPriceLimitX96: SQRT_RATIO_1_2});
 
         CLPoolManagerRouter.SwapTestSettings memory testSettings =
             CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true});
@@ -1952,7 +1858,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         router.donate(key, 100, 200, ZERO_BYTES);
         snapEnd();
 
-        (, uint256 feeGrowthGlobal0X128, uint256 feeGrowthGlobal1X128,,) = poolManager.pools(key.toId());
+        (, uint256 feeGrowthGlobal0X128, uint256 feeGrowthGlobal1X128,) = poolManager.pools(key.toId());
         assertEq(feeGrowthGlobal0X128, 340282366920938463463374607431768211456);
         assertEq(feeGrowthGlobal1X128, 680564733841876926926749214863536422912);
     }
@@ -1974,7 +1880,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         router.modifyPosition{value: 1}(key, params, ZERO_BYTES);
         router.donate{value: 100}(key, 100, 200, ZERO_BYTES);
 
-        (, uint256 feeGrowthGlobal0X128, uint256 feeGrowthGlobal1X128,,) = poolManager.pools(key.toId());
+        (, uint256 feeGrowthGlobal0X128, uint256 feeGrowthGlobal1X128,) = poolManager.pools(key.toId());
         assertEq(feeGrowthGlobal0X128, 340282366920938463463374607431768211456);
         assertEq(feeGrowthGlobal1X128, 680564733841876926926749214863536422912);
     }
@@ -2154,7 +2060,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         });
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
-        (CLPool.Slot0 memory slot0,,,,) = poolManager.pools(key.toId());
+        (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
         assertEq(slot0.protocolFee, 0);
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
         feeController.setSwapFeeForPool(key.toId(), uint16(protocolFee));
@@ -2178,7 +2084,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         feeController.setSwapFeeForPool(key.toId(), uint16(protocolFee));
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
-        (CLPool.Slot0 memory slot0,,,,) = poolManager.pools(key.toId());
+        (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
         assertEq(slot0.protocolFee, protocolFee);
     }
 
@@ -2199,7 +2105,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         feeController.setSwapFeeForPool(key.toId(), uint16(protocolFee));
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
-        (CLPool.Slot0 memory slot0,,,,) = poolManager.pools(key.toId());
+        (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
         assertEq(slot0.protocolFee, protocolFee);
 
         ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-120, 120, 10 ether);
@@ -2236,7 +2142,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         feeController.setSwapFeeForPool(key.toId(), uint16(protocolFee));
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
-        (CLPool.Slot0 memory slot0,,,,) = poolManager.pools(key.toId());
+        (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
         assertEq(slot0.protocolFee, protocolFee);
 
         ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-120, 120, 10 ether);
@@ -2274,7 +2180,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         feeController.setSwapFeeForPool(key.toId(), uint16(protocolFee));
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
-        (CLPool.Slot0 memory slot0,,,,) = poolManager.pools(key.toId());
+        (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
         assertEq(slot0.protocolFee, protocolFee);
 
         ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-120, 120, 10 ether);
@@ -2312,7 +2218,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         feeController.setSwapFeeForPool(key.toId(), uint16(protocolFee));
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
-        (CLPool.Slot0 memory slot0,,,,) = poolManager.pools(key.toId());
+        (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
         assertEq(slot0.protocolFee, protocolFee);
 
         ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-120, 120, 10 ether);
@@ -2438,92 +2344,6 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         delta = router.donate(key, 100, 100, ZERO_BYTES);
         snapEnd();
         assertTrue(delta == BalanceDeltaLibrary.MAXIMUM_DELTA);
-    }
-
-    function testSetMasterChef(address masterChef) public {
-        assertEq(poolManager.masterChef(), address(0));
-
-        vm.expectEmit();
-        emit SetMasterChef(masterChef);
-        poolManager.setMasterChef(masterChef);
-
-        assertEq(poolManager.masterChef(), masterChef);
-    }
-
-    function testSetMasterChef_gas() public {
-        snapStart("CLPoolManagerTest#setMasterChef");
-        poolManager.setMasterChef(address(0x01));
-        snapEnd();
-    }
-
-    function testSetMasterChef_NotOwner() public {
-        vm.prank(makeAddr("fakeOwner"));
-        vm.expectRevert("Ownable: caller is not the owner");
-        poolManager.setMasterChef(makeAddr("masterChef"));
-    }
-
-    function testSetLmPool() public {
-        PoolKey memory key = PoolKey({
-            currency0: Currency.wrap(makeAddr("token0")),
-            currency1: Currency.wrap(makeAddr("token1")),
-            hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            fee: uint24(3000),
-            parameters: bytes32(uint256(0xa0000))
-        });
-
-        address lmPool = makeAddr("lmPool");
-        address masterChef = makeAddr("masterChef");
-
-        // error when not initialized
-        vm.expectRevert(CLPool.PoolNotInitialized.selector);
-        poolManager.getLmPool(key.toId());
-
-        poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
-        assertEq(poolManager.getLmPool(key.toId()), address(0));
-
-        // error when setting from neither masterChef or owner
-        vm.expectRevert(ICLPoolManager.UnauthorizedCaller.selector);
-        vm.prank(makeAddr("someone"));
-        poolManager.setLmPool(key, address(lmPool));
-
-        // success when caller is masterchef
-        poolManager.setMasterChef(masterChef);
-        vm.startPrank(masterChef);
-        vm.expectEmit();
-        emit SetLmPool(key.toId(), address(lmPool));
-        poolManager.setLmPool(key, address(lmPool));
-
-        assertEq(poolManager.getLmPool(key.toId()), address(lmPool));
-
-        // success when caller is owner
-        vm.expectEmit();
-        emit SetLmPool(key.toId(), address(0));
-        poolManager.setLmPool(key, address(0));
-        assertEq(poolManager.getLmPool(key.toId()), address(0));
-    }
-
-    function testSetLmPool_gas() public {
-        PoolKey memory key = PoolKey({
-            currency0: Currency.wrap(makeAddr("token0")),
-            currency1: Currency.wrap(makeAddr("token1")),
-            hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            fee: uint24(3000),
-            parameters: bytes32(uint256(0xa0000))
-        });
-
-        address lmPool = makeAddr("lmPool");
-        address masterChef = makeAddr("masterChef");
-
-        poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
-
-        poolManager.setMasterChef(masterChef);
-        vm.startPrank(masterChef);
-
-        snapStart("CLPoolManagerTest#setLmPool");
-        poolManager.setLmPool(key, address(lmPool));
-        snapEnd();
     }
 
     function testModifyLiquidity_Add_WhenPaused() public {

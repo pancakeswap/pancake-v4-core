@@ -37,9 +37,6 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
 
     mapping(PoolId id => CLPool.State) public pools;
 
-    /// @inheritdoc ICLPoolManager
-    address public override masterChef;
-
     constructor(IVault _vault, uint256 controllerGasLimit) Fees(_vault, controllerGasLimit) {}
 
     /// @notice pool manager specified in the pool key must match current contract
@@ -82,11 +79,6 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
         returns (CLPosition.Info memory position)
     {
         return pools[id].positions.get(owner, tickLower, tickUpper);
-    }
-
-    /// @inheritdoc ICLPoolManager
-    function getLmPool(PoolId id) external view override returns (address lmPool) {
-        lmPool = pools[id].getLmPool();
     }
 
     /// @inheritdoc ICLPoolManager
@@ -300,21 +292,6 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
 
     function getPoolBitmapInfo(PoolId id, int16 word) external view returns (uint256 tickBitmap) {
         return pools[id].tickBitmap[word];
-    }
-
-    /// @inheritdoc ICLPoolManager
-    function setMasterChef(address _masterChef) external override onlyOwner {
-        masterChef = _masterChef;
-        emit SetMasterChef(_masterChef);
-    }
-
-    /// @inheritdoc ICLPoolManager
-    function setLmPool(PoolKey memory key, address lmPool) external override {
-        if (msg.sender != masterChef && msg.sender != owner()) revert UnauthorizedCaller();
-
-        PoolId id = key.toId();
-        pools[id].setLmPool(lmPool);
-        emit SetLmPool(id, lmPool);
     }
 
     /// @inheritdoc IPoolManager
