@@ -28,7 +28,7 @@ library BinPoolParametersHelper {
      * @dev Helper method to set bin step in the encoded pair parameter
      * @return The new encoded pair parameter
      */
-    function setBinStep(bytes32 params, uint16 binStep) external pure returns (bytes32) {
+    function setBinStep(bytes32 params, uint16 binStep) internal pure returns (bytes32) {
         return params.set(binStep, Encoded.MASK_UINT16, OFFSET_BIN_STEP);
     }
 }
