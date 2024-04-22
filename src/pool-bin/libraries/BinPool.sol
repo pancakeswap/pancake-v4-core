@@ -277,7 +277,7 @@ library BinPool {
     /// @param id The id of the bin
     /// @return binReserveX The reserve of token X in the bin
     /// @return binReserveY The reserve of token Y in the bin
-    function getBin(State storage self, uint24 id) external view returns (uint128 binReserveX, uint128 binReserveY) {
+    function getBin(State storage self, uint24 id) internal view returns (uint128 binReserveX, uint128 binReserveY) {
         (binReserveX, binReserveY) = self.reserveOfBin[id].decode();
     }
 
