@@ -104,6 +104,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
         token0 = new MockERC20("TestA", "A", 18);
         token1 = new MockERC20("TestB", "B", 18);
+        (token0, token1) = token0 < token1 ? (token0, token1) : (token1, token0);
         currency0 = Currency.wrap(address(token0));
         currency1 = Currency.wrap(address(token1));
 
