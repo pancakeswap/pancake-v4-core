@@ -33,7 +33,7 @@ library CLPoolParametersHelper {
      * @dev Helper method to set tick spacing in the encoded pair parameter
      * @return The new encoded pair parameter
      */
-    function setTickSpacing(bytes32 params, int24 tickSpacing) external pure returns (bytes32) {
+    function setTickSpacing(bytes32 params, int24 tickSpacing) internal pure returns (bytes32) {
         return params.set(uint24(tickSpacing), Encoded.MASK_UINT24, OFFSET_TICK_SPACING);
     }
 }
