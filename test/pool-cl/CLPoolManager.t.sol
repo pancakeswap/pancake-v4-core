@@ -34,6 +34,7 @@ import {ProtocolFeeControllerTest} from "./helpers/ProtocolFeeControllerTest.sol
 import {IProtocolFeeController} from "../../src/interfaces/IProtocolFeeController.sol";
 import {CLFeeManagerHook} from "./helpers/CLFeeManagerHook.sol";
 import {CLNoOpTestHook} from "./helpers/CLNoOpTestHook.sol";
+import {CLPoolHelper} from "../../src/helpers/CLPoolHelper.sol";
 
 contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
     using PoolIdLibrary for PoolKey;
@@ -72,6 +73,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
 
     IVault public vault;
     CLPoolManager public poolManager;
+    CLPoolHelper public poolHelper;
     CLPoolManagerRouter public router;
     ProtocolFeeControllerTest public protocolFeeController;
     ProtocolFeeControllerTest public feeController;
@@ -80,6 +82,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
     function setUp() public {
         initializeTokens();
         (vault, poolManager) = createFreshManager();
+        poolHelper = new CLPoolHelper(address(poolManager));
         router = new CLPoolManagerRouter(vault, poolManager);
         protocolFeeController = new ProtocolFeeControllerTest();
         feeController = new ProtocolFeeControllerTest();
@@ -105,6 +108,21 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
             });
 
             poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
+
+            PoolId id = key.toId();
+            assertEq(PoolId.unwrap(poolManager.poolIds(1)), PoolId.unwrap(id));
+            assertEq(poolManager.poolLength(), 1);
+            CLPoolHelper.PoolInfo memory poolInfo = poolHelper.getPoolInfoByIndex(1);
+            (uint160 sqrtPriceX96, int24 tick, uint16 protocolFee, uint24 swapFee) = poolManager.getSlot0(id);
+            assertEq(poolInfo.sqrtPriceX96, sqrtPriceX96);
+            assertEq(poolInfo.tick, tick);
+            assertEq(poolInfo.sqrtPriceX96, sqrtPriceX96);
+            assertEq(poolInfo.swapFee, swapFee);
+
+            (, uint256 feeGrowthGlobal0X128, uint256 feeGrowthGlobal1X128, uint128 liquidity) = poolManager.pools(id);
+            assertEq(poolInfo.feeGrowthGlobal0X128, feeGrowthGlobal0X128);
+            assertEq(poolInfo.feeGrowthGlobal1X128, feeGrowthGlobal1X128);
+            assertEq(poolInfo.liquidity, liquidity);
         }
 
         // 0
@@ -119,6 +137,9 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
             });
 
             poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
+
+            assertEq(PoolId.unwrap(poolManager.poolIds(2)), PoolId.unwrap(key.toId()));
+            assertEq(poolManager.poolLength(), 2);
         }
 
         // 300000 i.e. 30%

@@ -37,6 +37,11 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
 
     mapping(PoolId id => CLPool.State) public pools;
 
+    /// @notice Record the total number of pools
+    uint256 public poolLength;
+    /// @notice Record the poolId of each pool, used to get the poolId by index
+    mapping(uint256 => PoolId id) public poolIds;
+
     constructor(IVault _vault, uint256 controllerGasLimit) Fees(_vault, controllerGasLimit) {}
 
     /// @notice pool manager specified in the pool key must match current contract
@@ -111,6 +116,7 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
         (, uint16 protocolFee) = _fetchProtocolFee(key);
         tick = pools[id].initialize(sqrtPriceX96, protocolFee, swapFee);
 
+        poolIds[++poolLength] = id;
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
         emit Initialize(id, key.currency0, key.currency1, key.fee, tickSpacing, hooks);
 
