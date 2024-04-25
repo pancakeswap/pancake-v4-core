@@ -19,6 +19,7 @@ import {PoolId, PoolIdLibrary} from "../types/PoolId.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../types/BalanceDelta.sol";
 import {Extsload} from "../Extsload.sol";
 import {SafeCast} from "../libraries/SafeCast.sol";
+import {CLPoolGetters} from "./libraries/CLPoolGetters.sol";
 
 contract CLPoolManager is ICLPoolManager, Fees, Extsload {
     using SafeCast for int256;
@@ -28,6 +29,7 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
     using CLPoolParametersHelper for bytes32;
     using CLPool for *;
     using CLPosition for mapping(bytes32 => CLPosition.Info);
+    using CLPoolGetters for CLPool.State;
 
     /// @inheritdoc ICLPoolManager
     int24 public constant override MAX_TICK_SPACING = type(int16).max;
@@ -287,11 +289,19 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
     }
 
     function getPoolTickInfo(PoolId id, int24 tick) external view returns (Tick.Info memory) {
-        return pools[id].ticks[tick];
+        return pools[id].getPoolTickInfo(tick);
     }
 
     function getPoolBitmapInfo(PoolId id, int16 word) external view returns (uint256 tickBitmap) {
-        return pools[id].tickBitmap[word];
+        return pools[id].getPoolBitmapInfo(word);
+    }
+
+    function getFeeGrowthGlobals(PoolId id)
+        external
+        view
+        returns (uint256 feeGrowthGlobal0x128, uint256 feeGrowthGlobal1x128)
+    {
+        return pools[id].getFeeGrowthGlobals();
     }
 
     /// @inheritdoc IPoolManager
