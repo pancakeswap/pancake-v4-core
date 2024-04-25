@@ -116,7 +116,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
             (uint160 sqrtPriceX96, int24 tick, uint16 protocolFee, uint24 swapFee) = poolManager.getSlot0(id);
             assertEq(poolInfo.sqrtPriceX96, sqrtPriceX96);
             assertEq(poolInfo.tick, tick);
-            assertEq(poolInfo.sqrtPriceX96, sqrtPriceX96);
+            assertEq(poolInfo.protocolFee, protocolFee);
             assertEq(poolInfo.swapFee, swapFee);
 
             (, uint256 feeGrowthGlobal0X128, uint256 feeGrowthGlobal1X128, uint128 liquidity) = poolManager.pools(id);
