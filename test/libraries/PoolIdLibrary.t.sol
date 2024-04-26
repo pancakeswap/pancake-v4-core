@@ -23,8 +23,8 @@ contract PoolIdLibraryTest is Test {
         });
 
         bytes32 id = PoolId.unwrap(key.toId());
-        bytes32 oldId = keccak256(abi.encode(key));
+        bytes32 abiEncodedId = keccak256(abi.encode(key));
 
-        assertEq(id, oldId);
+        assertEq(id, abiEncodedId);
     }
 }
