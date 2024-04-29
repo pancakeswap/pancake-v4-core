@@ -101,7 +101,7 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
         uint24 swapFee = key.fee.getInitialSwapFee();
         if (swapFee.isSwapFeeTooLarge(SwapFeeLibrary.ONE_HUNDRED_PERCENT_FEE)) revert FeeTooLarge();
 
-        if (key.parameters.shouldCall(HOOKS_BEFORE_INITIALIZE_OFFSET)) {
+        if (key.parameters.shouldCall(HOOKS_BEFORE_INITIALIZE_OFFSET, key.hooks)) {
             if (hooks.beforeInitialize(msg.sender, key, sqrtPriceX96, hookData) != ICLHooks.beforeInitialize.selector) {
                 revert Hooks.InvalidHookResponse();
             }
@@ -114,7 +114,7 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
         emit Initialize(id, key.currency0, key.currency1, key.fee, tickSpacing, hooks);
 
-        if (key.parameters.shouldCall(HOOKS_AFTER_INITIALIZE_OFFSET)) {
+        if (key.parameters.shouldCall(HOOKS_AFTER_INITIALIZE_OFFSET, key.hooks)) {
             if (
                 hooks.afterInitialize(msg.sender, key, sqrtPriceX96, tick, hookData)
                     != ICLHooks.afterInitialize.selector
@@ -138,7 +138,7 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
 
         ICLHooks hooks = ICLHooks(address(key.hooks));
 
-        if (params.liquidityDelta > 0 && key.parameters.shouldCall(HOOKS_BEFORE_ADD_LIQUIDITY_OFFSET)) {
+        if (params.liquidityDelta > 0 && key.parameters.shouldCall(HOOKS_BEFORE_ADD_LIQUIDITY_OFFSET, key.hooks)) {
             bytes4 selector = hooks.beforeAddLiquidity(msg.sender, key, params, hookData);
             if (key.parameters.isValidNoOpCall(HOOKS_NO_OP_OFFSET, selector)) {
                 // Sentinel return value used to signify that a NoOp occurred.
@@ -146,7 +146,9 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
             } else if (selector != ICLHooks.beforeAddLiquidity.selector) {
                 revert Hooks.InvalidHookResponse();
             }
-        } else if (params.liquidityDelta <= 0 && key.parameters.shouldCall(HOOKS_BEFORE_REMOVE_LIQUIDITY_OFFSET)) {
+        } else if (
+            params.liquidityDelta <= 0 && key.parameters.shouldCall(HOOKS_BEFORE_REMOVE_LIQUIDITY_OFFSET, key.hooks)
+        ) {
             bytes4 selector = hooks.beforeRemoveLiquidity(msg.sender, key, params, hookData);
             if (key.parameters.isValidNoOpCall(HOOKS_NO_OP_OFFSET, selector)) {
                 // Sentinel return value used to signify that a NoOp occurred.
@@ -171,13 +173,15 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
         emit ModifyLiquidity(id, msg.sender, params.tickLower, params.tickUpper, params.liquidityDelta);
 
-        if (params.liquidityDelta > 0 && key.parameters.shouldCall(HOOKS_AFTER_ADD_LIQUIDITY_OFFSET)) {
+        if (params.liquidityDelta > 0 && key.parameters.shouldCall(HOOKS_AFTER_ADD_LIQUIDITY_OFFSET, key.hooks)) {
             if (
                 hooks.afterAddLiquidity(msg.sender, key, params, delta, hookData) != ICLHooks.afterAddLiquidity.selector
             ) {
                 revert Hooks.InvalidHookResponse();
             }
-        } else if (params.liquidityDelta <= 0 && key.parameters.shouldCall(HOOKS_AFTER_REMOVE_LIQUIDITY_OFFSET)) {
+        } else if (
+            params.liquidityDelta <= 0 && key.parameters.shouldCall(HOOKS_AFTER_REMOVE_LIQUIDITY_OFFSET, key.hooks)
+        ) {
             if (
                 hooks.afterRemoveLiquidity(msg.sender, key, params, delta, hookData)
                     != ICLHooks.afterRemoveLiquidity.selector
@@ -200,7 +204,7 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
 
         ICLHooks hooks = ICLHooks(address(key.hooks));
 
-        if (key.parameters.shouldCall(HOOKS_BEFORE_SWAP_OFFSET)) {
+        if (key.parameters.shouldCall(HOOKS_BEFORE_SWAP_OFFSET, key.hooks)) {
             bytes4 selector = hooks.beforeSwap(msg.sender, key, params, hookData);
             if (key.parameters.isValidNoOpCall(HOOKS_NO_OP_OFFSET, selector)) {
                 // Sentinel return value used to signify that a NoOp occurred.
@@ -243,7 +247,7 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
             state.protocolFee
         );
 
-        if (key.parameters.shouldCall(HOOKS_AFTER_SWAP_OFFSET)) {
+        if (key.parameters.shouldCall(HOOKS_AFTER_SWAP_OFFSET, key.hooks)) {
             if (hooks.afterSwap(msg.sender, key, params, delta, hookData) != ICLHooks.afterSwap.selector) {
                 revert Hooks.InvalidHookResponse();
             }
@@ -262,7 +266,7 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
         _checkPoolInitialized(id);
 
         ICLHooks hooks = ICLHooks(address(key.hooks));
-        if (key.parameters.shouldCall(HOOKS_BEFORE_DONATE_OFFSET)) {
+        if (key.parameters.shouldCall(HOOKS_BEFORE_DONATE_OFFSET, key.hooks)) {
             bytes4 selector = hooks.beforeDonate(msg.sender, key, amount0, amount1, hookData);
             if (key.parameters.isValidNoOpCall(HOOKS_NO_OP_OFFSET, selector)) {
                 // Sentinel return value used to signify that a NoOp occurred.
@@ -279,7 +283,7 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
         emit Donate(id, msg.sender, amount0, amount1, tick);
 
-        if (key.parameters.shouldCall(HOOKS_AFTER_DONATE_OFFSET)) {
+        if (key.parameters.shouldCall(HOOKS_AFTER_DONATE_OFFSET, key.hooks)) {
             if (hooks.afterDonate(msg.sender, key, amount0, amount1, hookData) != ICLHooks.afterDonate.selector) {
                 revert Hooks.InvalidHookResponse();
             }
@@ -319,12 +323,12 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
 
     function _validateHookNoOp(PoolKey memory key) internal pure {
         // if no-op is active for hook, there must be a before* hook active too
-        if (key.parameters.shouldCall(HOOKS_NO_OP_OFFSET)) {
+        if (key.parameters.hasOffsetEnabled(HOOKS_NO_OP_OFFSET)) {
             if (
-                !key.parameters.shouldCall(HOOKS_BEFORE_ADD_LIQUIDITY_OFFSET)
-                    && !key.parameters.shouldCall(HOOKS_BEFORE_REMOVE_LIQUIDITY_OFFSET)
-                    && !key.parameters.shouldCall(HOOKS_BEFORE_SWAP_OFFSET)
-                    && !key.parameters.shouldCall(HOOKS_BEFORE_DONATE_OFFSET)
+                !key.parameters.hasOffsetEnabled(HOOKS_BEFORE_ADD_LIQUIDITY_OFFSET)
+                    && !key.parameters.hasOffsetEnabled(HOOKS_BEFORE_REMOVE_LIQUIDITY_OFFSET)
+                    && !key.parameters.hasOffsetEnabled(HOOKS_BEFORE_SWAP_OFFSET)
+                    && !key.parameters.hasOffsetEnabled(HOOKS_BEFORE_DONATE_OFFSET)
             ) {
                 revert Hooks.NoOpHookMissingBeforeCall();
             }
