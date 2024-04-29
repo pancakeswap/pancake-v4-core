@@ -106,15 +106,19 @@ contract Vault is IVault, VaultToken, Ownable {
 
     /// @inheritdoc IVault
     function take(Currency currency, address to, uint256 amount) external override isLocked {
-        SettlementGuard.accountDelta(msg.sender, currency, amount.toInt128());
+        unchecked {
+            SettlementGuard.accountDelta(msg.sender, currency, amount.toInt128());
+            currency.transfer(to, amount);
+        }
         reservesOfVault[currency] -= amount;
-        currency.transfer(to, amount);
     }
 
     /// @inheritdoc IVault
     function mint(address to, Currency currency, uint256 amount) external override isLocked {
-        SettlementGuard.accountDelta(msg.sender, currency, amount.toInt128());
-        _mint(to, currency, amount);
+        unchecked {
+            SettlementGuard.accountDelta(msg.sender, currency, amount.toInt128());
+            _mint(to, currency, amount);
+        }
     }
 
     /// @inheritdoc IVault
@@ -156,8 +160,10 @@ contract Vault is IVault, VaultToken, Ownable {
         /// @notice settle all outstanding debt if amount is 0
         /// It will revert if target has negative delta
         if (amount == 0) amount = SettlementGuard.getCurrencyDelta(target, currency).toUint256();
-        SettlementGuard.accountDelta(msg.sender, currency, amount.toInt128());
-        SettlementGuard.accountDelta(target, currency, -(amount.toInt128()));
+        unchecked {
+            SettlementGuard.accountDelta(msg.sender, currency, amount.toInt128());
+            SettlementGuard.accountDelta(target, currency, -(amount.toInt128()));
+        }
     }
 
     /// @inheritdoc IVault
