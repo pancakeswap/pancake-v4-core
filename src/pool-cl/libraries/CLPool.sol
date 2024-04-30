@@ -100,7 +100,7 @@ library CLPool {
     /// @return delta the deltas of the token balances of the pool
     function modifyLiquidity(State storage self, ModifyLiquidityParams memory params)
         internal
-        returns (BalanceDelta delta)
+        returns (BalanceDelta delta, BalanceDelta feeDelta)
     {
         Slot0 memory _slot0 = self.slot0; // SLOAD for gas optimization
 
@@ -144,7 +144,7 @@ library CLPool {
         }
 
         // Fees earned from LPing are removed from the pool balance.
-        delta = delta - toBalanceDelta(feesOwed0.toInt128(), feesOwed1.toInt128());
+        feeDelta = toBalanceDelta(feesOwed0.toInt128(), feesOwed1.toInt128());
     }
 
     struct SwapCache {
