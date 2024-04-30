@@ -102,17 +102,19 @@ library CLPool {
         internal
         returns (BalanceDelta delta)
     {
-        Slot0 memory _slot0 = self.slot0; // SLOAD for gas optimization
+        // Slot0 memory _slot0 = self.slot0; // SLOAD for gas optimization
 
         Tick.checkTicks(params.tickLower, params.tickUpper);
 
-        (uint256 feesOwed0, uint256 feesOwed1) = _updatePosition(self, params, _slot0.tick);
+        int24 tick = self.slot0.tick;
+        (uint256 feesOwed0, uint256 feesOwed1) = _updatePosition(self, params, tick);
 
         ///@dev calculate the tokens delta needed
         if (params.liquidityDelta != 0) {
+            uint160 sqrtPriceX96 = self.slot0.sqrtPriceX96;
             int128 amount0;
             int128 amount1;
-            if (_slot0.tick < params.tickLower) {
+            if (tick < params.tickLower) {
                 // current tick is below the passed range; liquidity can only become in range by crossing from left to
                 // right, when we'll need _more_ currency0 (it's becoming more valuable) so user must provide it
                 amount0 = SqrtPriceMath.getAmount0Delta(
@@ -120,12 +122,12 @@ library CLPool {
                     TickMath.getSqrtRatioAtTick(params.tickUpper),
                     params.liquidityDelta
                 ).toInt128();
-            } else if (_slot0.tick < params.tickUpper) {
+            } else if (tick < params.tickUpper) {
                 amount0 = SqrtPriceMath.getAmount0Delta(
-                    _slot0.sqrtPriceX96, TickMath.getSqrtRatioAtTick(params.tickUpper), params.liquidityDelta
+                    sqrtPriceX96, TickMath.getSqrtRatioAtTick(params.tickUpper), params.liquidityDelta
                 ).toInt128();
                 amount1 = SqrtPriceMath.getAmount1Delta(
-                    TickMath.getSqrtRatioAtTick(params.tickLower), _slot0.sqrtPriceX96, params.liquidityDelta
+                    TickMath.getSqrtRatioAtTick(params.tickLower), sqrtPriceX96, params.liquidityDelta
                 ).toInt128();
 
                 self.liquidity = LiquidityMath.addDelta(self.liquidity, params.liquidityDelta);
