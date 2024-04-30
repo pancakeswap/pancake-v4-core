@@ -205,19 +205,15 @@ library CLPool {
         if (params.amountSpecified == 0) revert SwapAmountCannotBeZero();
 
         Slot0 memory slot0Start = self.slot0;
+        // Declare zeroForOne and sqrtPriceLimitX96 upfront for gas optmization
         bool zeroForOne = params.zeroForOne;
+        uint160 sqrtPriceLimitX96 = params.sqrtPriceLimitX96;
         if (
             zeroForOne
-                ? (
-                    params.sqrtPriceLimitX96 >= slot0Start.sqrtPriceX96
-                        || params.sqrtPriceLimitX96 <= TickMath.MIN_SQRT_RATIO
-                )
-                : (
-                    params.sqrtPriceLimitX96 <= slot0Start.sqrtPriceX96
-                        || params.sqrtPriceLimitX96 >= TickMath.MAX_SQRT_RATIO
-                )
+                ? (sqrtPriceLimitX96 >= slot0Start.sqrtPriceX96 || sqrtPriceLimitX96 <= TickMath.MIN_SQRT_RATIO)
+                : (sqrtPriceLimitX96 <= slot0Start.sqrtPriceX96 || sqrtPriceLimitX96 >= TickMath.MAX_SQRT_RATIO)
         ) {
-            revert InvalidSqrtPriceLimit(slot0Start.sqrtPriceX96, params.sqrtPriceLimitX96);
+            revert InvalidSqrtPriceLimit(slot0Start.sqrtPriceX96, sqrtPriceLimitX96);
         }
 
         SwapCache memory cache = SwapCache({
@@ -241,7 +237,7 @@ library CLPool {
 
         StepComputations memory step;
         // continue swapping as long as we haven't used the entire input/output and haven't reached the price limit
-        while (state.amountSpecifiedRemaining != 0 && state.sqrtPriceX96 != params.sqrtPriceLimitX96) {
+        while (state.amountSpecifiedRemaining != 0 && state.sqrtPriceX96 != sqrtPriceLimitX96) {
             step.sqrtPriceStartX96 = state.sqrtPriceX96;
 
             (step.tickNext, step.initialized) =
@@ -260,11 +256,9 @@ library CLPool {
             // compute values to swap to the target tick, price limit, or point where input/output amount is exhausted
             (state.sqrtPriceX96, step.amountIn, step.amountOut, step.feeAmount) = SwapMath.computeSwapStep(
                 state.sqrtPriceX96,
-                (
-                    zeroForOne
-                        ? step.sqrtPriceNextX96 < params.sqrtPriceLimitX96
-                        : step.sqrtPriceNextX96 > params.sqrtPriceLimitX96
-                ) ? params.sqrtPriceLimitX96 : step.sqrtPriceNextX96,
+                (zeroForOne ? step.sqrtPriceNextX96 < sqrtPriceLimitX96 : step.sqrtPriceNextX96 > sqrtPriceLimitX96)
+                    ? sqrtPriceLimitX96
+                    : step.sqrtPriceNextX96,
                 state.liquidity,
                 state.amountSpecifiedRemaining,
                 state.swapFee
