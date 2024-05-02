@@ -102,7 +102,9 @@ library CLPool {
         internal
         returns (BalanceDelta delta)
     {
-        Tick.checkTicks(params.tickLower, params.tickUpper);
+        int24 tickLower = params.tickLower;
+        int24 tickUpper = params.tickUpper;
+        Tick.checkTicks(tickLower, tickUpper);
 
         int24 tick = self.slot0.tick;
         (uint256 feesOwed0, uint256 feesOwed1) = _updatePosition(self, params, tick);
@@ -113,20 +115,18 @@ library CLPool {
             uint160 sqrtPriceX96 = self.slot0.sqrtPriceX96;
             int128 amount0;
             int128 amount1;
-            if (tick < params.tickLower) {
+            if (tick < tickLower) {
                 // current tick is below the passed range; liquidity can only become in range by crossing from left to
                 // right, when we'll need _more_ currency0 (it's becoming more valuable) so user must provide it
                 amount0 = SqrtPriceMath.getAmount0Delta(
-                    TickMath.getSqrtRatioAtTick(params.tickLower),
-                    TickMath.getSqrtRatioAtTick(params.tickUpper),
-                    liquidityDelta
+                    TickMath.getSqrtRatioAtTick(tickLower), TickMath.getSqrtRatioAtTick(tickUpper), liquidityDelta
                 ).toInt128();
-            } else if (tick < params.tickUpper) {
+            } else if (tick < tickUpper) {
                 amount0 = SqrtPriceMath.getAmount0Delta(
-                    sqrtPriceX96, TickMath.getSqrtRatioAtTick(params.tickUpper), liquidityDelta
+                    sqrtPriceX96, TickMath.getSqrtRatioAtTick(tickUpper), liquidityDelta
                 ).toInt128();
                 amount1 = SqrtPriceMath.getAmount1Delta(
-                    TickMath.getSqrtRatioAtTick(params.tickLower), sqrtPriceX96, liquidityDelta
+                    TickMath.getSqrtRatioAtTick(tickLower), sqrtPriceX96, liquidityDelta
                 ).toInt128();
 
                 self.liquidity = LiquidityMath.addDelta(self.liquidity, liquidityDelta);
@@ -134,9 +134,7 @@ library CLPool {
                 // current tick is above the passed range; liquidity can only become in range by crossing from right to
                 // left, when we'll need _more_ currency1 (it's becoming more valuable) so user must provide it
                 amount1 = SqrtPriceMath.getAmount1Delta(
-                    TickMath.getSqrtRatioAtTick(params.tickLower),
-                    TickMath.getSqrtRatioAtTick(params.tickUpper),
-                    liquidityDelta
+                    TickMath.getSqrtRatioAtTick(tickLower), TickMath.getSqrtRatioAtTick(tickUpper), liquidityDelta
                 ).toInt128();
             }
 
