@@ -186,19 +186,20 @@ library BinPool {
         internal
         returns (BalanceDelta result, bytes32 feeForProtocol, uint24 activeId, uint24 swapFee)
     {
-        activeId = self.slot0.activeId;
-
         if (amountIn == 0) revert BinPool__InsufficientAmountIn();
 
-        bytes32 amountsLeft = params.swapForY ? amountIn.encodeFirst() : amountIn.encodeSecond();
+        activeId = self.slot0.activeId;
+        bool swapForY = params.swapForY;
+
+        bytes32 amountsLeft = swapForY ? amountIn.encodeFirst() : amountIn.encodeSecond();
         bytes32 amountsOut;
         swapFee = self.slot0.swapFee;
 
         while (true) {
             bytes32 binReserves = self.reserveOfBin[activeId];
-            if (!binReserves.isEmpty(!params.swapForY)) {
+            if (!binReserves.isEmpty(!swapForY)) {
                 (bytes32 amountsInWithFees, bytes32 amountsOutOfBin, bytes32 totalFees) =
-                    binReserves.getAmounts(swapFee, params.binStep, params.swapForY, activeId, amountsLeft);
+                    binReserves.getAmounts(swapFee, params.binStep, swapForY, activeId, amountsLeft);
 
                 if (amountsInWithFees > 0) {
                     amountsLeft = amountsLeft.sub(amountsInWithFees);
@@ -217,7 +218,7 @@ library BinPool {
             if (amountsLeft == 0) {
                 break;
             } else {
-                uint24 nextId = getNextNonEmptyBin(self, params.swapForY, activeId);
+                uint24 nextId = getNextNonEmptyBin(self, swapForY, activeId);
                 if (nextId == 0 || nextId == type(uint24).max) revert BinPool__OutOfLiquidity();
                 activeId = nextId;
             }
