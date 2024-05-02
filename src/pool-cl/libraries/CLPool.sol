@@ -108,7 +108,8 @@ library CLPool {
         (uint256 feesOwed0, uint256 feesOwed1) = _updatePosition(self, params, tick);
 
         ///@dev calculate the tokens delta needed
-        if (params.liquidityDelta != 0) {
+        int128 liquidityDelta = params.liquidityDelta;
+        if (liquidityDelta != 0) {
             uint160 sqrtPriceX96 = self.slot0.sqrtPriceX96;
             int128 amount0;
             int128 amount1;
@@ -118,24 +119,24 @@ library CLPool {
                 amount0 = SqrtPriceMath.getAmount0Delta(
                     TickMath.getSqrtRatioAtTick(params.tickLower),
                     TickMath.getSqrtRatioAtTick(params.tickUpper),
-                    params.liquidityDelta
+                    liquidityDelta
                 ).toInt128();
             } else if (tick < params.tickUpper) {
                 amount0 = SqrtPriceMath.getAmount0Delta(
-                    sqrtPriceX96, TickMath.getSqrtRatioAtTick(params.tickUpper), params.liquidityDelta
+                    sqrtPriceX96, TickMath.getSqrtRatioAtTick(params.tickUpper), liquidityDelta
                 ).toInt128();
                 amount1 = SqrtPriceMath.getAmount1Delta(
-                    TickMath.getSqrtRatioAtTick(params.tickLower), sqrtPriceX96, params.liquidityDelta
+                    TickMath.getSqrtRatioAtTick(params.tickLower), sqrtPriceX96, liquidityDelta
                 ).toInt128();
 
-                self.liquidity = LiquidityMath.addDelta(self.liquidity, params.liquidityDelta);
+                self.liquidity = LiquidityMath.addDelta(self.liquidity, liquidityDelta);
             } else {
                 // current tick is above the passed range; liquidity can only become in range by crossing from right to
                 // left, when we'll need _more_ currency1 (it's becoming more valuable) so user must provide it
                 amount1 = SqrtPriceMath.getAmount1Delta(
                     TickMath.getSqrtRatioAtTick(params.tickLower),
                     TickMath.getSqrtRatioAtTick(params.tickUpper),
-                    params.liquidityDelta
+                    liquidityDelta
                 ).toInt128();
             }
 
