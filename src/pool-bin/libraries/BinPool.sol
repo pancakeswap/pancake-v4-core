@@ -108,18 +108,19 @@ library BinPool {
         view
         returns (uint128 amountIn, uint128 amountOutLeft, uint128 fee)
     {
+        bool swapForY = params.swapForY;
         uint24 id = self.slot0.activeId;
         amountOutLeft = amountOut;
 
         while (true) {
-            uint128 binReserves = self.reserveOfBin[id].decode(!params.swapForY);
+            uint128 binReserves = self.reserveOfBin[id].decode(!swapForY);
             if (binReserves > 0) {
                 uint256 price = id.getPriceFromId(params.binStep);
 
                 uint128 amountOutOfBin = binReserves > amountOutLeft ? amountOutLeft : binReserves;
 
                 uint128 amountInWithoutFee = uint128(
-                    params.swapForY
+                    swapForY
                         ? uint256(amountOutOfBin).shiftDivRoundUp(Constants.SCALE_OFFSET, price)
                         : uint256(amountOutOfBin).mulShiftRoundUp(price, Constants.SCALE_OFFSET)
                 );
@@ -135,7 +136,7 @@ library BinPool {
             if (amountOutLeft == 0) {
                 break;
             } else {
-                uint24 nextId = getNextNonEmptyBin(self, params.swapForY, id);
+                uint24 nextId = getNextNonEmptyBin(self, swapForY, id);
                 if (nextId == 0 || nextId == type(uint24).max) break;
                 id = nextId;
             }
@@ -147,34 +148,35 @@ library BinPool {
         view
         returns (uint128 amountInLeft, uint128 amountOut, uint128 fee)
     {
+        bool swapForY = params.swapForY;
         uint24 id = self.slot0.activeId;
-        bytes32 amountsInLeft = amountIn.encode(params.swapForY);
+        bytes32 amountsInLeft = amountIn.encode(swapForY);
 
         while (true) {
             bytes32 binReserves = self.reserveOfBin[id];
-            if (!binReserves.isEmpty(!params.swapForY)) {
+            if (!binReserves.isEmpty(!swapForY)) {
                 (bytes32 amountsInWithFees, bytes32 amountsOutOfBin, bytes32 totalFees) =
-                    binReserves.getAmounts(params.fee, params.binStep, params.swapForY, id, amountsInLeft);
+                    binReserves.getAmounts(params.fee, params.binStep, swapForY, id, amountsInLeft);
 
                 if (amountsInWithFees > 0) {
                     amountsInLeft = amountsInLeft.sub(amountsInWithFees);
 
-                    amountOut += amountsOutOfBin.decode(!params.swapForY);
+                    amountOut += amountsOutOfBin.decode(!swapForY);
 
-                    fee += totalFees.decode(params.swapForY);
+                    fee += totalFees.decode(swapForY);
                 }
             }
 
             if (amountsInLeft == 0) {
                 break;
             } else {
-                uint24 nextId = getNextNonEmptyBin(self, params.swapForY, id);
+                uint24 nextId = getNextNonEmptyBin(self, swapForY, id);
                 if (nextId == 0 || nextId == type(uint24).max) break;
                 id = nextId;
             }
         }
 
-        amountInLeft = amountsInLeft.decode(params.swapForY);
+        amountInLeft = amountsInLeft.decode(swapForY);
     }
 
     struct SwapParams {
@@ -228,7 +230,7 @@ library BinPool {
 
         self.slot0.activeId = activeId;
 
-        if (params.swapForY) {
+        if (swapForY) {
             uint128 consumed = amountIn - amountsLeft.decodeX();
             result = toBalanceDelta(consumed.safeInt128(), -(amountsOut.decodeY().safeInt128()));
         } else {
