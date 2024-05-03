@@ -72,6 +72,7 @@ contract CLPoolManagerRouter {
         }
 
         if (delta.amount0() > 0) {
+            vault.sync(data.key.currency0);
             if (data.key.currency0.isNative()) {
                 vault.settle{value: uint128(delta.amount0())}(data.key.currency0);
             } else {
@@ -82,6 +83,7 @@ contract CLPoolManagerRouter {
             }
         }
         if (delta.amount1() > 0) {
+            vault.sync(data.key.currency1);
             if (data.key.currency1.isNative()) {
                 vault.settle{value: uint128(delta.amount1())}(data.key.currency1);
             } else {
@@ -148,6 +150,7 @@ contract CLPoolManagerRouter {
         if (data.params.zeroForOne) {
             if (delta.amount0() > 0) {
                 if (data.testSettings.settleUsingTransfer) {
+                    vault.sync(data.key.currency0);
                     if (data.key.currency0.isNative()) {
                         vault.settle{value: uint128(delta.amount0())}(data.key.currency0);
                     } else {
@@ -172,6 +175,7 @@ contract CLPoolManagerRouter {
         } else {
             if (delta.amount1() > 0) {
                 if (data.testSettings.settleUsingTransfer) {
+                    vault.sync(data.key.currency1);
                     if (data.key.currency1.isNative()) {
                         vault.settle{value: uint128(delta.amount1())}(data.key.currency1);
                     } else {
@@ -238,6 +242,7 @@ contract CLPoolManagerRouter {
         }
 
         if (delta.amount0() > 0) {
+            vault.sync(data.key.currency0);
             if (data.key.currency0.isNative()) {
                 vault.settle{value: uint128(delta.amount0())}(data.key.currency0);
             } else {
@@ -248,6 +253,7 @@ contract CLPoolManagerRouter {
             }
         }
         if (delta.amount1() > 0) {
+            vault.sync(data.key.currency1);
             if (data.key.currency1.isNative()) {
                 vault.settle{value: uint128(delta.amount1())}(data.key.currency1);
             } else {
@@ -281,6 +287,7 @@ contract CLPoolManagerRouter {
             uint256 balAfter = data.key.currency0.balanceOf(data.sender);
             require(balAfter - balBefore == data.amount0);
 
+            vault.sync(data.key.currency0);
             if (data.key.currency0.isNative()) {
                 vault.settle{value: uint256(data.amount0)}(data.key.currency0);
             } else {
@@ -297,6 +304,7 @@ contract CLPoolManagerRouter {
             uint256 balAfter = data.key.currency1.balanceOf(data.sender);
             require(balAfter - balBefore == data.amount1);
 
+            vault.sync(data.key.currency1);
             if (data.key.currency1.isNative()) {
                 vault.settle{value: uint256(data.amount1)}(data.key.currency1);
             } else {

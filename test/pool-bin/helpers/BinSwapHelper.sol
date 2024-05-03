@@ -72,6 +72,7 @@ contract BinSwapHelper {
         if (data.swapForY) {
             if (delta.amount0() > 0) {
                 if (data.testSettings.settleUsingTransfer) {
+                    vault.sync(data.key.currency0);
                     if (data.key.currency0.isNative()) {
                         vault.settle{value: uint128(delta.amount0())}(data.key.currency0);
                     } else {
@@ -96,6 +97,7 @@ contract BinSwapHelper {
         } else {
             if (delta.amount1() > 0) {
                 if (data.testSettings.settleUsingTransfer) {
+                    vault.sync(data.key.currency1);
                     if (data.key.currency1.isNative()) {
                         vault.settle{value: uint128(delta.amount1())}(data.key.currency1);
                     } else {

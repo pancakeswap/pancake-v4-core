@@ -95,6 +95,7 @@ contract BinLiquidityHelper {
         }
 
         if (delta.amount0() > 0) {
+            vault.sync(key.currency0);
             if (key.currency0.isNative()) {
                 vault.settle{value: uint128(delta.amount0())}(key.currency0);
             } else {
@@ -104,6 +105,7 @@ contract BinLiquidityHelper {
         }
 
         if (delta.amount1() > 0) {
+            vault.sync(key.currency1);
             if (key.currency1.isNative()) {
                 vault.settle{value: uint128(delta.amount1())}(key.currency1);
             } else {

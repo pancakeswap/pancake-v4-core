@@ -39,16 +39,19 @@ contract FakePoolManagerRouter {
             poolManager.mockAccounting(poolKey, 3 ether, -3 ether);
             vault.settle(poolKey.currency0);
             vault.take(poolKey.currency1, address(this), 3 ether);
+            vault.sync(poolKey.currency1); // sync so reserveOfVault will show updated val
         } else if (data[0] == 0x04) {
             poolManager.mockAccounting(poolKey, 15 ether, -15 ether);
             vault.settle(poolKey.currency0);
             vault.take(poolKey.currency1, address(this), 15 ether);
+            vault.sync(poolKey.currency1); // sync so reserveOfVault will show updated val
         } else if (data[0] == 0x05) {
             vault.take(poolKey.currency0, address(this), 20 ether);
             vault.take(poolKey.currency1, address(this), 20 ether);
 
             // ... flashloan logic
-
+            vault.sync(poolKey.currency0);
+            vault.sync(poolKey.currency1);
             poolKey.currency0.transfer(address(vault), 20 ether);
             poolKey.currency1.transfer(address(vault), 20 ether);
             vault.settle(poolKey.currency0);
@@ -66,6 +69,8 @@ contract FakePoolManagerRouter {
             forwarder.forward(vault);
         } else if (data[0] == 0x08) {
             // settle generated balance delta by 0x07
+            vault.sync(poolKey.currency0);
+            vault.sync(poolKey.currency1);
             poolKey.currency0.transfer(address(vault), 5 ether);
             poolKey.currency1.transfer(address(vault), 5 ether);
             vault.settle(poolKey.currency0);
@@ -78,23 +83,26 @@ contract FakePoolManagerRouter {
         } else if (data[0] == 0x11) {
             // settleFor
             Payer payer = new Payer();
-            payer.settleFor(vault, poolKey, 5 ether);
+            payer.settleFor(vault, poolKey.currency0, 5 ether);
 
+            vault.sync(poolKey.currency0);
             poolKey.currency0.transfer(address(vault), 5 ether);
-            payer.settle(vault, poolKey);
+            payer.settle(vault, poolKey.currency0);
 
             vault.take(poolKey.currency0, address(this), 5 ether);
         } else if (data[0] == 0x12) {
             // settleFor(, , 0)
             Payer payer = new Payer();
 
+            vault.sync(poolKey.currency0);
             uint256 amt = poolKey.currency0.balanceOfSelf();
             poolKey.currency0.transfer(address(vault), amt);
-            payer.settle(vault, poolKey);
+            payer.settle(vault, poolKey.currency0);
 
             vault.take(poolKey.currency0, address(this), amt);
+            vault.sync(poolKey.currency0); // sync so reserveOfVault will show updated val
 
-            payer.settleFor(vault, poolKey, 0);
+            payer.settleFor(vault, poolKey.currency0, 0);
         } else if (data[0] == 0x13) {
             // mint
             uint256 amt = poolKey.currency0.balanceOf(address(vault));
@@ -114,6 +122,7 @@ contract FakePoolManagerRouter {
 
             vault.burn(address(this), poolKey.currency0, amt);
             vault.take(poolKey.currency0, address(this), amt);
+            vault.sync(poolKey.currency0); // sync so reserveOfVault will show updated val
         } else if (data[0] == 0x16) {
             // burn half if possible
 
@@ -124,22 +133,12 @@ contract FakePoolManagerRouter {
 
             vault.burn(address(this), poolKey.currency0, amt / 2);
             vault.take(poolKey.currency0, address(this), amt / 2);
+            vault.sync(poolKey.currency0); // sync so reserveOfVault will show updated val
         } else if (data[0] == 0x17) {
             // settle ETH
+            vault.sync(CurrencyLibrary.NATIVE);
             vault.settle{value: 5 ether}(CurrencyLibrary.NATIVE);
             vault.take(CurrencyLibrary.NATIVE, address(this), 5 ether);
-        } else if (data[0] == 0x18) {
-            // call this method via vault.lock(abi.encodePacked(hex"18", alice));
-            address to = address(uint160(uint256(bytes32(data[1:0x15]) >> 96)));
-            vault.settleAndMintRefund(poolKey.currency0, to);
-            vault.settleAndMintRefund(poolKey.currency1, to);
-        } else if (data[0] == 0x19) {
-            poolManager.mockAccounting(poolKey, 3 ether, -3 ether);
-            vault.settle(poolKey.currency0);
-
-            /// try to call settleAndMintRefund should not revert
-            vault.settleAndMintRefund(poolKey.currency1, address(this));
-            vault.take(poolKey.currency1, address(this), 3 ether);
         } else if (data[0] == 0x20) {
             // burn on behalf of someone else
             uint256 amt = poolKey.currency0.balanceOf(address(vault));
@@ -149,6 +148,7 @@ contract FakePoolManagerRouter {
             vault.burn(address(0x01), poolKey.currency0, amt);
             vault.take(poolKey.currency0, address(this), amt);
         }
+        // add at 0x21 or 0x18/0x19 which was removed in previous PR
 
         return "";
     }
@@ -173,11 +173,11 @@ contract Forwarder {
 }
 
 contract Payer {
-    function settleFor(IVault vault, PoolKey calldata poolKey, uint256 amt) public {
-        vault.settleFor(poolKey.currency0, msg.sender, amt);
+    function settleFor(IVault vault, Currency currency, uint256 amt) public {
+        vault.settleFor(currency, msg.sender, amt);
     }
 
-    function settle(IVault vault, PoolKey calldata poolKey) public {
-        vault.settle(poolKey.currency0);
+    function settle(IVault vault, Currency currency) public {
+        vault.settle(currency);
     }
 }

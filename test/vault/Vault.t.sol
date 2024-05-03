@@ -140,6 +140,8 @@ contract VaultTest is Test, GasSnapshot {
         // vault.lock => periphery.lockAcquired
         // periphery.lockAcquired => FakePoolManager.XXX => vault.accountPoolBalanceDelta
 
+        vault.sync(currency0);
+        vault.sync(currency1);
         currency0.transfer(address(vault), 10 ether);
 
         vm.expectRevert(IVault.CurrencyNotSettled.selector);
@@ -152,6 +154,8 @@ contract VaultTest is Test, GasSnapshot {
         // vault.lock => periphery.lockAcquired
         // periphery.lockAcquired => FakePoolManager.XXX => vault.accountPoolBalanceDelta
 
+        vault.sync(currency0);
+        vault.sync(currency1);
         currency0.transfer(address(vault), 10 ether);
         currency1.transfer(address(vault), 8 ether);
 
@@ -165,57 +169,14 @@ contract VaultTest is Test, GasSnapshot {
         // vault.lock => periphery.lockAcquired
         // periphery.lockAcquired => FakePoolManager.XXX => vault.accountPoolBalanceDelta
 
+        vault.sync(currency0);
+        vault.sync(currency1);
         currency0.transfer(address(vault), 10 ether);
         currency1.transfer(address(vault), 12 ether);
 
         vm.expectRevert(IVault.CurrencyNotSettled.selector);
         vm.prank(address(fakePoolManagerRouter));
         vault.lock(hex"02");
-    }
-
-    function testSettleAndMintRefund_WithMint() public {
-        address alice = makeAddr("alice");
-
-        // simulate someone transferred token to vault
-        currency0.transfer(address(vault), 10 ether);
-        assertEq(vault.balanceOf(alice, currency0), 0 ether);
-
-        // settle and refund
-        vm.prank(address(fakePoolManagerRouter));
-        snapStart("VaultTest#testSettleAndMintRefund_WithMint");
-        vault.lock(abi.encodePacked(hex"18", alice));
-        snapEnd();
-
-        // verify excess currency minted to alice
-        assertEq(vault.balanceOf(alice, currency0), 10 ether);
-    }
-
-    function testSettleAndMintRefund_WithoutMint() public {
-        address alice = makeAddr("alice");
-
-        assertEq(vault.balanceOf(alice, currency0), 0 ether);
-
-        // settleAndRefund works even if there's no excess currency
-        vm.prank(address(fakePoolManagerRouter));
-        snapStart("VaultTest#testSettleAndMintRefund_WithoutMint");
-        vault.lock(abi.encodePacked(hex"18", alice));
-        snapEnd();
-
-        // verify no extra token minted
-        assertEq(vault.balanceOf(alice, currency0), 0 ether);
-    }
-
-    function testSettleAndMintRefund_NegativeBalanceDelta() public {
-        // pre-req: ensure vault has some value in reserveOfVault[] before
-        currency0.transfer(address(vault), 10 ether);
-        currency1.transfer(address(vault), 10 ether);
-        vm.prank(address(fakePoolManagerRouter));
-        vault.lock(hex"02");
-
-        // settleAndRefund should not revert even if negative balanceDelta
-        currency0.transfer(address(vault), 3 ether);
-        vm.prank(address(fakePoolManagerRouter));
-        vault.lock(hex"19");
     }
 
     function testNotCorrectPoolManager() public {
@@ -232,6 +193,10 @@ contract VaultTest is Test, GasSnapshot {
         // router => vault.lock
         // vault.lock => periphery.lockAcquired
         // periphery.lockAcquired => FakePoolManager.XXX => vault.accountPoolBalanceDelta
+
+        // Sync first, so reservesOfVault can be called
+        vault.sync(currency0);
+        vault.sync(currency1);
 
         assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 0 ether);
         assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 0 ether);
@@ -268,6 +233,8 @@ contract VaultTest is Test, GasSnapshot {
         // vault.lock => periphery.lockAcquired
         // periphery.lockAcquired => FakePoolManager.XXX => vault.accountPoolBalanceDelta
 
+        vault.sync(currency0);
+        vault.sync(currency1);
         currency0.transfer(address(vault), 10 ether);
         currency1.transfer(address(vault), 10 ether);
 
@@ -299,6 +266,8 @@ contract VaultTest is Test, GasSnapshot {
 
     function testLockWhenAlreadyLocked() public {
         // deposit enough token in
+        vault.sync(currency0);
+        vault.sync(currency1);
         currency0.transfer(address(vault), 10 ether);
         currency1.transfer(address(vault), 10 ether);
         vm.prank(address(fakePoolManagerRouter));
@@ -315,6 +284,8 @@ contract VaultTest is Test, GasSnapshot {
         // vault.lock => periphery.lockAcquired
         // periphery.lockAcquired => FakePoolManager.XXX => vault.accountPoolBalanceDelta
 
+        vault.sync(currency0);
+        vault.sync(currency1);
         currency0.transfer(address(vault), 10 ether);
         currency1.transfer(address(vault), 10 ether);
         vm.prank(address(fakePoolManagerRouter));
@@ -372,6 +343,7 @@ contract VaultTest is Test, GasSnapshot {
     function testVaultFuzz_mint(uint256 amt) public {
         amt = bound(amt, 0, 10 ether);
         // make sure router has enough tokens
+        vault.sync(currency0);
         currency0.transfer(address(vault), amt);
 
         vm.prank(address(fakePoolManagerRouter));
@@ -383,6 +355,7 @@ contract VaultTest is Test, GasSnapshot {
     function testVaultFuzz_mint_toSomeoneElse(uint256 amt) public {
         amt = bound(amt, 0, 10 ether);
         // make sure router has enough tokens
+        vault.sync(currency0);
         currency0.transfer(address(vault), amt);
 
         vm.prank(address(fakePoolManagerRouter));
@@ -394,6 +367,7 @@ contract VaultTest is Test, GasSnapshot {
     function testVaultFuzz_burn(uint256 amt) public {
         amt = bound(amt, 0, 10 ether);
         // make sure router has enough tokens
+        vault.sync(currency0);
         currency0.transfer(address(vault), amt);
 
         vm.prank(address(fakePoolManagerRouter));
@@ -405,6 +379,7 @@ contract VaultTest is Test, GasSnapshot {
     function testVaultFuzz_burnHalf(uint256 amt) public {
         amt = bound(amt, 0, 10 ether);
         // make sure router has enough tokens
+        vault.sync(currency0);
         currency0.transfer(address(vault), amt);
 
         vm.prank(address(fakePoolManagerRouter));
@@ -416,6 +391,7 @@ contract VaultTest is Test, GasSnapshot {
     function testVaultFuzz_burnFrom_withoutApprove(uint256 amt) public {
         amt = bound(amt, 0, 10 ether);
         // make sure router has enough tokens
+        vault.sync(currency0);
         currency0.transfer(address(vault), amt);
 
         if (amt != 0) {
@@ -432,6 +408,7 @@ contract VaultTest is Test, GasSnapshot {
     function testVaultFuzz_burnFrom_withApprove(uint256 amt) public {
         amt = bound(amt, 0, 10 ether);
         // make sure router has enough tokens
+        vault.sync(currency0);
         currency0.transfer(address(vault), amt);
 
         vm.prank(address(0x01));
@@ -447,6 +424,7 @@ contract VaultTest is Test, GasSnapshot {
 
         // approve max
         {
+            vault.sync(currency0);
             currency0.transfer(address(vault), amt);
 
             vm.prank(address(0x01));
@@ -462,6 +440,7 @@ contract VaultTest is Test, GasSnapshot {
 
         // operator
         {
+            vault.sync(currency0);
             currency0.transfer(address(vault), amt);
 
             // set a insufficient allowance
@@ -485,6 +464,10 @@ contract VaultTest is Test, GasSnapshot {
         // router => vault.lock
         // vault.lock => periphery.lockAcquired
         // periphery.lockAcquired => FakePoolManager.XXX => vault.accountPoolBalanceDelta
+
+        // ensure vault tload the currency in reserve first
+        vault.sync(currency0);
+        vault.sync(currency1);
 
         currency0.transfer(address(vault), 10 ether);
         currency1.transfer(address(vault), 10 ether);
@@ -518,6 +501,10 @@ contract VaultTest is Test, GasSnapshot {
         // vault.lock => periphery.lockAcquired
         // periphery.lockAcquired => FakePoolManager.XXX => vault.accountPoolBalanceDelta
 
+        // ensure vault tload the currency in reserve first
+        vault.sync(currency0);
+        vault.sync(currency1);
+
         currency0.transfer(address(vault), 10 ether);
         currency1.transfer(address(vault), 10 ether);
         vm.prank(address(fakePoolManagerRouter));
@@ -544,6 +531,8 @@ contract VaultTest is Test, GasSnapshot {
     }
 
     function test_CollectFee() public {
+        vault.sync(currency0);
+        vault.sync(currency1);
         currency0.transfer(address(vault), 10 ether);
         currency1.transfer(address(vault), 10 ether);
         vm.prank(address(fakePoolManagerRouter));
@@ -561,6 +550,7 @@ contract VaultTest is Test, GasSnapshot {
         snapEnd();
 
         // after collectFee assert
+        vault.sync(currency0);
         assertEq(vault.reservesOfVault(currency0), 0 ether);
         assertEq(vault.reservesOfPoolManager(poolKey.poolManager, currency0), 0 ether);
         assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(fakePoolManager)), 10 ether);
@@ -612,6 +602,8 @@ contract VaultTest is Test, GasSnapshot {
 
         // transfer in & settle
         {
+            vault.sync(CurrencyLibrary.NATIVE);
+            vault.sync(currency1);
             CurrencyLibrary.NATIVE.transfer(address(vault), 10 ether);
             currency1.transfer(address(vault), 10 ether);
 
@@ -637,6 +629,7 @@ contract VaultTest is Test, GasSnapshot {
             })
         );
 
+        vault.sync(CurrencyLibrary.NATIVE);
         CurrencyLibrary.NATIVE.transfer(address(router), 5 ether);
 
         // take and settle
@@ -645,6 +638,7 @@ contract VaultTest is Test, GasSnapshot {
             vault.lock(hex"17");
 
             assertEq(CurrencyLibrary.NATIVE.balanceOf(address(vault)), 0);
+            vault.sync(CurrencyLibrary.NATIVE); // sync so reserveOfVault updated
             assertEq(vault.reservesOfVault(CurrencyLibrary.NATIVE), 0);
             assertEq(vault.reservesOfPoolManager(fakePoolManager, CurrencyLibrary.NATIVE), 0);
         }
@@ -664,6 +658,8 @@ contract VaultTest is Test, GasSnapshot {
         );
 
         // make sure vault has enough tokens
+        vault.sync(CurrencyLibrary.NATIVE);
+        vault.sync(currency1);
         CurrencyLibrary.NATIVE.transfer(address(vault), 10 ether);
         currency1.transfer(address(vault), 10 ether);
         vm.prank(address(router));

@@ -50,6 +50,7 @@ contract PoolModifyPositionTest is ILockCallback {
         BalanceDelta delta = manager.modifyLiquidity(data.key, data.params, data.hookData);
 
         if (delta.amount0() > 0) {
+            vault.sync(data.key.currency0);
             if (data.key.currency0.isNative()) {
                 vault.settle{value: uint128(delta.amount0())}(data.key.currency0);
             } else {
@@ -60,6 +61,7 @@ contract PoolModifyPositionTest is ILockCallback {
             }
         }
         if (delta.amount1() > 0) {
+            vault.sync(data.key.currency1);
             if (data.key.currency1.isNative()) {
                 vault.settle{value: uint128(delta.amount1())}(data.key.currency1);
             } else {
