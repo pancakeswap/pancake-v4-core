@@ -97,7 +97,8 @@ library CLPool {
 
     /// @dev Effect changes to the liquidity of a position in a pool
     /// @param params the position details and the change to the position's liquidity to effect
-    /// @return delta the deltas of the token balances of the pool
+    /// @return delta the deltas from liquidity changes
+    /// @return feeDelta the delta of the fees generated in the liquidity range
     function modifyLiquidity(State storage self, ModifyLiquidityParams memory params)
         internal
         returns (BalanceDelta delta, BalanceDelta feeDelta)
