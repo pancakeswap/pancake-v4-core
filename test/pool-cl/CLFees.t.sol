@@ -5,9 +5,9 @@ import {Test} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {IHooks} from "../../src/interfaces/IHooks.sol";
 import {Hooks} from "../../src/libraries/Hooks.sol";
-import {SwapFeeLibrary} from "../../src/libraries/SwapFeeLibrary.sol";
+import {LPFeeLibrary} from "../../src/libraries/LPFeeLibrary.sol";
 import {IPoolManager} from "../../src/interfaces/IPoolManager.sol";
-import {IFees} from "../../src/interfaces/IFees.sol";
+import {IProtocolFees} from "../../src/interfaces/IProtocolFees.sol";
 import {ICLPoolManager} from "../../src/pool-cl/interfaces/ICLPoolManager.sol";
 import {CLPoolManager} from "../../src/pool-cl/CLPoolManager.sol";
 import {TickMath} from "../../src/pool-cl/libraries/TickMath.sol";
@@ -22,10 +22,11 @@ import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {CLPoolManagerRouter} from "./helpers/CLPoolManagerRouter.sol";
 import {ProtocolFeeControllerTest} from "./helpers/ProtocolFeeControllerTest.sol";
 import {IProtocolFeeController} from "../../src/interfaces/IProtocolFeeController.sol";
-import {Fees} from "../../src/Fees.sol";
+import {ProtocolFees} from "../../src/ProtocolFees.sol";
 import {BalanceDelta} from "../../src/types/BalanceDelta.sol";
 import {PoolKey} from "../../src/types/PoolKey.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
+import {ProtocolFeeLibrary} from "../../src/libraries/ProtocolFeeLibrary.sol";
 
 contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
     using Hooks for IHooks;
@@ -81,11 +82,14 @@ contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
         protocolFeeController.setSwapFeeForPool(key.toId(), protocolSwapFee);
         manager.setProtocolFeeController(IProtocolFeeController(protocolFeeController));
 
-        uint16 protocolSwapFee0 = protocolSwapFee % 256;
-        uint16 protocolSwapFee1 = protocolSwapFee >> 8;
+        uint16 protocolSwapFee0 = protocolSwapFee % 4096;
+        uint16 protocolSwapFee1 = protocolSwapFee >> 12;
 
-        if ((protocolSwapFee1 != 0 && protocolSwapFee1 < 4) || (protocolSwapFee0 != 0 && protocolSwapFee0 < 4)) {
-            vm.expectRevert(IFees.ProtocolFeeControllerCallFailedOrInvalidResult.selector);
+        if (
+            protocolSwapFee0 > ProtocolFeeLibrary.MAX_PROTOCOL_FEE
+                || protocolSwapFee1 > ProtocolFeeLibrary.MAX_PROTOCOL_FEE
+        ) {
+            vm.expectRevert(IProtocolFees.ProtocolFeeControllerCallFailedOrInvalidResult.selector);
             manager.setProtocolFee(key);
             return;
         }

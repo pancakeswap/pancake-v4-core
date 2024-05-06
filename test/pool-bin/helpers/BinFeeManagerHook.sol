@@ -51,7 +51,7 @@ contract BinFeeManagerHook is BaseBinTestHook, IBinDynamicFeeManager {
             (bool _update, uint24 _fee) = abi.decode(hookData, (bool, uint24));
             if (_update) {
                 fee = _fee;
-                binManager.updateDynamicSwapFee(key, _fee);
+                binManager.updateDynamicLPFee(key, _fee);
             }
         }
 
@@ -67,7 +67,7 @@ contract BinFeeManagerHook is BaseBinTestHook, IBinDynamicFeeManager {
             (bool _update, uint24 _fee) = abi.decode(hookData, (bool, uint24));
             if (_update) {
                 fee = _fee;
-                binManager.updateDynamicSwapFee(key, _fee);
+                binManager.updateDynamicLPFee(key, _fee);
             }
         }
 

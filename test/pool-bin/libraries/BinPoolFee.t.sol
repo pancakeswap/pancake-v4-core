@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
-import {IFees} from "../../../src/interfaces/IFees.sol";
+import {IProtocolFees} from "../../../src/interfaces/IProtocolFees.sol";
 import {IVault} from "../../../src/interfaces/IVault.sol";
 import {IHooks} from "../../../src/interfaces/IHooks.sol";
 import {IPoolManager} from "../../../src/interfaces/IPoolManager.sol";
@@ -21,7 +21,7 @@ import {SafeCast} from "../../../src/pool-bin/libraries/math/SafeCast.sol";
 import {LiquidityConfigurations} from "../../../src/pool-bin/libraries/math/LiquidityConfigurations.sol";
 import {IBinPoolManager} from "../../../src/pool-bin/interfaces/IBinPoolManager.sol";
 import {BinPoolParametersHelper} from "../../../src/pool-bin/libraries/BinPoolParametersHelper.sol";
-import {SwapFeeLibrary} from "../../../src/libraries/SwapFeeLibrary.sol";
+import {LPFeeLibrary} from "../../../src/libraries/LPFeeLibrary.sol";
 import {BinTestHelper} from "../helpers/BinTestHelper.sol";
 import {BinFeeManagerHook} from "../helpers/BinFeeManagerHook.sol";
 import {HOOKS_AFTER_INITIALIZE_OFFSET, HOOKS_BEFORE_MINT_OFFSET} from "../../../src/pool-bin/interfaces/IBinHooks.sol";
@@ -126,7 +126,7 @@ contract BinPoolFeeTest is BinTestHelper {
     }
 
     function testFuzz_Mint_WithDynamicFeeTooLarge(uint24 swapFee) external {
-        swapFee = uint24(bound(swapFee, SwapFeeLibrary.TEN_PERCENT_FEE + 1, type(uint24).max));
+        swapFee = uint24(bound(swapFee, LPFeeLibrary.TEN_PERCENT_FEE + 1, type(uint24).max));
 
         // 0000 0000 0000 0100, beforeMint
         uint16 bitMap = 0x0004;
@@ -137,14 +137,14 @@ contract BinPoolFeeTest is BinTestHelper {
             currency1: currency1,
             hooks: IHooks(address(binFeeManagerHook)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: SwapFeeLibrary.DYNAMIC_FEE_FLAG + uint24(10_000), // 10_000 = 1%
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG + uint24(10_000), // 10_000 = 1%
             parameters: bytes32(uint256(bitMap)).setBinStep(10)
         });
 
         uint24 activeId = ID_ONE; // where token price are the same
         poolManager.initialize(key, activeId, new bytes(0));
 
-        vm.expectRevert(IFees.FeeTooLarge.selector);
+        vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
         bytes memory data = abi.encode(true, uint24(swapFee));
         addLiquidityToBin(key, poolManager, bob, activeId, 10_000 ether, 10_000 ether, 1e18, 1e18, data);
     }
@@ -157,7 +157,7 @@ contract BinPoolFeeTest is BinTestHelper {
             hooks: IHooks(address(mockFeeManagerHook)),
             poolManager: IPoolManager(address(poolManager)),
             /// @dev dynamic swap fee is 0 when pool is initialized, hence 0.3% will be ignored
-            fee: SwapFeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000),
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000),
             parameters: BinPoolParametersHelper.setBinStep(
                 bytes32(uint256(mockFeeManagerHook.getHooksRegistrationBitmap())), 10
             )
@@ -279,7 +279,7 @@ contract BinPoolFeeTest is BinTestHelper {
     }
 
     function test_Swap_WithDynamicFee(uint24 poolFee) external {
-        poolFee = uint24(bound(poolFee, 0, SwapFeeLibrary.TEN_PERCENT_FEE - 1));
+        poolFee = uint24(bound(poolFee, 0, LPFeeLibrary.TEN_PERCENT_FEE - 1));
 
         // 0000 0000 0100 0000, beforeSwap
         uint16 bitMap = 0x0040;
@@ -290,7 +290,7 @@ contract BinPoolFeeTest is BinTestHelper {
             currency1: currency1,
             hooks: IHooks(address(binFeeManagerHook)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: SwapFeeLibrary.DYNAMIC_FEE_FLAG + poolFee,
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG + poolFee,
             // parameters: poolParam // binStep
             parameters: bytes32(uint256(bitMap)).setBinStep(10)
         });
@@ -320,7 +320,7 @@ contract BinPoolFeeTest is BinTestHelper {
     }
 
     function testFuzz_Swap_WithDynamicFeeTooLarge(uint24 swapFee) external {
-        swapFee = uint24(bound(swapFee, SwapFeeLibrary.TEN_PERCENT_FEE + 1, type(uint24).max));
+        swapFee = uint24(bound(swapFee, LPFeeLibrary.TEN_PERCENT_FEE + 1, type(uint24).max));
 
         // 0000 0000 0100 0000, beforeSwap
         uint16 bitMap = 0x0040;
@@ -331,7 +331,7 @@ contract BinPoolFeeTest is BinTestHelper {
             currency1: currency1,
             hooks: IHooks(address(binFeeManagerHook)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: SwapFeeLibrary.DYNAMIC_FEE_FLAG + uint24(10_000), // 10_000 = 1%
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG + uint24(10_000), // 10_000 = 1%
             parameters: bytes32(uint256(bitMap)).setBinStep(10)
         });
 
@@ -340,7 +340,7 @@ contract BinPoolFeeTest is BinTestHelper {
         poolManager.initialize(key, activeId, new bytes(0));
         addLiquidityToBin(key, poolManager, bob, activeId, 10_000e18, 10_000e18, 1e18, 1e18, "");
 
-        vm.expectRevert(IFees.FeeTooLarge.selector);
+        vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
         bytes memory data = abi.encode(true, uint24(swapFee));
         poolManager.swap(key, true, 1e18, data);
     }

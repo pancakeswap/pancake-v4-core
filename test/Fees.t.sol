@@ -13,12 +13,12 @@ import {
     InvalidReturnSizeMockProtocolFeeController
 } from "../src/test/fee/MockProtocolFeeController.sol";
 import "../src/test/MockVault.sol";
-import "../src/Fees.sol";
-import "../src/interfaces/IFees.sol";
+import "../src/ProtocolFees.sol";
+import "../src/interfaces/IProtocolFees.sol";
 import "../src/interfaces/IVault.sol";
 import "../src/interfaces/IPoolManager.sol";
 import "../src/interfaces/IHooks.sol";
-import "../src/libraries/SwapFeeLibrary.sol";
+import "../src/libraries/LPFeeLibrary.sol";
 
 contract FeesTest is Test {
     MockFeePoolManager poolManager;
@@ -90,7 +90,7 @@ contract FeesTest is Test {
         });
         poolManagerWithLowControllerGasLimit.setProtocolFeeController(feeController);
 
-        vm.expectRevert(IFees.ProtocolFeeCannotBeFetched.selector);
+        vm.expectRevert(IProtocolFees.ProtocolFeeCannotBeFetched.selector);
         poolManagerWithLowControllerGasLimit.initialize{gas: 2000_000}(_key, new bytes(0));
     }
 
@@ -125,7 +125,7 @@ contract FeesTest is Test {
         assertEq(poolManager.getProtocolFee(key), 0);
     }
 
-    function testInitFuzz(uint16 fee) public {
+    function testInitFuzz(uint24 fee) public {
         poolManager.setProtocolFeeController(feeController);
 
         vm.mockCall(
@@ -137,13 +137,10 @@ contract FeesTest is Test {
         poolManager.initialize(key, new bytes(0));
 
         if (fee != 0) {
-            uint16 fee0 = fee % 256;
-            uint16 fee1 = fee >> 8;
+            uint24 fee0 = fee % 4096;
+            uint24 fee1 = fee >> 12;
 
-            if (
-                (fee0 != 0 && fee0 < poolManager.MIN_PROTOCOL_FEE_DENOMINATOR())
-                    || (fee1 != 0 && fee1 < poolManager.MIN_PROTOCOL_FEE_DENOMINATOR())
-            ) {
+            if (fee0 > ProtocolFeeLibrary.MAX_PROTOCOL_FEE || fee1 > ProtocolFeeLibrary.MAX_PROTOCOL_FEE) {
                 // invalid fee, fallback to 0
                 assertEq(poolManager.getProtocolFee(key), 0);
             } else {
@@ -175,7 +172,7 @@ contract FeesTest is Test {
     }
 
     function test_CollectProtocolFee_OnlyOwnerOrFeeController() public {
-        vm.expectRevert(IFees.InvalidProtocolFeeCollector.selector);
+        vm.expectRevert(IProtocolFees.InvalidCaller.selector);
 
         vm.prank(address(alice));
         poolManager.collectProtocolFees(alice, Currency.wrap(address(token0)), 1e18);

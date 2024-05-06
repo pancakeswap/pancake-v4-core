@@ -11,26 +11,18 @@ interface IPoolManager {
     /// @notice PoolKey must have currencies where address(currency0) < address(currency1)
     error CurrenciesInitializedOutOfOrder();
 
-    /// @notice Thrown when a call to updateDynamicSwapFee is made by an address that is not the hook,
-    /// or on a pool that does not have a dynamic swap fee.
-    error UnauthorizedDynamicSwapFeeUpdate();
+    /// @notice Thrown when a call to updateDynamicLPFee is made by an address that is not the hook,
+    /// or on a pool is not a dynamic fee pool.
+    error UnauthorizedDynamicLPFeeUpdate();
 
-    /// @notice Emitted when protocol fee is updated
-    /// @dev The event is emitted even if the updated protocolFee is the same as previous protocolFee
-    event ProtocolFeeUpdated(PoolId indexed id, uint16 protocolFee);
+    /// @notice Emitted when lp fee is updated
+    /// @dev The event is emitted even if the updated fee value is the same as previous one
+    event DynamicLPFeeUpdated(PoolId indexed id, uint24 dynamicLPFee);
 
-    /// @notice Emitted when swap fee is updated
-    /// @dev The event is emitted even if the updated swap fee is the same as previous swap fee
-    event DynamicSwapFeeUpdated(PoolId indexed id, uint24 dynamicSwapFee);
-
-    /// @notice Sets the protocol's swap fee for the given pool
-    /// Protocol fee is always a portion of swap fee that is owed. If that underlying fee is 0, no protocol fee will accrue even if it is set to > 0.
-    function setProtocolFee(PoolKey memory key) external;
-
-    /// @notice Updates the pools swap fee for the a pool that has enabled dynamic swap fee.
+    /// @notice Updates lp fee for a dyanmic fee pool
     /// @dev Some of the use case could be:
-    ///   1) when hook#beforeSwap() is called and hook call this function to update the swap fee
-    ///   2) For BinPool only, when hook#beforeMint() is called and hook call this function to update the swap fee
-    ///   3) other use case where the hook might want to on an ad-hoc basis increase/reduce swap fee
-    function updateDynamicSwapFee(PoolKey memory key, uint24 newDynamicSwapFee) external;
+    ///   1) when hook#beforeSwap() is called and hook call this function to update the lp fee
+    ///   2) For BinPool only, when hook#beforeMint() is called and hook call this function to update the lp fee
+    ///   3) other use case where the hook might want to on an ad-hoc basis increase/reduce lp fee
+    function updateDynamicLPFee(PoolKey memory key, uint24 newDynamicLPFee) external;
 }
