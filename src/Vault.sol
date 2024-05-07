@@ -104,8 +104,8 @@ contract Vault is IVault, VaultToken, Ownable {
     /// @inheritdoc IVault
     function take(Currency currency, address to, uint256 amount) external override isLocked {
         unchecked {
-          SettlementGuard.accountDelta(msg.sender, currency, amount.toInt128());
-          currency.transfer(to, amount);
+            SettlementGuard.accountDelta(msg.sender, currency, amount.toInt128());
+            currency.transfer(to, amount);
         }
         if (!currency.isNative()) reservesOfVault[currency] -= amount;
     }
