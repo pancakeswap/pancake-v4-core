@@ -159,6 +159,9 @@ contract FakePoolManagerRouter {
 
             // ... flashloan logic
 
+            vault.sync(poolKey.currency0);
+            vault.sync(poolKey.currency1);
+
             // only for erc20 as native will call settle with value
             poolKey.currency1.transfer(address(vault), 20 ether);
 
