@@ -84,7 +84,11 @@ contract CLSkipCallbackHook is BaseCLTestHook {
     function modifyPositionCallback(bytes memory rawData) private returns (bytes memory) {
         ModifyPositionCallbackData memory data = abi.decode(rawData, (ModifyPositionCallbackData));
 
-        BalanceDelta delta = poolManager.modifyLiquidity(data.key, data.params, data.hookData);
+        (BalanceDelta delta, BalanceDelta feeDelta) = poolManager.modifyLiquidity(data.key, data.params, data.hookData);
+
+        // For now assume to always settle feeDelta in the same way as delta
+        BalanceDelta totalDelta = delta + feeDelta;
+
         if (delta.amount0() > 0) {
             if (data.key.currency0.isNative()) {
                 vault.settle{value: uint128(delta.amount0())}(data.key.currency0);
