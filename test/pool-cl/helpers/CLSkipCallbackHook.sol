@@ -2,19 +2,17 @@
 pragma solidity ^0.8.24;
 
 import {IVault} from "../../../src/interfaces/IVault.sol";
+import {Hooks} from "../../../src/libraries/Hooks.sol";
+import {ICLPoolManager} from "../../../src/pool-cl/interfaces/ICLPoolManager.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {Currency, CurrencyLibrary} from "../../../src/types/Currency.sol";
-import {IPoolManager} from "../../../src/interfaces/IPoolManager.sol";
-import {ICLPoolManager} from "../../../src/pool-cl/interfaces/ICLPoolManager.sol";
-import {console2} from "forge-std/console2.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../../../src/types/BalanceDelta.sol";
-import {HOOKS_NO_OP_OFFSET} from "../../../src/pool-cl/interfaces/ICLHooks.sol";
-import {Hooks} from "../../../src/libraries/Hooks.sol";
+import {BaseCLTestHook} from "./BaseCLTestHook.sol";
 
-contract CLPoolManagerRouter {
+/// @notice CL hook which does a callback
+contract CLSkipCallbackHook is BaseCLTestHook {
     error InvalidAction();
-    error HookMissingNoOpPermission();
 
     using CurrencyLibrary for Currency;
     using Hooks for bytes32;
@@ -22,14 +20,39 @@ contract CLPoolManagerRouter {
     IVault public immutable vault;
     ICLPoolManager public immutable poolManager;
 
+    uint16 bitmap;
+    uint256 public hookCounterCallbackCount;
+
     constructor(IVault _vault, ICLPoolManager _poolManager) {
         vault = _vault;
         poolManager = _poolManager;
     }
 
+    function getHooksRegistrationBitmap() external pure override returns (uint16) {
+        return _hooksRegistrationBitmapFrom(
+            Permissions({
+                beforeInitialize: true,
+                afterInitialize: true,
+                beforeAddLiquidity: true,
+                afterAddLiquidity: true,
+                beforeRemoveLiquidity: true,
+                afterRemoveLiquidity: true,
+                beforeSwap: true,
+                afterSwap: true,
+                beforeDonate: true,
+                afterDonate: true,
+                noOp: false
+            })
+        );
+    }
+
     struct CallbackData {
         bytes action;
         bytes rawCallbackData;
+    }
+
+    function initialize(PoolKey memory key, uint160 sqrtPriceX96, bytes memory hookData) external {
+        poolManager.initialize(key, sqrtPriceX96, hookData);
     }
 
     struct ModifyPositionCallbackData {
@@ -43,12 +66,12 @@ contract CLPoolManagerRouter {
         PoolKey memory key,
         ICLPoolManager.ModifyLiquidityParams memory params,
         bytes memory hookData
-    ) external payable returns (BalanceDelta delta, BalanceDelta feeDelta) {
-        (delta, feeDelta) = abi.decode(
+    ) external payable returns (BalanceDelta delta) {
+        delta = abi.decode(
             vault.lock(
                 abi.encode("modifyPosition", abi.encode(ModifyPositionCallbackData(msg.sender, key, params, hookData)))
             ),
-            (BalanceDelta, BalanceDelta)
+            (BalanceDelta)
         );
 
         // if any ethers left
@@ -62,46 +85,39 @@ contract CLPoolManagerRouter {
         ModifyPositionCallbackData memory data = abi.decode(rawData, (ModifyPositionCallbackData));
 
         (BalanceDelta delta, BalanceDelta feeDelta) = poolManager.modifyLiquidity(data.key, data.params, data.hookData);
-        if (delta == BalanceDeltaLibrary.MAXIMUM_DELTA) {
-            // check if the hook has permission to no-op, if true, return early
-            if (!data.key.parameters.shouldCall(HOOKS_NO_OP_OFFSET, data.key.hooks)) {
-                revert HookMissingNoOpPermission();
-            }
-            return abi.encode(delta, feeDelta);
-        }
 
         // For now assume to always settle feeDelta in the same way as delta
         BalanceDelta totalDelta = delta + feeDelta;
 
-        if (totalDelta.amount0() > 0) {
+        if (delta.amount0() > 0) {
             if (data.key.currency0.isNative()) {
-                vault.settle{value: uint128(totalDelta.amount0())}(data.key.currency0);
+                vault.settle{value: uint128(delta.amount0())}(data.key.currency0);
             } else {
                 IERC20(Currency.unwrap(data.key.currency0)).transferFrom(
-                    data.sender, address(vault), uint128(totalDelta.amount0())
+                    data.sender, address(vault), uint128(delta.amount0())
                 );
                 vault.settle(data.key.currency0);
             }
         }
-        if (totalDelta.amount1() > 0) {
+        if (delta.amount1() > 0) {
             if (data.key.currency1.isNative()) {
-                vault.settle{value: uint128(totalDelta.amount1())}(data.key.currency1);
+                vault.settle{value: uint128(delta.amount1())}(data.key.currency1);
             } else {
                 IERC20(Currency.unwrap(data.key.currency1)).transferFrom(
-                    data.sender, address(vault), uint128(totalDelta.amount1())
+                    data.sender, address(vault), uint128(delta.amount1())
                 );
                 vault.settle(data.key.currency1);
             }
         }
 
-        if (totalDelta.amount0() < 0) {
-            vault.take(data.key.currency0, data.sender, uint128(-totalDelta.amount0()));
+        if (delta.amount0() < 0) {
+            vault.take(data.key.currency0, data.sender, uint128(-delta.amount0()));
         }
-        if (totalDelta.amount1() < 0) {
-            vault.take(data.key.currency1, data.sender, uint128(-totalDelta.amount1()));
+        if (delta.amount1() < 0) {
+            vault.take(data.key.currency1, data.sender, uint128(-delta.amount1()));
         }
 
-        return abi.encode(delta, feeDelta);
+        return abi.encode(delta);
     }
 
     struct SwapTestSettings {
@@ -138,15 +154,6 @@ contract CLPoolManagerRouter {
         SwapCallbackData memory data = abi.decode(rawData, (SwapCallbackData));
 
         BalanceDelta delta = poolManager.swap(data.key, data.params, data.hookData);
-
-        if (delta == BalanceDeltaLibrary.MAXIMUM_DELTA) {
-            // check if the hook has permission to no-op, if true, return early
-            if (!data.key.parameters.shouldCall(HOOKS_NO_OP_OFFSET, data.key.hooks)) {
-                revert HookMissingNoOpPermission();
-            }
-            return abi.encode(delta);
-        }
-
         if (data.params.zeroForOne) {
             if (delta.amount0() > 0) {
                 if (data.testSettings.settleUsingTransfer) {
@@ -230,15 +237,6 @@ contract CLPoolManagerRouter {
         DonateCallbackData memory data = abi.decode(rawData, (DonateCallbackData));
 
         BalanceDelta delta = poolManager.donate(data.key, data.amount0, data.amount1, data.hookData);
-
-        if (delta == BalanceDeltaLibrary.MAXIMUM_DELTA) {
-            // check if the hook has permission to no-op, if true, return early
-            if (!data.key.parameters.shouldCall(HOOKS_NO_OP_OFFSET, data.key.hooks)) {
-                revert HookMissingNoOpPermission();
-            }
-            return abi.encode(delta);
-        }
-
         if (delta.amount0() > 0) {
             if (data.key.currency0.isNative()) {
                 vault.settle{value: uint128(delta.amount0())}(data.key.currency0);
@@ -263,69 +261,109 @@ contract CLPoolManagerRouter {
         return abi.encode(delta);
     }
 
-    struct TakeCallbackData {
-        address sender;
-        PoolKey key;
-        uint256 amount0;
-        uint256 amount1;
-    }
-
-    function take(PoolKey memory key, uint256 amount0, uint256 amount1) external payable {
-        vault.lock(abi.encode("take", abi.encode(TakeCallbackData(msg.sender, key, amount0, amount1))));
-    }
-
-    function takeCallback(bytes memory rawData) private returns (bytes memory) {
-        TakeCallbackData memory data = abi.decode(rawData, (TakeCallbackData));
-
-        if (data.amount0 > 0) {
-            uint256 balBefore = data.key.currency0.balanceOf(data.sender);
-            vault.take(data.key.currency0, data.sender, data.amount0);
-            uint256 balAfter = data.key.currency0.balanceOf(data.sender);
-            require(balAfter - balBefore == data.amount0);
-
-            if (data.key.currency0.isNative()) {
-                vault.settle{value: uint256(data.amount0)}(data.key.currency0);
-            } else {
-                IERC20(Currency.unwrap(data.key.currency0)).transferFrom(
-                    data.sender, address(vault), uint256(data.amount0)
-                );
-                vault.settle(data.key.currency0);
-            }
-        }
-
-        if (data.amount1 > 0) {
-            uint256 balBefore = data.key.currency1.balanceOf(data.sender);
-            vault.take(data.key.currency1, data.sender, data.amount1);
-            uint256 balAfter = data.key.currency1.balanceOf(data.sender);
-            require(balAfter - balBefore == data.amount1);
-
-            if (data.key.currency1.isNative()) {
-                vault.settle{value: uint256(data.amount1)}(data.key.currency1);
-            } else {
-                IERC20(Currency.unwrap(data.key.currency1)).transferFrom(
-                    data.sender, address(vault), uint256(data.amount1)
-                );
-                vault.settle(data.key.currency1);
-            }
-        }
-
-        return abi.encode(0);
-    }
-
     function lockAcquired(bytes calldata data) external returns (bytes memory) {
-        require(msg.sender == address(vault));
-
         (bytes memory action, bytes memory rawCallbackData) = abi.decode(data, (bytes, bytes));
+
         if (keccak256(action) == keccak256("modifyPosition")) {
             return modifyPositionCallback(rawCallbackData);
         } else if (keccak256(action) == keccak256("swap")) {
             return swapCallback(rawCallbackData);
         } else if (keccak256(action) == keccak256("donate")) {
             return donateCallback(rawCallbackData);
-        } else if (keccak256(action) == keccak256("take")) {
-            return takeCallback(rawCallbackData);
         } else {
             revert InvalidAction();
         }
+    }
+
+    function beforeInitialize(address, PoolKey calldata, uint160, bytes calldata) external override returns (bytes4) {
+        hookCounterCallbackCount++;
+        return CLSkipCallbackHook.beforeInitialize.selector;
+    }
+
+    function afterInitialize(address, PoolKey calldata, uint160, int24, bytes calldata)
+        external
+        override
+        returns (bytes4)
+    {
+        hookCounterCallbackCount++;
+        return CLSkipCallbackHook.afterInitialize.selector;
+    }
+
+    function beforeAddLiquidity(
+        address,
+        PoolKey calldata,
+        ICLPoolManager.ModifyLiquidityParams calldata,
+        bytes calldata
+    ) external override returns (bytes4) {
+        hookCounterCallbackCount++;
+        return CLSkipCallbackHook.beforeAddLiquidity.selector;
+    }
+
+    function afterAddLiquidity(
+        address,
+        PoolKey calldata,
+        ICLPoolManager.ModifyLiquidityParams calldata,
+        BalanceDelta,
+        bytes calldata
+    ) external override returns (bytes4) {
+        hookCounterCallbackCount++;
+        return CLSkipCallbackHook.afterAddLiquidity.selector;
+    }
+
+    function beforeRemoveLiquidity(
+        address,
+        PoolKey calldata,
+        ICLPoolManager.ModifyLiquidityParams calldata,
+        bytes calldata
+    ) external override returns (bytes4) {
+        hookCounterCallbackCount++;
+        return CLSkipCallbackHook.beforeRemoveLiquidity.selector;
+    }
+
+    function afterRemoveLiquidity(
+        address,
+        PoolKey calldata,
+        ICLPoolManager.ModifyLiquidityParams calldata,
+        BalanceDelta,
+        bytes calldata
+    ) external override returns (bytes4) {
+        hookCounterCallbackCount++;
+        return CLSkipCallbackHook.afterRemoveLiquidity.selector;
+    }
+
+    function beforeSwap(address, PoolKey calldata, ICLPoolManager.SwapParams calldata, bytes calldata)
+        external
+        override
+        returns (bytes4)
+    {
+        hookCounterCallbackCount++;
+        return CLSkipCallbackHook.beforeSwap.selector;
+    }
+
+    function afterSwap(address, PoolKey calldata, ICLPoolManager.SwapParams calldata, BalanceDelta, bytes calldata)
+        external
+        override
+        returns (bytes4)
+    {
+        hookCounterCallbackCount++;
+        return CLSkipCallbackHook.afterSwap.selector;
+    }
+
+    function beforeDonate(address, PoolKey calldata, uint256, uint256, bytes calldata)
+        external
+        override
+        returns (bytes4)
+    {
+        hookCounterCallbackCount++;
+        return CLSkipCallbackHook.beforeDonate.selector;
+    }
+
+    function afterDonate(address, PoolKey calldata, uint256, uint256, bytes calldata)
+        external
+        override
+        returns (bytes4)
+    {
+        hookCounterCallbackCount++;
+        return CLSkipCallbackHook.afterDonate.selector;
     }
 }
