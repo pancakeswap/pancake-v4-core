@@ -63,7 +63,7 @@ contract BinSwapHelper {
 
         if (delta == BalanceDeltaLibrary.MAXIMUM_DELTA) {
             // check if the hook has permission to no-op, if true, return early
-            if (!data.key.parameters.shouldCall(HOOKS_NO_OP_OFFSET)) {
+            if (!data.key.parameters.shouldCall(HOOKS_NO_OP_OFFSET, data.key.hooks)) {
                 revert HookMissingNoOpPermission();
             }
             return abi.encode(delta);

@@ -45,9 +45,6 @@ contract Vault is IVault, VaultToken, Ownable {
         _;
     }
 
-    /// @notice receive native tokens for native pools
-    receive() external payable {}
-
     /// @inheritdoc IVault
     function registerPoolManager(address poolManager) external override onlyOwner {
         isPoolManagerRegistered[poolManager] = true;
@@ -122,9 +119,14 @@ contract Vault is IVault, VaultToken, Ownable {
 
     /// @inheritdoc IVault
     function settle(Currency currency) external payable override isLocked returns (uint256 paid) {
-        uint256 reservesBefore = currency.getVaultReserves();
-        uint256 reservesNow = sync(currency);
-        paid = reservesNow - reservesBefore;
+        if (!currency.isNative()) {
+            if (msg.value > 0) revert SettleNonNativeCurrencyWithValue();
+            uint256 reservesBefore = currency.getVaultReserves();
+            uint256 reservesNow = sync(currency);
+            paid = reservesNow - reservesBefore;
+        } else {
+            paid = msg.value;
+        }
 
         // subtraction must be safe
         SettlementGuard.accountDelta(msg.sender, currency, -(paid.toInt128()));

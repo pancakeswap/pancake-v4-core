@@ -88,7 +88,7 @@ contract BinLiquidityHelper {
 
         if (delta == BalanceDeltaLibrary.MAXIMUM_DELTA) {
             // check if the hook has permission to no-op, if true, return early
-            if (!key.parameters.shouldCall(HOOKS_NO_OP_OFFSET)) {
+            if (!key.parameters.shouldCall(HOOKS_NO_OP_OFFSET, key.hooks)) {
                 revert HookMissingNoOpPermission();
             }
             return abi.encode(delta);

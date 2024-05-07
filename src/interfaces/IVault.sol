@@ -24,6 +24,9 @@ interface IVault is IVaultToken {
     /// @param locker The address of the current locker
     error LockerAlreadySet(address locker);
 
+    /// @notice Thrown when passing in msg.value for non-native currency
+    error SettleNonNativeCurrencyWithValue();
+
     /// @notice Thrown when there is no locker
     error NoLocker();
 
