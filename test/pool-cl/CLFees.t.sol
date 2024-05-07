@@ -89,11 +89,11 @@ contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
             protocolSwapFee0 > ProtocolFeeLibrary.MAX_PROTOCOL_FEE
                 || protocolSwapFee1 > ProtocolFeeLibrary.MAX_PROTOCOL_FEE
         ) {
-            vm.expectRevert(IProtocolFees.ProtocolFeeControllerCallFailedOrInvalidResult.selector);
-            manager.setProtocolFee(key);
+            vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
+            manager.setProtocolFee(key, protocolFeeController.protocolFeeForPool(key));
             return;
         }
-        manager.setProtocolFee(key);
+        manager.setProtocolFee(key, protocolFeeController.protocolFeeForPool(key));
 
         (slot0,,,) = manager.pools(key.toId());
 
@@ -108,7 +108,7 @@ contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         protocolFeeController.setSwapFeeForPool(key.toId(), protocolSwapFee);
         manager.setProtocolFeeController(IProtocolFeeController(protocolFeeController));
-        manager.setProtocolFee(key);
+        manager.setProtocolFee(key, protocolFeeController.protocolFeeForPool(key));
 
         (CLPool.Slot0 memory slot0,,,) = manager.pools(key.toId());
         assertEq(slot0.protocolFee, protocolSwapFee);
@@ -155,7 +155,7 @@ contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
         uint16 protocolFee = _computeFee(_oneForZero, 10); // 10% on 1 to 0 swaps
         protocolFeeController.setSwapFeeForPool(key.toId(), protocolFee);
         manager.setProtocolFeeController(IProtocolFeeController(protocolFeeController));
-        manager.setProtocolFee(key);
+        manager.setProtocolFee(key, protocolFee);
 
         (CLPool.Slot0 memory slot0,,,) = manager.pools(key.toId());
         assertEq(slot0.protocolFee, protocolFee);

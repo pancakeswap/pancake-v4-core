@@ -2067,7 +2067,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         vm.expectEmit(false, false, false, true);
         emit ProtocolFeeUpdated(key.toId(), protocolFee);
-        poolManager.setProtocolFee(key);
+        poolManager.setProtocolFee(key, protocolFee);
     }
 
     function testCollectProtocolFees_initializesWithProtocolFeeIfCalled() public {
@@ -2238,7 +2238,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         assertEq(poolManager.protocolFeesAccrued(nativeCurrency), 0);
     }
 
-    function testUpdateDynamicSwapFee_FeeTooLarge() public {
+    function testUpdateDynamicLPFee_FeeTooLarge() public {
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
@@ -2252,10 +2252,10 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
         vm.prank(address(clFeeManagerHook));
-        poolManager.updateDynamicSwapFee(key, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1);
+        poolManager.updateDynamicLPFee(key, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1);
     }
 
-    function testUpdateDynamicSwapFee_FeeNotDynamic() public {
+    function testUpdateDynamicLPFee_FeeNotDynamic() public {
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
@@ -2265,11 +2265,11 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
             parameters: bytes32(uint256(10) << 16)
         });
 
-        vm.expectRevert(IPoolManager.UnauthorizedDynamicSwapFeeUpdate.selector);
-        poolManager.updateDynamicSwapFee(key, 3000);
+        vm.expectRevert(IPoolManager.UnauthorizedDynamicLPFeeUpdate.selector);
+        poolManager.updateDynamicLPFee(key, 3000);
     }
 
-    function testFuzzUpdateDynamicSwapFee(uint24 _swapFee) public {
+    function testFuzzUpdateDynamicLPFee(uint24 _swapFee) public {
         vm.assume(_swapFee < LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE);
 
         uint16 bitMap = 0x0010; // 0000 0000 0001 0000 (before swap call)
@@ -2291,9 +2291,9 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         vm.expectEmit();
         emit DynamicLPFeeUpdated(key.toId(), _swapFee);
 
-        snapStart("CLPoolManagerTest#testFuzzUpdateDynamicSwapFee");
+        snapStart("CLPoolManagerTest#testFuzzUpdateDynamicLPFee");
         vm.prank(address(clFeeManagerHook));
-        poolManager.updateDynamicSwapFee(key, _swapFee);
+        poolManager.updateDynamicLPFee(key, _swapFee);
         snapEnd();
 
         (,,, uint24 swapFee) = poolManager.getSlot0(key.toId());
@@ -2472,7 +2472,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
     function _validateHookConfig(PoolKey memory poolKey) internal view returns (bool) {
         uint16 bitmapInParameters = poolKey.parameters.getHooksRegistrationBitmap();
         if (address(poolKey.hooks) == address(0)) {
-            if (bitmapInParameters == 0 && !poolKey.fee.isDynamicSwapFee()) {
+            if (bitmapInParameters == 0 && !poolKey.fee.isDynamicLPFee()) {
                 return true;
             }
             return false;

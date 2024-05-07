@@ -92,7 +92,7 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
         hook.setFee(LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1);
         vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
         vm.prank(address(dynamicFeeKey.hooks));
-        poolManager.updateDynamicSwapFee(dynamicFeeKey, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1);
+        poolManager.updateDynamicLPFee(dynamicFeeKey, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1);
     }
 
     function testSwapWorks() public {

@@ -35,7 +35,7 @@ contract PoolTest is Test {
             assertEq(state.slot0.tick, TickMath.getTickAtSqrtRatio(sqrtPriceX96));
             assertLt(state.slot0.tick, TickMath.MAX_TICK);
             assertGt(state.slot0.tick, TickMath.MIN_TICK - 1);
-            assertEq(state.slot0.swapFee, swapFee);
+            assertEq(state.slot0.lpFee, swapFee);
         }
     }
 

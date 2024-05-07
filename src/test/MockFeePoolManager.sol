@@ -79,4 +79,8 @@ contract MockFeePoolManager is ProtocolFees {
     function getProtocolFee(PoolKey memory key) external view returns (uint24) {
         return pools[key.toId()].protocolFee;
     }
+
+    function _setProtocolFee(PoolId id, uint24 newProtocolFee) internal override {
+        pools[id].protocolFee = newProtocolFee;
+    }
 }

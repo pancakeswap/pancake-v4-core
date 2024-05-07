@@ -654,7 +654,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
 
         vm.expectRevert(PoolNotInitialized.selector);
-        poolManager.setProtocolFee(key);
+        poolManager.setProtocolFee(key, feeController.protocolFeeForPool(key));
     }
 
     function testSetProtocolFee() public {
@@ -673,7 +673,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         vm.expectEmit();
         emit ProtocolFeeUpdated(key.toId(), newSwapFee);
         snapStart("BinPoolManagerTest#testSetProtocolFee");
-        poolManager.setProtocolFee(key);
+        poolManager.setProtocolFee(key, feeController.protocolFeeForPool(key));
         snapEnd();
 
         (, protocolFee,) = poolManager.getSlot0(key.toId());
@@ -733,7 +733,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             parameters: poolParam
         });
 
-        vm.expectRevert(IPoolManager.UnauthorizedDynamicSwapFeeUpdate.selector);
+        vm.expectRevert(IPoolManager.UnauthorizedDynamicLPFeeUpdate.selector);
         poolManager.updateDynamicLPFee(key, 3000);
     }
 

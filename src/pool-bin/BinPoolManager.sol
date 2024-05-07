@@ -151,24 +151,23 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
 
         /// @dev fix stack too deep
         {
-            bytes32 feeForProtocol;
-            uint24 activeId;
-            uint24 swapFee;
-            uint24 protocolFee;
-            (delta, feeForProtocol, activeId, swapFee, protocolFee) =
+            BinPool.SwapState memory state;
+            (delta, state) =
                 pools[id].swap(BinPool.SwapParams({swapForY: swapForY, binStep: key.parameters.getBinStep()}), amountIn);
 
             vault.accountPoolBalanceDelta(key, delta, msg.sender);
 
             unchecked {
-                if (feeForProtocol > 0) {
-                    protocolFeesAccrued[key.currency0] += feeForProtocol.decodeX();
-                    protocolFeesAccrued[key.currency1] += feeForProtocol.decodeY();
+                if (state.feeForProtocol > 0) {
+                    protocolFeesAccrued[key.currency0] += state.feeForProtocol.decodeX();
+                    protocolFeesAccrued[key.currency1] += state.feeForProtocol.decodeY();
                 }
             }
 
             /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
-            emit Swap(id, msg.sender, delta.amount0(), delta.amount1(), activeId, swapFee, protocolFee);
+            emit Swap(
+                id, msg.sender, delta.amount0(), delta.amount1(), state.activeId, state.swapFee, state.protocolFee
+            );
         }
 
         if (key.parameters.shouldCall(HOOKS_AFTER_SWAP_OFFSET)) {

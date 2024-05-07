@@ -42,7 +42,7 @@ contract CLFeeManagerHook is BaseCLTestHook {
         override
         returns (bytes4)
     {
-        clManager.updateDynamicSwapFee(key, fee);
+        clManager.updateDynamicLPFee(key, fee);
         return ICLHooks.afterInitialize.selector;
     }
 
@@ -55,7 +55,7 @@ contract CLFeeManagerHook is BaseCLTestHook {
             (bool _update, uint24 _fee) = abi.decode(hookData, (bool, uint24));
             if (_update) {
                 fee = _fee;
-                clManager.updateDynamicSwapFee(key, _fee);
+                clManager.updateDynamicLPFee(key, _fee);
             }
         }
 

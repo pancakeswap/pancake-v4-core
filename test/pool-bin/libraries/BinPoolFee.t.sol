@@ -303,7 +303,7 @@ contract BinPoolFeeTest is BinTestHelper {
         // overwrite fee to 2%
         binFeeManagerHook.setFee(20_000);
         vm.prank(address(binFeeManagerHook));
-        poolManager.updateDynamicSwapFee(key, 20_000);
+        poolManager.updateDynamicLPFee(key, 20_000);
 
         // Call getSwapIn and getSwapOut
         (, uint128 getSwapOutAmtOut,) = poolManager.getSwapOut(key, true, 1e18);

@@ -58,7 +58,7 @@ contract Deployers {
             hooks,
             manager,
             fee,
-            fee.isDynamicSwapFee()
+            fee.isDynamicLPFee()
                 ? bytes32(uint256((60 << 16) | 0x00ff))
                 : bytes32(uint256(((fee / 100 * 2) << 16) | 0x00ff))
         );
