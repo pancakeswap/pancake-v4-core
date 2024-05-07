@@ -106,7 +106,7 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         uint24 swapFee = key.fee.getInitialSwapFee();
         if (swapFee.isSwapFeeTooLarge(SwapFeeLibrary.TEN_PERCENT_FEE)) revert FeeTooLarge();
 
-        if (key.parameters.shouldCall(HOOKS_BEFORE_INITIALIZE_OFFSET)) {
+        if (key.parameters.shouldCall(HOOKS_BEFORE_INITIALIZE_OFFSET, hooks)) {
             if (hooks.beforeInitialize(msg.sender, key, activeId, hookData) != IBinHooks.beforeInitialize.selector) {
                 revert Hooks.InvalidHookResponse();
             }
@@ -120,7 +120,7 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
         emit Initialize(id, key.currency0, key.currency1, key.fee, binStep, hooks);
 
-        if (key.parameters.shouldCall(HOOKS_AFTER_INITIALIZE_OFFSET)) {
+        if (key.parameters.shouldCall(HOOKS_AFTER_INITIALIZE_OFFSET, hooks)) {
             if (hooks.afterInitialize(msg.sender, key, activeId, hookData) != IBinHooks.afterInitialize.selector) {
                 revert Hooks.InvalidHookResponse();
             }
@@ -139,7 +139,7 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         _checkPoolInitialized(id);
 
         IBinHooks hooks = IBinHooks(address(key.hooks));
-        if (key.parameters.shouldCall(HOOKS_BEFORE_SWAP_OFFSET)) {
+        if (key.parameters.shouldCall(HOOKS_BEFORE_SWAP_OFFSET, hooks)) {
             bytes4 selector = hooks.beforeSwap(msg.sender, key, swapForY, amountIn, hookData);
             if (key.parameters.isValidNoOpCall(HOOKS_NO_OP_OFFSET, selector)) {
                 // Sentinel return value used to signify that a NoOp occurred.
@@ -170,7 +170,7 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
             emit Swap(id, msg.sender, delta.amount0(), delta.amount1(), activeId, swapFee, feeForProtocol);
         }
 
-        if (key.parameters.shouldCall(HOOKS_AFTER_SWAP_OFFSET)) {
+        if (key.parameters.shouldCall(HOOKS_AFTER_SWAP_OFFSET, hooks)) {
             if (hooks.afterSwap(msg.sender, key, swapForY, amountIn, delta, hookData) != IBinHooks.afterSwap.selector) {
                 revert Hooks.InvalidHookResponse();
             }
@@ -241,7 +241,7 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         _checkPoolInitialized(id);
 
         IBinHooks hooks = IBinHooks(address(key.hooks));
-        if (key.parameters.shouldCall(HOOKS_BEFORE_MINT_OFFSET)) {
+        if (key.parameters.shouldCall(HOOKS_BEFORE_MINT_OFFSET, hooks)) {
             bytes4 selector = hooks.beforeMint(msg.sender, key, params, hookData);
             if (key.parameters.isValidNoOpCall(HOOKS_NO_OP_OFFSET, selector)) {
                 // Sentinel return value used to signify that a NoOp occurred.
@@ -274,7 +274,7 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
         emit Mint(id, msg.sender, mintArray.ids, mintArray.amounts, compositionFee, feeForProtocol);
 
-        if (key.parameters.shouldCall(HOOKS_AFTER_MINT_OFFSET)) {
+        if (key.parameters.shouldCall(HOOKS_AFTER_MINT_OFFSET, hooks)) {
             if (hooks.afterMint(msg.sender, key, params, delta, hookData) != IBinHooks.afterMint.selector) {
                 revert Hooks.InvalidHookResponse();
             }
@@ -292,7 +292,7 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         _checkPoolInitialized(id);
 
         IBinHooks hooks = IBinHooks(address(key.hooks));
-        if (key.parameters.shouldCall(HOOKS_BEFORE_BURN_OFFSET)) {
+        if (key.parameters.shouldCall(HOOKS_BEFORE_BURN_OFFSET, hooks)) {
             bytes4 selector = hooks.beforeBurn(msg.sender, key, params, hookData);
             if (key.parameters.isValidNoOpCall(HOOKS_NO_OP_OFFSET, selector)) {
                 // Sentinel return value used to signify that a NoOp occurred.
@@ -312,7 +312,7 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
         emit Burn(id, msg.sender, binIds, amountRemoved);
 
-        if (key.parameters.shouldCall(HOOKS_AFTER_BURN_OFFSET)) {
+        if (key.parameters.shouldCall(HOOKS_AFTER_BURN_OFFSET, hooks)) {
             if (hooks.afterBurn(msg.sender, key, params, delta, hookData) != IBinHooks.afterBurn.selector) {
                 revert Hooks.InvalidHookResponse();
             }
@@ -330,7 +330,7 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         _checkPoolInitialized(id);
 
         IBinHooks hooks = IBinHooks(address(key.hooks));
-        if (key.parameters.shouldCall(HOOKS_BEFORE_DONATE_OFFSET)) {
+        if (key.parameters.shouldCall(HOOKS_BEFORE_DONATE_OFFSET, hooks)) {
             bytes4 selector = hooks.beforeDonate(msg.sender, key, amount0, amount1, hookData);
             if (key.parameters.isValidNoOpCall(HOOKS_NO_OP_OFFSET, selector)) {
                 // Sentinel return value used to signify that a NoOp occurred.
@@ -347,7 +347,7 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
         emit Donate(id, msg.sender, delta.amount0(), delta.amount1(), binId);
 
-        if (key.parameters.shouldCall(HOOKS_AFTER_DONATE_OFFSET)) {
+        if (key.parameters.shouldCall(HOOKS_AFTER_DONATE_OFFSET, hooks)) {
             if (hooks.afterDonate(msg.sender, key, amount0, amount1, hookData) != IBinHooks.afterDonate.selector) {
                 revert Hooks.InvalidHookResponse();
             }
@@ -386,12 +386,12 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
 
     function _validateHookNoOp(PoolKey memory key) internal pure {
         // if no-op is active for hook, there must be a before* hook active too
-        if (key.parameters.shouldCall(HOOKS_NO_OP_OFFSET)) {
+        if (key.parameters.hasOffsetEnabled(HOOKS_NO_OP_OFFSET)) {
             if (
-                !key.parameters.shouldCall(HOOKS_BEFORE_MINT_OFFSET)
-                    && !key.parameters.shouldCall(HOOKS_BEFORE_BURN_OFFSET)
-                    && !key.parameters.shouldCall(HOOKS_BEFORE_SWAP_OFFSET)
-                    && !key.parameters.shouldCall(HOOKS_BEFORE_DONATE_OFFSET)
+                !key.parameters.hasOffsetEnabled(HOOKS_BEFORE_MINT_OFFSET)
+                    && !key.parameters.hasOffsetEnabled(HOOKS_BEFORE_BURN_OFFSET)
+                    && !key.parameters.hasOffsetEnabled(HOOKS_BEFORE_SWAP_OFFSET)
+                    && !key.parameters.hasOffsetEnabled(HOOKS_BEFORE_DONATE_OFFSET)
             ) {
                 revert Hooks.NoOpHookMissingBeforeCall();
             }

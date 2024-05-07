@@ -33,6 +33,6 @@ jobs:
           version: nightly
 
       - name: Run tests
-        run: forge test -vvv
+        run: forge test --isolate -vvv
         env:
           FOUNDRY_PROFILE: ${{ github.ref_name == 'main' && 'ci_main' ||  'ci'  }}
