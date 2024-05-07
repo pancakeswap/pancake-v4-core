@@ -205,6 +205,21 @@ contract VaultTest is Test, GasSnapshot {
         assertEq(vault.balanceOf(alice, currency0), 0 ether);
     }
 
+    function testSettleAndMintRefund_SettleNonNativeCurrencyWithValue() public {
+        address alice = makeAddr("alice");
+
+        assertEq(vault.balanceOf(alice, currency0), 0 ether);
+
+        // settleAndRefund works even if there's no excess currency
+        vm.prank(address(fakePoolManagerRouter));
+        snapStart("VaultTest#testSettleAndMintRefund_WithoutMint");
+        vault.lock(abi.encodePacked(hex"18", alice));
+        snapEnd();
+
+        // verify no extra token minted
+        assertEq(vault.balanceOf(alice, currency0), 0 ether);
+    }
+
     function testSettleAndMintRefund_NegativeBalanceDelta() public {
         // pre-req: ensure vault has some value in reserveOfVault[] before
         currency0.transfer(address(vault), 10 ether);
@@ -612,15 +627,40 @@ contract VaultTest is Test, GasSnapshot {
 
         // transfer in & settle
         {
-            CurrencyLibrary.NATIVE.transfer(address(vault), 10 ether);
+            // ETH to router as router call .settle{value}
+            CurrencyLibrary.NATIVE.transfer(address(router), 10 ether);
             currency1.transfer(address(vault), 10 ether);
 
             vm.prank(address(router));
-            vault.lock(hex"02");
+            vault.lock(hex"21");
 
             assertEq(CurrencyLibrary.NATIVE.balanceOf(address(vault)), 10 ether);
-            assertEq(vault.reservesOfVault(CurrencyLibrary.NATIVE), 10 ether);
             assertEq(vault.reservesOfPoolManager(fakePoolManager, CurrencyLibrary.NATIVE), 10 ether);
+        }
+    }
+
+    function testVault_ethSupport_SettleNonNativeCurrencyWithValue() public {
+        FakePoolManagerRouter router = new FakePoolManagerRouter(
+            vault,
+            PoolKey({
+                currency0: currency1,
+                currency1: CurrencyLibrary.NATIVE,
+                hooks: IHooks(address(0)),
+                poolManager: fakePoolManager,
+                fee: 0,
+                parameters: 0x00
+            })
+        );
+
+        // transfer in & settle
+        {
+            // ETH to router as router call .settle{value}
+            currency0.transfer(address(vault), 10 ether);
+            CurrencyLibrary.NATIVE.transfer(address(router), 10 ether);
+
+            vm.expectRevert(IVault.SettleNonNativeCurrencyWithValue.selector);
+            vm.prank(address(router));
+            vault.lock(hex"21"); // 0x02 assume both token are ERC20, so it call settle for ETH without value
         }
     }
 
@@ -663,21 +703,21 @@ contract VaultTest is Test, GasSnapshot {
             })
         );
 
-        // make sure vault has enough tokens
-        CurrencyLibrary.NATIVE.transfer(address(vault), 10 ether);
+        // make sure vault has enough tokens and ETH to router as router call .settle{value}
+        CurrencyLibrary.NATIVE.transfer(address(router), 10 ether);
         currency1.transfer(address(vault), 10 ether);
         vm.prank(address(router));
-        vault.lock(hex"02");
+        vault.lock(hex"21");
 
-        CurrencyLibrary.NATIVE.transfer(address(vault), 10 ether);
+        CurrencyLibrary.NATIVE.transfer(address(router), 10 ether);
         currency1.transfer(address(vault), 10 ether);
         vm.prank(address(router));
-        vault.lock(hex"02");
+        vault.lock(hex"21");
 
         // take and settle
         {
             vm.prank(address(router));
-            vault.lock(hex"05");
+            vault.lock(hex"22");
         }
     }
 }
