@@ -46,9 +46,6 @@ contract Vault is IVault, VaultToken, Ownable {
         _;
     }
 
-    /// @notice receive native tokens for native pools
-    receive() external payable {}
-
     /// @inheritdoc IVault
     function registerPoolManager(address poolManager) external override onlyOwner {
         isPoolManagerRegistered[poolManager] = true;
@@ -107,7 +104,7 @@ contract Vault is IVault, VaultToken, Ownable {
     /// @inheritdoc IVault
     function take(Currency currency, address to, uint256 amount) external override isLocked {
         SettlementGuard.accountDelta(msg.sender, currency, amount.toInt128());
-        reservesOfVault[currency] -= amount;
+        if (!currency.isNative()) reservesOfVault[currency] -= amount;
         currency.transfer(to, amount);
     }
 
@@ -119,9 +116,15 @@ contract Vault is IVault, VaultToken, Ownable {
 
     /// @inheritdoc IVault
     function settle(Currency currency) external payable override isLocked returns (uint256 paid) {
-        uint256 reservesBefore = reservesOfVault[currency];
-        reservesOfVault[currency] = currency.balanceOfSelf();
-        paid = reservesOfVault[currency] - reservesBefore;
+        if (!currency.isNative()) {
+            if (msg.value > 0) revert SettleNonNativeCurrencyWithValue();
+            uint256 reservesBefore = reservesOfVault[currency];
+            reservesOfVault[currency] = currency.balanceOfSelf();
+            paid = reservesOfVault[currency] - reservesBefore;
+        } else {
+            paid = msg.value;
+        }
+
         // subtraction must be safe
         SettlementGuard.accountDelta(msg.sender, currency, -(paid.toInt128()));
     }
@@ -133,9 +136,14 @@ contract Vault is IVault, VaultToken, Ownable {
         isLocked
         returns (uint256 paid, uint256 refund)
     {
-        uint256 reservesBefore = reservesOfVault[currency];
-        reservesOfVault[currency] = currency.balanceOfSelf();
-        paid = reservesOfVault[currency] - reservesBefore;
+        if (!currency.isNative()) {
+            if (msg.value > 0) revert SettleNonNativeCurrencyWithValue();
+            uint256 reservesBefore = reservesOfVault[currency];
+            reservesOfVault[currency] = currency.balanceOfSelf();
+            paid = reservesOfVault[currency] - reservesBefore;
+        } else {
+            paid = msg.value;
+        }
 
         int256 currentDelta = SettlementGuard.getCurrencyDelta(msg.sender, currency);
         if (currentDelta >= 0) {
@@ -169,7 +177,7 @@ contract Vault is IVault, VaultToken, Ownable {
     /// @inheritdoc IVault
     function collectFee(Currency currency, uint256 amount, address recipient) external {
         reservesOfPoolManager[IPoolManager(msg.sender)][currency] -= amount;
-        reservesOfVault[currency] -= amount;
+        if (!currency.isNative()) reservesOfVault[currency] -= amount;
 
         currency.transfer(recipient, amount);
     }

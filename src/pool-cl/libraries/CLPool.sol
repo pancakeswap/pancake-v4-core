@@ -103,40 +103,39 @@ library CLPool {
         internal
         returns (BalanceDelta delta, BalanceDelta feeDelta)
     {
-        Slot0 memory _slot0 = self.slot0; // SLOAD for gas optimization
+        int24 tickLower = params.tickLower;
+        int24 tickUpper = params.tickUpper;
+        Tick.checkTicks(tickLower, tickUpper);
 
-        Tick.checkTicks(params.tickLower, params.tickUpper);
-
-        (uint256 feesOwed0, uint256 feesOwed1) = _updatePosition(self, params, _slot0.tick);
+        int24 tick = self.slot0.tick;
+        (uint256 feesOwed0, uint256 feesOwed1) = _updatePosition(self, params, tick);
 
         ///@dev calculate the tokens delta needed
-        if (params.liquidityDelta != 0) {
+        int128 liquidityDelta = params.liquidityDelta;
+        if (liquidityDelta != 0) {
+            uint160 sqrtPriceX96 = self.slot0.sqrtPriceX96;
             int128 amount0;
             int128 amount1;
-            if (_slot0.tick < params.tickLower) {
+            if (tick < tickLower) {
                 // current tick is below the passed range; liquidity can only become in range by crossing from left to
                 // right, when we'll need _more_ currency0 (it's becoming more valuable) so user must provide it
                 amount0 = SqrtPriceMath.getAmount0Delta(
-                    TickMath.getSqrtRatioAtTick(params.tickLower),
-                    TickMath.getSqrtRatioAtTick(params.tickUpper),
-                    params.liquidityDelta
+                    TickMath.getSqrtRatioAtTick(tickLower), TickMath.getSqrtRatioAtTick(tickUpper), liquidityDelta
                 ).toInt128();
-            } else if (_slot0.tick < params.tickUpper) {
+            } else if (tick < tickUpper) {
                 amount0 = SqrtPriceMath.getAmount0Delta(
-                    _slot0.sqrtPriceX96, TickMath.getSqrtRatioAtTick(params.tickUpper), params.liquidityDelta
+                    sqrtPriceX96, TickMath.getSqrtRatioAtTick(tickUpper), liquidityDelta
                 ).toInt128();
                 amount1 = SqrtPriceMath.getAmount1Delta(
-                    TickMath.getSqrtRatioAtTick(params.tickLower), _slot0.sqrtPriceX96, params.liquidityDelta
+                    TickMath.getSqrtRatioAtTick(tickLower), sqrtPriceX96, liquidityDelta
                 ).toInt128();
 
-                self.liquidity = LiquidityMath.addDelta(self.liquidity, params.liquidityDelta);
+                self.liquidity = LiquidityMath.addDelta(self.liquidity, liquidityDelta);
             } else {
                 // current tick is above the passed range; liquidity can only become in range by crossing from right to
                 // left, when we'll need _more_ currency1 (it's becoming more valuable) so user must provide it
                 amount1 = SqrtPriceMath.getAmount1Delta(
-                    TickMath.getSqrtRatioAtTick(params.tickLower),
-                    TickMath.getSqrtRatioAtTick(params.tickUpper),
-                    params.liquidityDelta
+                    TickMath.getSqrtRatioAtTick(tickLower), TickMath.getSqrtRatioAtTick(tickUpper), liquidityDelta
                 ).toInt128();
             }
 
@@ -206,24 +205,21 @@ library CLPool {
         if (params.amountSpecified == 0) revert SwapAmountCannotBeZero();
 
         Slot0 memory slot0Start = self.slot0;
+        // Declare zeroForOne and sqrtPriceLimitX96 upfront for gas optmization
+        bool zeroForOne = params.zeroForOne;
+        uint160 sqrtPriceLimitX96 = params.sqrtPriceLimitX96;
         if (
-            params.zeroForOne
-                ? (
-                    params.sqrtPriceLimitX96 >= slot0Start.sqrtPriceX96
-                        || params.sqrtPriceLimitX96 <= TickMath.MIN_SQRT_RATIO
-                )
-                : (
-                    params.sqrtPriceLimitX96 <= slot0Start.sqrtPriceX96
-                        || params.sqrtPriceLimitX96 >= TickMath.MAX_SQRT_RATIO
-                )
+            zeroForOne
+                ? (sqrtPriceLimitX96 >= slot0Start.sqrtPriceX96 || sqrtPriceLimitX96 <= TickMath.MIN_SQRT_RATIO)
+                : (sqrtPriceLimitX96 <= slot0Start.sqrtPriceX96 || sqrtPriceLimitX96 >= TickMath.MAX_SQRT_RATIO)
         ) {
-            revert InvalidSqrtPriceLimit(slot0Start.sqrtPriceX96, params.sqrtPriceLimitX96);
+            revert InvalidSqrtPriceLimit(slot0Start.sqrtPriceX96, sqrtPriceLimitX96);
         }
 
         SwapCache memory cache = SwapCache({
             liquidityStart: self.liquidity,
             /// @dev 8 bits for protocol swap fee instead of 4 bits in v3
-            protocolFee: params.zeroForOne ? uint8(slot0Start.protocolFee % 256) : uint8(slot0Start.protocolFee >> 8)
+            protocolFee: zeroForOne ? uint8(slot0Start.protocolFee % 256) : uint8(slot0Start.protocolFee >> 8)
         });
 
         bool exactInput = params.amountSpecified > 0;
@@ -234,18 +230,18 @@ library CLPool {
             sqrtPriceX96: slot0Start.sqrtPriceX96,
             tick: slot0Start.tick,
             swapFee: slot0Start.swapFee,
-            feeGrowthGlobalX128: params.zeroForOne ? self.feeGrowthGlobal0X128 : self.feeGrowthGlobal1X128,
+            feeGrowthGlobalX128: zeroForOne ? self.feeGrowthGlobal0X128 : self.feeGrowthGlobal1X128,
             protocolFee: 0,
             liquidity: cache.liquidityStart
         });
 
         StepComputations memory step;
         // continue swapping as long as we haven't used the entire input/output and haven't reached the price limit
-        while (state.amountSpecifiedRemaining != 0 && state.sqrtPriceX96 != params.sqrtPriceLimitX96) {
+        while (state.amountSpecifiedRemaining != 0 && state.sqrtPriceX96 != sqrtPriceLimitX96) {
             step.sqrtPriceStartX96 = state.sqrtPriceX96;
 
             (step.tickNext, step.initialized) =
-                self.tickBitmap.nextInitializedTickWithinOneWord(state.tick, params.tickSpacing, params.zeroForOne);
+                self.tickBitmap.nextInitializedTickWithinOneWord(state.tick, params.tickSpacing, zeroForOne);
 
             // ensure that we do not overshoot the min/max tick, as the tick bitmap is not aware of these bounds
             if (step.tickNext < TickMath.MIN_TICK) {
@@ -260,11 +256,9 @@ library CLPool {
             // compute values to swap to the target tick, price limit, or point where input/output amount is exhausted
             (state.sqrtPriceX96, step.amountIn, step.amountOut, step.feeAmount) = SwapMath.computeSwapStep(
                 state.sqrtPriceX96,
-                (
-                    params.zeroForOne
-                        ? step.sqrtPriceNextX96 < params.sqrtPriceLimitX96
-                        : step.sqrtPriceNextX96 > params.sqrtPriceLimitX96
-                ) ? params.sqrtPriceLimitX96 : step.sqrtPriceNextX96,
+                (zeroForOne ? step.sqrtPriceNextX96 < sqrtPriceLimitX96 : step.sqrtPriceNextX96 > sqrtPriceLimitX96)
+                    ? sqrtPriceLimitX96
+                    : step.sqrtPriceNextX96,
                 state.liquidity,
                 state.amountSpecifiedRemaining,
                 state.swapFee
@@ -307,20 +301,20 @@ library CLPool {
                 if (step.initialized) {
                     int128 liquidityNet = self.ticks.cross(
                         step.tickNext,
-                        (params.zeroForOne ? state.feeGrowthGlobalX128 : self.feeGrowthGlobal0X128),
-                        (params.zeroForOne ? self.feeGrowthGlobal1X128 : state.feeGrowthGlobalX128)
+                        (zeroForOne ? state.feeGrowthGlobalX128 : self.feeGrowthGlobal0X128),
+                        (zeroForOne ? self.feeGrowthGlobal1X128 : state.feeGrowthGlobalX128)
                     );
                     // if we're moving leftward, we interpret liquidityNet as the opposite sign
                     // safe because liquidityNet cannot be type(int128).min
                     unchecked {
-                        if (params.zeroForOne) liquidityNet = -liquidityNet;
+                        if (zeroForOne) liquidityNet = -liquidityNet;
                     }
 
                     state.liquidity = state.liquidity.addDelta(liquidityNet);
                 }
 
                 unchecked {
-                    state.tick = params.zeroForOne ? step.tickNext - 1 : step.tickNext;
+                    state.tick = zeroForOne ? step.tickNext - 1 : step.tickNext;
                 }
             } else if (state.sqrtPriceX96 != step.sqrtPriceStartX96) {
                 // recompute unless we're on a lower tick boundary (i.e. already transitioned ticks), and haven't moved
@@ -340,14 +334,14 @@ library CLPool {
         if (cache.liquidityStart != state.liquidity) self.liquidity = state.liquidity;
 
         // update fee growth global
-        if (params.zeroForOne) {
+        if (zeroForOne) {
             self.feeGrowthGlobal0X128 = state.feeGrowthGlobalX128;
         } else {
             self.feeGrowthGlobal1X128 = state.feeGrowthGlobalX128;
         }
 
         unchecked {
-            (int128 amount0, int128 amount1) = params.zeroForOne == exactInput
+            (int128 amount0, int128 amount1) = zeroForOne == exactInput
                 ? ((params.amountSpecified - state.amountSpecifiedRemaining).toInt128(), state.amountCalculated.toInt128())
                 : (
                     (state.amountCalculated.toInt128()),

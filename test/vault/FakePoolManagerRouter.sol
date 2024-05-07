@@ -148,6 +148,23 @@ contract FakePoolManagerRouter {
 
             vault.burn(address(0x01), poolKey.currency0, amt);
             vault.take(poolKey.currency0, address(this), amt);
+        } else if (data[0] == 0x21) {
+            // currency0 is native and currency1 is erc20
+            poolManager.mockAccounting(poolKey, 10 ether, 10 ether);
+            vault.settle{value: 10 ether}(poolKey.currency0);
+            vault.settle(poolKey.currency1);
+        } else if (data[0] == 0x22) {
+            // currency0 is native and currency1 is erc20
+            vault.take(poolKey.currency0, address(this), 20 ether);
+            vault.take(poolKey.currency1, address(this), 20 ether);
+
+            // ... flashloan logic
+
+            // only for erc20 as native will call settle with value
+            poolKey.currency1.transfer(address(vault), 20 ether);
+
+            vault.settle{value: 20 ether}(poolKey.currency0);
+            vault.settle(poolKey.currency1);
         }
 
         return "";
