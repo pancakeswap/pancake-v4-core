@@ -7,6 +7,7 @@ import {PoolKey} from "../types/PoolKey.sol";
 import {BalanceDelta} from "../types/BalanceDelta.sol";
 import {ProtocolFees} from "../ProtocolFees.sol";
 import {LPFeeLibrary} from "../libraries/LPFeeLibrary.sol";
+import {ProtocolFeeLibrary} from "../libraries/ProtocolFeeLibrary.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
 /**
@@ -62,14 +63,14 @@ contract MockFeePoolManager is ProtocolFees {
         uint24 protocolFee = isSwap ? slot0.protocolFee : 0;
 
         if (protocolFee > 0) {
-            if ((protocolFee % 256) > 0) {
-                protocolFee0 = amt0Fee / (protocolFee % 256);
+            if ((protocolFee % 4096) > 0) {
+                protocolFee0 = amt0Fee * (protocolFee % 4096) / ProtocolFeeLibrary.PIPS_DENOMINATOR;
                 amt0Fee -= protocolFee0;
                 protocolFeesAccrued[key.currency0] += protocolFee0;
             }
 
-            if ((protocolFee >> 8) > 0) {
-                protocolFee1 = amt1Fee / (protocolFee >> 8);
+            if ((protocolFee >> 12) > 0) {
+                protocolFee1 = amt1Fee * (protocolFee >> 12) / ProtocolFeeLibrary.PIPS_DENOMINATOR;
                 amt1Fee -= protocolFee1;
                 protocolFeesAccrued[key.currency1] += protocolFee1;
             }

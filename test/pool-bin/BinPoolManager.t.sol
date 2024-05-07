@@ -74,12 +74,12 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         int128 amount1,
         uint24 activeId,
         uint24 fee,
-        bytes32 pFees
+        uint24 pFees
     );
     event Donate(PoolId indexed id, address indexed sender, int128 amount0, int128 amount1, uint24 binId);
-    event ProtocolFeeUpdated(PoolId indexed id, uint16 protocolFees);
+    event ProtocolFeeUpdated(PoolId indexed id, uint24 protocolFees);
     event SetMaxBinStep(uint16 maxBinStep);
-    event DynamicSwapFeeUpdated(PoolId indexed id, uint24 dynamicSwapFee);
+    event DynamicLPFeeUpdated(PoolId indexed id, uint24 dynamicSwapFee);
 
     Vault public vault;
     BinPoolManager public poolManager;
@@ -479,8 +479,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         BinSwapHelper.TestSettings memory testSettings =
             BinSwapHelper.TestSettings({withdrawTokens: true, settleUsingTransfer: true});
         vm.expectEmit();
-        bytes32 pFee = uint128(0).encode(uint128(0));
-        emit Swap(key.toId(), address(binSwapHelper), 1 ether, -((1 ether * 997) / 1000), activeId, key.fee, pFee);
+        emit Swap(key.toId(), address(binSwapHelper), 1 ether, -((1 ether * 997) / 1000), activeId, key.fee, 0);
 
         snapStart("BinPoolManagerTest#testGasSwapSingleBin");
         binSwapHelper.swap(key, true, 1 ether, testSettings, "");
@@ -649,12 +648,25 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         assertEq(ativeIdExtsload, activeIdLoad);
     }
 
+    function testSetProtocolFeePoolNotOwner() public {
+        MockProtocolFeeController feeController = new MockProtocolFeeController();
+        poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
+
+        uint24 protocolFee = feeController.protocolFeeForPool(key);
+
+        vm.expectRevert(IProtocolFees.InvalidCaller.selector);
+        poolManager.setProtocolFee(key, protocolFee);
+    }
+
     function testSetProtocolFeePoolNotInitialized() public {
         MockProtocolFeeController feeController = new MockProtocolFeeController();
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
 
+        uint24 protocolFee = feeController.protocolFeeForPool(key);
+
         vm.expectRevert(PoolNotInitialized.selector);
-        poolManager.setProtocolFee(key, feeController.protocolFeeForPool(key));
+        vm.prank(address(feeController));
+        poolManager.setProtocolFee(key, protocolFee);
     }
 
     function testSetProtocolFee() public {
@@ -665,19 +677,19 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
         // set up feeController
         MockProtocolFeeController feeController = new MockProtocolFeeController();
-        uint16 newSwapFee = _getSwapFee(10, 10); // 10%
-        feeController.setProtocolFeeForPool(key, newSwapFee);
+        uint24 newProtocolFee = _getSwapFee(1000, 1000); // 0.1%
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
 
         // Call setProtocolFee, verify event and state updated
         vm.expectEmit();
-        emit ProtocolFeeUpdated(key.toId(), newSwapFee);
+        emit ProtocolFeeUpdated(key.toId(), newProtocolFee);
         snapStart("BinPoolManagerTest#testSetProtocolFee");
-        poolManager.setProtocolFee(key, feeController.protocolFeeForPool(key));
+        vm.prank(address(feeController));
+        poolManager.setProtocolFee(key, newProtocolFee);
         snapEnd();
 
         (, protocolFee,) = poolManager.getSlot0(key.toId());
-        assertEq(protocolFee, newSwapFee);
+        assertEq(protocolFee, newProtocolFee);
     }
 
     function testFuzz_SetMaxBinStep(uint16 binStep) public {
@@ -737,8 +749,8 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         poolManager.updateDynamicLPFee(key, 3000);
     }
 
-    function testFuzzUpdateDynamicLPFee(uint24 _swapFee) public {
-        _swapFee = uint24(bound(_swapFee, 0, LPFeeLibrary.TEN_PERCENT_FEE));
+    function testFuzzUpdateDynamicLPFee(uint24 _lpFee) public {
+        _lpFee = uint24(bound(_lpFee, 0, LPFeeLibrary.TEN_PERCENT_FEE));
 
         uint16 bitMap = 0x0004; // 0000 0000 0000 0100 (before mint call)
         BinFeeManagerHook binFeeManagerHook = new BinFeeManagerHook(poolManager);
@@ -754,18 +766,18 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         });
         poolManager.initialize(key, activeId, new bytes(0));
 
-        binFeeManagerHook.setFee(_swapFee);
+        binFeeManagerHook.setFee(_lpFee);
 
         vm.expectEmit();
-        emit DynamicSwapFeeUpdated(key.toId(), _swapFee);
+        emit DynamicLPFeeUpdated(key.toId(), _lpFee);
 
         snapStart("BinPoolManagerTest#testFuzzUpdateDynamicLPFee");
         vm.prank(address(binFeeManagerHook));
-        poolManager.updateDynamicLPFee(key, _swapFee);
+        poolManager.updateDynamicLPFee(key, _lpFee);
         snapEnd();
 
         (,, uint24 swapFee) = poolManager.getSlot0(key.toId());
-        assertEq(swapFee, _swapFee);
+        assertEq(swapFee, _lpFee);
     }
 
     function testSwap_WhenPaused() public {
@@ -857,7 +869,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         return true;
     }
 
-    function _getSwapFee(uint16 fee0, uint16 fee1) internal pure returns (uint16) {
-        return fee0 + (fee1 << 8);
+    function _getSwapFee(uint24 fee0, uint24 fee1) internal pure returns (uint24) {
+        return fee0 + (fee1 << 12);
     }
 }

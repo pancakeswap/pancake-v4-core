@@ -172,12 +172,16 @@ library BinHelper {
 
         // if received more X than given X, then swap some Y for X
         if (receivedAmountX > amountX) {
-            uint24 swapFee = uint24(protocolFee.getOneForZeroFee()).calculateSwapFee(lpFee);
+            protocolFee = protocolFee.getOneForZeroFee();
+
+            uint24 swapFee = uint24(protocolFee).calculateSwapFee(lpFee);
             uint128 feeY = (amountY - receivedAmountY).getCompositionFee(swapFee);
             fees = feeY.encodeSecond();
             feeForProtocol = (amountY - receivedAmountY).getCompositionFee(protocolFee).encodeSecond();
         } else if (receivedAmountY > amountY) {
-            uint24 swapFee = uint24(protocolFee.getZeroForOneFee()).calculateSwapFee(lpFee);
+            protocolFee = protocolFee.getZeroForOneFee();
+
+            uint24 swapFee = uint24(protocolFee).calculateSwapFee(lpFee);
             uint128 feeX = (amountX - receivedAmountX).getCompositionFee(swapFee);
             fees = feeX.encodeFirst();
             feeForProtocol = (amountX - receivedAmountX).getCompositionFee(protocolFee).encodeFirst();

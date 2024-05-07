@@ -52,7 +52,7 @@ contract BinPoolFeeTest is BinTestHelper {
         int128 amount1,
         uint24 activeId,
         uint24 fee,
-        bytes32 pFees
+        uint24 pFees
     );
 
     MockVault public vault;
@@ -192,8 +192,8 @@ contract BinPoolFeeTest is BinTestHelper {
     }
 
     function test_MintCompositionFee_WithProtocolFee() external {
-        // set protocolFee as 10% of fee
-        uint16 pFee = _getSwapFee(10, 10); // 10%
+        // set protocolFee as 0.1% of fee
+        uint24 pFee = _getSwapFee(1000, 1000);
         feeController.setProtocolFeeForPool(key, pFee);
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
 
@@ -205,10 +205,11 @@ contract BinPoolFeeTest is BinTestHelper {
         // first mint: 5:5 ratio, will never incur composition fee for first mint
         addLiquidityToBin(key, poolManager, bob, binId, amountX, amountY, 1e18, 1e18, "");
 
-        // lpFee is 90% while protocolFee = 10%
-        bytes32 lpFee = uint128(0).encode(uint128(93382758620689655));
-        bytes32 protocolFee = uint128(0).encode(uint128(10375862068965517));
-        bytes32 expectedFee = lpFee.add(protocolFee);
+        // protocol fee: 0.1% of fee
+        // lp fee 0.3% * (1 - 0.1%) = 0.297% roughly 3 times of protocol fee
+        // hence swap fee roughly 4 times of protocol fee
+        bytes32 protocolFee = uint128(0).encode(uint128(34517241379310344));
+        bytes32 expectedFee = uint128(0).encode(uint128(138378483068965517));
         bytes32 expectedAmtInBin = uint128(400e18).encode(uint128(500e18)).sub(protocolFee);
         uint256[] memory ids = new uint256[](1);
         bytes32[] memory amounts = new bytes32[](1);
@@ -262,8 +263,7 @@ contract BinPoolFeeTest is BinTestHelper {
 
         vm.startPrank(bob);
         vm.expectEmit();
-        bytes32 pFee = uint128(0).encode(uint128(0));
-        emit Swap(key.toId(), bob, 1e18, -((1e18 * 997) / 1000), activeId, 3000, pFee);
+        emit Swap(key.toId(), bob, 1e18, -((1e18 * 997) / 1000), activeId, 3000, 0);
 
         // swap: 1e18 X for Y. pool is 0.3% fee
         BalanceDelta delta = poolManager.swap(key, true, 1e18, "0x");
@@ -345,8 +345,8 @@ contract BinPoolFeeTest is BinTestHelper {
         poolManager.swap(key, true, 1e18, data);
     }
 
-    function _getSwapFee(uint16 fee0, uint16 fee1) internal pure returns (uint16) {
-        return fee0 + (fee1 << 8);
+    function _getSwapFee(uint24 fee0, uint24 fee1) internal pure returns (uint24) {
+        return fee0 + (fee1 << 12);
     }
 
     /**

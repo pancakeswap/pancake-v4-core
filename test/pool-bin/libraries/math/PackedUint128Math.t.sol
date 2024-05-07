@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 import {Constants} from "../../../../src/pool-bin/libraries/Constants.sol";
 import {PackedUint128Math} from "../../../../src/pool-bin/libraries/math/PackedUint128Math.sol";
+import {ProtocolFeeLibrary} from "../../../../src/libraries/ProtocolFeeLibrary.sol";
 
 contract PackedUint128MathTest is Test {
     using PackedUint128Math for bytes32;
@@ -147,17 +148,17 @@ contract PackedUint128MathTest is Test {
         assertEq(x.gt(y), x1 > y1 || x2 > y2, "testFuzz_GreaterThan::1");
     }
 
-    function testFuzz_getExternalFeeAmt(bytes32 x, uint16 fee) external {
+    function testFuzz_getExternalFeeAmt(bytes32 x, uint24 fee) external {
         (uint128 x1, uint128 x2) = x.decode();
 
         if (fee == 0) {
             assertEq(x.getExternalFeeAmt(fee), 0);
         } else {
-            uint16 fee0 = fee % 256;
-            uint16 fee1 = fee >> 8;
+            uint24 fee0 = fee % 4096;
+            uint24 fee1 = fee >> 12;
 
-            uint128 x1Fee = fee0 > 0 ? x1 / fee0 : 0;
-            uint128 x2Fee = fee1 > 0 ? x2 / fee1 : 0;
+            uint128 x1Fee = fee0 > 0 ? uint128(uint256(x1) * fee0 / ProtocolFeeLibrary.PIPS_DENOMINATOR) : 0;
+            uint128 x2Fee = fee1 > 0 ? uint128(uint256(x2) * fee1 / ProtocolFeeLibrary.PIPS_DENOMINATOR) : 0;
             assertEq(x.getExternalFeeAmt(fee), uint128(x1Fee).encode(uint128(x2Fee)));
         }
     }
@@ -166,22 +167,22 @@ contract PackedUint128MathTest is Test {
         {
             // 0% fee
             bytes32 x = uint128(100).encode(uint128(100));
-            uint16 fee = (0 << 8) + 0; // amt / 0 = 0%
+            uint24 fee = (0 << 12) + 0; // amt / 0 = 0%
             assertEq(x.getExternalFeeAmt(fee), 0);
         }
 
         {
-            // 20% fee
-            bytes32 x = uint128(100).encode(uint128(100));
-            uint16 fee = (5 << 8) + 5; // amt / 5 = 20%
-            assertEq(x.getExternalFeeAmt(fee), uint128(20).encode(uint128(20)));
+            // 0.01% fee
+            bytes32 x = uint128(10000).encode(uint128(10000));
+            uint24 fee = (100 << 12) + 100;
+            assertEq(x.getExternalFeeAmt(fee), uint128(1).encode(uint128(1)));
         }
 
         {
-            // 100% fee
-            bytes32 x = uint128(100).encode(uint128(100));
-            uint16 fee = (1 << 8) + 1; // amt / 1 = 100%
-            assertEq(x.getExternalFeeAmt(fee), x);
+            // 0.1% fee
+            bytes32 x = uint128(10000).encode(uint128(1000));
+            uint24 fee = (1000 << 12) + 1000;
+            assertEq(x.getExternalFeeAmt(fee), uint128(10).encode(uint128(1)));
         }
     }
 }

@@ -221,8 +221,12 @@ library PackedUint128Math {
         uint16 fee0 = protocolFee.getZeroForOneFee();
         uint16 fee1 = protocolFee.getOneForZeroFee();
 
-        uint128 feeForX = fee0 == 0 ? 0 : uint128(amountX * fee0 / ProtocolFeeLibrary.PIPS_DENOMINATOR);
-        uint128 feeForY = fee1 == 0 ? 0 : uint128(amountY * fee1 / ProtocolFeeLibrary.PIPS_DENOMINATOR);
+        uint128 feeForX;
+        uint128 feeForY;
+        unchecked {
+            feeForX = fee0 == 0 ? 0 : uint128(uint256(amountX) * fee0 / ProtocolFeeLibrary.PIPS_DENOMINATOR);
+            feeForY = fee1 == 0 ? 0 : uint128(uint256(amountY) * fee1 / ProtocolFeeLibrary.PIPS_DENOMINATOR);
+        }
 
         return encode(feeForX, feeForY);
     }

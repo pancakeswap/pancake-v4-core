@@ -42,7 +42,7 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
         uint128 liquidity,
         int24 tick,
         uint24 fee,
-        uint256 protocolFee
+        uint24 protocolFee
     );
 
     function setUp() public {

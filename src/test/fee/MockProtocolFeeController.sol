@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {IProtocolFeeController} from "../../interfaces/IProtocolFeeController.sol";
 import {PoolId, PoolIdLibrary} from "../../types/PoolId.sol";
 import {PoolKey} from "../../types/PoolKey.sol";
+import {ProtocolFeeLibrary} from "../../libraries/ProtocolFeeLibrary.sol";
 
 /**
  * @dev A MockProtocolFeeController meant to test Fees functionality
@@ -11,14 +12,14 @@ import {PoolKey} from "../../types/PoolKey.sol";
 contract MockProtocolFeeController is IProtocolFeeController {
     using PoolIdLibrary for PoolKey;
 
-    mapping(PoolId id => uint16 fee) public protocolFee;
+    mapping(PoolId id => uint24 fee) public protocolFee;
 
-    function setProtocolFeeForPool(PoolKey memory key, uint16 fee) public {
+    function setProtocolFeeForPool(PoolKey memory key, uint24 fee) public {
         PoolId id = key.toId();
         protocolFee[id] = fee;
     }
 
-    function protocolFeeForPool(PoolKey memory key) external view returns (uint16) {
+    function protocolFeeForPool(PoolKey memory key) external view returns (uint24) {
         PoolId id = key.toId();
         return protocolFee[id];
     }
@@ -26,25 +27,24 @@ contract MockProtocolFeeController is IProtocolFeeController {
 
 /// @notice Reverts on call
 contract RevertingMockProtocolFeeController is IProtocolFeeController {
-    function protocolFeeForPool(PoolKey memory /* key */ ) external pure returns (uint16) {
+    function protocolFeeForPool(PoolKey memory /* key */ ) external pure returns (uint24) {
         revert();
     }
 }
 
 /// @notice Returns an out of bounds protocol fee
 contract OutOfBoundsMockProtocolFeeController is IProtocolFeeController {
-    function protocolFeeForPool(PoolKey memory /* key */ ) external pure returns (uint16) {
-        // set swap fee to 1, which is less than MIN_PROTOCOL_FEE_DENOMINATOR
-        return 0x0001;
+    function protocolFeeForPool(PoolKey memory /* key */ ) external pure returns (uint24) {
+        return ProtocolFeeLibrary.MAX_PROTOCOL_FEE + 1;
     }
 }
 
-/// @notice Return a value that overflows a uint16
+/// @notice Return a value that overflows a uint24
 contract OverflowMockProtocolFeeController is IProtocolFeeController {
-    function protocolFeeForPool(PoolKey memory /* key */ ) external pure returns (uint16) {
+    function protocolFeeForPool(PoolKey memory /* key */ ) external pure returns (uint24) {
         assembly {
             let ptr := mload(0x40)
-            mstore(ptr, 0xFFFFAAA001)
+            mstore(ptr, 0xFFFFFFFFAAA001)
             return(ptr, 0x20)
         }
     }
@@ -52,7 +52,7 @@ contract OverflowMockProtocolFeeController is IProtocolFeeController {
 
 /// @notice Returns data that is larger than a word
 contract InvalidReturnSizeMockProtocolFeeController is IProtocolFeeController {
-    function protocolFeeForPool(PoolKey memory /* key */ ) external view returns (uint16) {
+    function protocolFeeForPool(PoolKey memory /* key */ ) external view returns (uint24) {
         address a = address(this);
         assembly {
             let ptr := mload(0x40)

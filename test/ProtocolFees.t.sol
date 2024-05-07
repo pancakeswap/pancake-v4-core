@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
 import "../src/test/MockFeePoolManager.sol";
 import "../src/test/fee/MockFeeManagerHook.sol";
@@ -20,7 +20,7 @@ import "../src/interfaces/IPoolManager.sol";
 import "../src/interfaces/IHooks.sol";
 import "../src/libraries/LPFeeLibrary.sol";
 
-contract FeesTest is Test {
+contract ProtocolFeesTest is Test {
     MockFeePoolManager poolManager;
     MockProtocolFeeController feeController;
     RevertingMockProtocolFeeController revertingFeeController;
@@ -149,26 +149,43 @@ contract FeesTest is Test {
         }
     }
 
+    function testSetProtocolFee() public {
+        poolManager.initialize(key, new bytes(0));
+        poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
+
+        assertEq(poolManager.getProtocolFee(key), 0);
+
+        {
+            uint24 protocolFee = _buildProtocolFee(100, 100);
+            vm.prank(address(feeController));
+            poolManager.setProtocolFee(key, protocolFee);
+            assertEq(poolManager.getProtocolFee(key), protocolFee);
+        }
+
+        {
+            vm.expectRevert(IProtocolFees.InvalidCaller.selector);
+            uint24 protocolFee = _buildProtocolFee(100, 100);
+            poolManager.setProtocolFee(key, protocolFee);
+        }
+
+        {
+            vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
+            uint24 protocolFee = _buildProtocolFee(ProtocolFeeLibrary.MAX_PROTOCOL_FEE + 1, 100);
+            vm.prank(address(feeController));
+            poolManager.setProtocolFee(key, protocolFee);
+        }
+    }
+
     function testSwap_OnlyProtocolFee() public {
-        // set protocolFee as 10% of fee
-        uint16 protocolFee = _buildSwapFee(10, 10); // 10%
+        // set protocolFee as 0.1% of fee
+        uint24 protocolFee = _buildProtocolFee(ProtocolFeeLibrary.MAX_PROTOCOL_FEE, ProtocolFeeLibrary.MAX_PROTOCOL_FEE);
         feeController.setProtocolFeeForPool(key, protocolFee);
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
 
         poolManager.initialize(key, new bytes(0));
         (uint256 protocolFee0, uint256 protocolFee1) = poolManager.swap(key, 1e18, 1e18);
-        assertEq(protocolFee0, 1e17);
-        assertEq(protocolFee1, 1e17);
-    }
-
-    function test_CheckProtocolFee_SwapFee() public {
-        uint16 protocolFee = _buildSwapFee(3, 3); // 25% is the limit, 3 = amt/3 = 33%
-        feeController.setProtocolFeeForPool(key, protocolFee);
-        poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
-
-        // wont revert but set protocolFee as 0
-        poolManager.initialize(key, new bytes(0));
-        assertEq(poolManager.getProtocolFee(key), 0);
+        assertEq(protocolFee0, 1e15);
+        assertEq(protocolFee1, 1e15);
     }
 
     function test_CollectProtocolFee_OnlyOwnerOrFeeController() public {
@@ -179,37 +196,39 @@ contract FeesTest is Test {
     }
 
     function test_CollectProtocolFee() public {
-        // set protocolFee as 10% of fee
-        feeController.setProtocolFeeForPool(key, _buildSwapFee(10, 10));
+        // set protocolFee as 0.1% of fee
+        uint24 protocolFee = _buildProtocolFee(ProtocolFeeLibrary.MAX_PROTOCOL_FEE, ProtocolFeeLibrary.MAX_PROTOCOL_FEE);
+        feeController.setProtocolFeeForPool(key, protocolFee);
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
         poolManager.initialize(key, new bytes(0));
         (uint256 protocolFee0, uint256 protocolFee1) = poolManager.swap(key, 1e18, 1e18);
-        assertEq(protocolFee0, 1e17);
-        assertEq(protocolFee1, 1e17);
+        assertEq(protocolFee0, 1e15);
+        assertEq(protocolFee1, 1e15);
 
         // send some token to vault as poolManager.swap doesn't have tokens
-        token0.mint(address(vault), 1e17);
-        token1.mint(address(vault), 1e17);
+        token0.mint(address(vault), 1e15);
+        token1.mint(address(vault), 1e15);
 
         // before collect
         assertEq(token0.balanceOf(alice), 0);
         assertEq(token1.balanceOf(alice), 0);
-        assertEq(token0.balanceOf(address(vault)), 1e17);
-        assertEq(token1.balanceOf(address(vault)), 1e17);
+        assertEq(token0.balanceOf(address(vault)), 1e15);
+        assertEq(token1.balanceOf(address(vault)), 1e15);
 
         // collect
         vm.prank(address(feeController));
-        poolManager.collectProtocolFees(alice, Currency.wrap(address(token0)), 1e17);
-        poolManager.collectProtocolFees(alice, Currency.wrap(address(token1)), 1e17);
+        poolManager.collectProtocolFees(alice, Currency.wrap(address(token0)), 1e15);
+        poolManager.collectProtocolFees(alice, Currency.wrap(address(token1)), 1e15);
 
         // after collect
-        assertEq(token0.balanceOf(alice), 1e17);
-        assertEq(token1.balanceOf(alice), 1e17);
+        assertEq(token0.balanceOf(alice), 1e15);
+        assertEq(token1.balanceOf(alice), 1e15);
         assertEq(token0.balanceOf(address(vault)), 0);
         assertEq(token1.balanceOf(address(vault)), 0);
     }
 
-    function _buildSwapFee(uint16 fee0, uint16 fee1) public pure returns (uint16) {
-        return fee0 + (fee1 << 8);
+    function _buildProtocolFee(uint24 fee0, uint24 fee1) public pure returns (uint24) {
+        // max fee is 1000 pips = 0.1%
+        return fee0 + (fee1 << 12);
     }
 }
