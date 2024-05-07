@@ -119,9 +119,11 @@ interface ICLPoolManager is IFees, IPoolManager, IExtsload {
     }
 
     /// @notice Modify the position for the given pool
+    /// @return delta The balance delta of the liquidity change
+    /// @return feeDelta The balance delta of the fees generated in the liquidity range
     function modifyLiquidity(PoolKey memory key, ModifyLiquidityParams memory params, bytes calldata hookData)
         external
-        returns (BalanceDelta);
+        returns (BalanceDelta delta, BalanceDelta feeDelta);
 
     struct SwapParams {
         bool zeroForOne;

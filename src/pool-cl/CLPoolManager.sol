@@ -19,6 +19,7 @@ import {PoolId, PoolIdLibrary} from "../types/PoolId.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../types/BalanceDelta.sol";
 import {Extsload} from "../Extsload.sol";
 import {SafeCast} from "../libraries/SafeCast.sol";
+import {CLPoolGetters} from "./libraries/CLPoolGetters.sol";
 
 contract CLPoolManager is ICLPoolManager, Fees, Extsload {
     using SafeCast for int256;
@@ -28,6 +29,7 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
     using CLPoolParametersHelper for bytes32;
     using CLPool for *;
     using CLPosition for mapping(bytes32 => CLPosition.Info);
+    using CLPoolGetters for CLPool.State;
 
     /// @inheritdoc ICLPoolManager
     int24 public constant override MAX_TICK_SPACING = type(int16).max;
@@ -129,7 +131,12 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
         PoolKey memory key,
         ICLPoolManager.ModifyLiquidityParams memory params,
         bytes calldata hookData
-    ) external override poolManagerMatch(address(key.poolManager)) returns (BalanceDelta delta) {
+    )
+        external
+        override
+        poolManagerMatch(address(key.poolManager))
+        returns (BalanceDelta delta, BalanceDelta feeDelta)
+    {
         // Do not allow add liquidity when paused()
         if (paused() && params.liquidityDelta > 0) revert PoolPaused();
 
@@ -142,7 +149,7 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
             bytes4 selector = hooks.beforeAddLiquidity(msg.sender, key, params, hookData);
             if (key.parameters.isValidNoOpCall(HOOKS_NO_OP_OFFSET, selector)) {
                 // Sentinel return value used to signify that a NoOp occurred.
-                return BalanceDeltaLibrary.MAXIMUM_DELTA;
+                return (BalanceDeltaLibrary.MAXIMUM_DELTA, BalanceDeltaLibrary.ZERO_DELTA);
             } else if (selector != ICLHooks.beforeAddLiquidity.selector) {
                 revert Hooks.InvalidHookResponse();
             }
@@ -151,13 +158,13 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
             bytes4 selector = hooks.beforeRemoveLiquidity(msg.sender, key, params, hookData);
             if (key.parameters.isValidNoOpCall(HOOKS_NO_OP_OFFSET, selector)) {
                 // Sentinel return value used to signify that a NoOp occurred.
-                return BalanceDeltaLibrary.MAXIMUM_DELTA;
+                return (BalanceDeltaLibrary.MAXIMUM_DELTA, BalanceDeltaLibrary.ZERO_DELTA);
             } else if (selector != ICLHooks.beforeRemoveLiquidity.selector) {
                 revert Hooks.InvalidHookResponse();
             }
         }
 
-        delta = pools[id].modifyLiquidity(
+        (delta, feeDelta) = pools[id].modifyLiquidity(
             CLPool.ModifyLiquidityParams({
                 owner: msg.sender,
                 tickLower: params.tickLower,
@@ -167,7 +174,7 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
             })
         );
 
-        vault.accountPoolBalanceDelta(key, delta, msg.sender);
+        vault.accountPoolBalanceDelta(key, delta + feeDelta, msg.sender);
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
         emit ModifyLiquidity(id, msg.sender, params.tickLower, params.tickUpper, params.liquidityDelta);
@@ -289,11 +296,19 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
     }
 
     function getPoolTickInfo(PoolId id, int24 tick) external view returns (Tick.Info memory) {
-        return pools[id].ticks[tick];
+        return pools[id].getPoolTickInfo(tick);
     }
 
     function getPoolBitmapInfo(PoolId id, int16 word) external view returns (uint256 tickBitmap) {
-        return pools[id].tickBitmap[word];
+        return pools[id].getPoolBitmapInfo(word);
+    }
+
+    function getFeeGrowthGlobals(PoolId id)
+        external
+        view
+        returns (uint256 feeGrowthGlobal0x128, uint256 feeGrowthGlobal1x128)
+    {
+        return pools[id].getFeeGrowthGlobals();
     }
 
     /// @inheritdoc IPoolManager

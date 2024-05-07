@@ -749,6 +749,124 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         }
     }
 
+    function testModifyPosition_feeDelta() external {
+        Currency currency0 = Currency.wrap(address(new ERC20PresetFixedSupply("C0", "C0", 1e30 ether, address(this))));
+        Currency currency1 = Currency.wrap(address(new ERC20PresetFixedSupply("C1", "C1", 1e30 ether, address(this))));
+
+        if (currency0 > currency1) {
+            (currency0, currency1) = (currency1, currency0);
+        }
+
+        PoolKey memory key = PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            hooks: IHooks(address(0)),
+            poolManager: poolManager,
+            fee: uint24(3000),
+            // 0 ~ 15  hookRegistrationMap = nil
+            // 16 ~ 24 tickSpacing = 1
+            parameters: bytes32(uint256(0x10000))
+        });
+
+        poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
+
+        IERC20(Currency.unwrap(currency0)).approve(address(router), 1e30 ether);
+        IERC20(Currency.unwrap(currency1)).approve(address(router), 1e30 ether);
+
+        BalanceDelta feeDelta;
+        // Step 1: Add liquidity to new pool, verify feeDelta = 0
+        (, feeDelta) = router.modifyPosition(
+            key,
+            ICLPoolManager.ModifyLiquidityParams({
+                tickLower: TickMath.MIN_TICK,
+                tickUpper: TickMath.MAX_TICK,
+                liquidityDelta: 1e18
+            }),
+            ""
+        );
+        assertTrue(feeDelta == BalanceDeltaLibrary.ZERO_DELTA);
+
+        // Step 2: Add liquidity again to pool, verify feeDelta = 0
+        (, feeDelta) = router.modifyPosition(
+            key,
+            ICLPoolManager.ModifyLiquidityParams({
+                tickLower: TickMath.MIN_TICK,
+                tickUpper: TickMath.MAX_TICK,
+                liquidityDelta: 1e18
+            }),
+            ""
+        );
+        assertTrue(feeDelta == BalanceDeltaLibrary.ZERO_DELTA);
+
+        // step 3: Remove liquidity from pool, verify feeDelta = 0
+        (, feeDelta) = router.modifyPosition(
+            key,
+            ICLPoolManager.ModifyLiquidityParams({
+                tickLower: TickMath.MIN_TICK,
+                tickUpper: TickMath.MAX_TICK,
+                liquidityDelta: -1e18
+            }),
+            ""
+        );
+        assertTrue(feeDelta == BalanceDeltaLibrary.ZERO_DELTA);
+
+        // step 4: Perform a swap then add liquidity, verify feeDelta != 0
+        router.swap(
+            key,
+            ICLPoolManager.SwapParams({
+                zeroForOne: true,
+                amountSpecified: 0.1 ether,
+                sqrtPriceLimitX96: TickMath.MIN_SQRT_RATIO + 1
+            }),
+            CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true}),
+            ""
+        );
+        (, feeDelta) = router.modifyPosition(
+            key,
+            ICLPoolManager.ModifyLiquidityParams({
+                tickLower: TickMath.MIN_TICK,
+                tickUpper: TickMath.MAX_TICK,
+                liquidityDelta: 1e18
+            }),
+            ""
+        );
+        assertApproxEqRel(uint256(int256(feeDelta.amount0())), 0.003 * 0.1 ether, 1e16); // around 0.3% fee
+
+        // step 5: Add liquidity, verify feeDelta == 0
+        (, feeDelta) = router.modifyPosition(
+            key,
+            ICLPoolManager.ModifyLiquidityParams({
+                tickLower: TickMath.MIN_TICK,
+                tickUpper: TickMath.MAX_TICK,
+                liquidityDelta: 1e18
+            }),
+            ""
+        );
+        assertTrue(feeDelta == BalanceDeltaLibrary.ZERO_DELTA);
+
+        // step 6: Perform a swap then remove liquidity, verify feeDelta != 0
+        router.swap(
+            key,
+            ICLPoolManager.SwapParams({
+                zeroForOne: true,
+                amountSpecified: 0.1 ether,
+                sqrtPriceLimitX96: TickMath.MIN_SQRT_RATIO + 1
+            }),
+            CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true}),
+            ""
+        );
+        (, feeDelta) = router.modifyPosition(
+            key,
+            ICLPoolManager.ModifyLiquidityParams({
+                tickLower: TickMath.MIN_TICK,
+                tickUpper: TickMath.MAX_TICK,
+                liquidityDelta: -1e18
+            }),
+            ""
+        );
+        assertApproxEqRel(uint256(int256(feeDelta.amount0())), 0.003 * 0.1 ether, 1e16); // around 0.3% fee
+    }
+
     function testModifyPosition_Liquidity_aboveCurrentTick() external {
         Currency currency0 = Currency.wrap(address(new ERC20PresetFixedSupply("C0", "C0", 1e30 ether, address(this))));
         Currency currency1 = Currency.wrap(address(new ERC20PresetFixedSupply("C1", "C1", 1e30 ether, address(this))));
@@ -2320,13 +2438,15 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         snapEnd();
 
         BalanceDelta delta;
+        BalanceDelta feeDelta;
 
         // Action 1: modify
         ICLPoolManager.ModifyLiquidityParams memory params;
         snapStart("CLPoolManagerTest#testNoOp_gas_ModifyPosition");
-        delta = router.modifyPosition(key, params, ZERO_BYTES);
+        (delta, feeDelta) = router.modifyPosition(key, params, ZERO_BYTES);
         snapEnd();
         assertTrue(delta == BalanceDeltaLibrary.MAXIMUM_DELTA);
+        assertTrue(feeDelta == BalanceDeltaLibrary.ZERO_DELTA);
 
         // Action 2: swap
         snapStart("CLPoolManagerTest#testNoOp_gas_Swap");
