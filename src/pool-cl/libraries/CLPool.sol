@@ -97,10 +97,11 @@ library CLPool {
 
     /// @dev Effect changes to the liquidity of a position in a pool
     /// @param params the position details and the change to the position's liquidity to effect
-    /// @return delta the deltas of the token balances of the pool
+    /// @return delta the deltas from liquidity changes
+    /// @return feeDelta the delta of the fees generated in the liquidity range
     function modifyLiquidity(State storage self, ModifyLiquidityParams memory params)
         internal
-        returns (BalanceDelta delta)
+        returns (BalanceDelta delta, BalanceDelta feeDelta)
     {
         int24 tickLower = params.tickLower;
         int24 tickUpper = params.tickUpper;
@@ -143,7 +144,7 @@ library CLPool {
         }
 
         // Fees earned from LPing are removed from the pool balance.
-        delta = delta - toBalanceDelta(feesOwed0.toInt128(), feesOwed1.toInt128());
+        feeDelta = toBalanceDelta(feesOwed0.toInt128(), feesOwed1.toInt128());
     }
 
     struct SwapCache {

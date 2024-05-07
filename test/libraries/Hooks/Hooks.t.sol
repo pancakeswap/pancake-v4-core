@@ -71,24 +71,24 @@ contract HooksTest is Test {
         this.toCallAsCalldata(poolKey);
     }
 
-    function testShouldCall() public {
+    function testhasOffsetEnabled() public {
         // 0b1010101010101010
-        assertEq(Hooks.shouldCall(bytes32(uint256(0xaaaa)), 0), false);
-        assertEq(Hooks.shouldCall(bytes32(uint256(0xaaaa)), 1), true);
-        assertEq(Hooks.shouldCall(bytes32(uint256(0xaaaa)), 2), false);
-        assertEq(Hooks.shouldCall(bytes32(uint256(0xaaaa)), 3), true);
-        assertEq(Hooks.shouldCall(bytes32(uint256(0xaaaa)), 4), false);
-        assertEq(Hooks.shouldCall(bytes32(uint256(0xaaaa)), 5), true);
-        assertEq(Hooks.shouldCall(bytes32(uint256(0xaaaa)), 6), false);
-        assertEq(Hooks.shouldCall(bytes32(uint256(0xaaaa)), 7), true);
-        assertEq(Hooks.shouldCall(bytes32(uint256(0xaaaa)), 8), false);
-        assertEq(Hooks.shouldCall(bytes32(uint256(0xaaaa)), 9), true);
-        assertEq(Hooks.shouldCall(bytes32(uint256(0xaaaa)), 10), false);
-        assertEq(Hooks.shouldCall(bytes32(uint256(0xaaaa)), 11), true);
-        assertEq(Hooks.shouldCall(bytes32(uint256(0xaaaa)), 12), false);
-        assertEq(Hooks.shouldCall(bytes32(uint256(0xaaaa)), 13), true);
-        assertEq(Hooks.shouldCall(bytes32(uint256(0xaaaa)), 14), false);
-        assertEq(Hooks.shouldCall(bytes32(uint256(0xaaaa)), 15), true);
+        assertEq(Hooks.hasOffsetEnabled(bytes32(uint256(0xaaaa)), 0), false);
+        assertEq(Hooks.hasOffsetEnabled(bytes32(uint256(0xaaaa)), 1), true);
+        assertEq(Hooks.hasOffsetEnabled(bytes32(uint256(0xaaaa)), 2), false);
+        assertEq(Hooks.hasOffsetEnabled(bytes32(uint256(0xaaaa)), 3), true);
+        assertEq(Hooks.hasOffsetEnabled(bytes32(uint256(0xaaaa)), 4), false);
+        assertEq(Hooks.hasOffsetEnabled(bytes32(uint256(0xaaaa)), 5), true);
+        assertEq(Hooks.hasOffsetEnabled(bytes32(uint256(0xaaaa)), 6), false);
+        assertEq(Hooks.hasOffsetEnabled(bytes32(uint256(0xaaaa)), 7), true);
+        assertEq(Hooks.hasOffsetEnabled(bytes32(uint256(0xaaaa)), 8), false);
+        assertEq(Hooks.hasOffsetEnabled(bytes32(uint256(0xaaaa)), 9), true);
+        assertEq(Hooks.hasOffsetEnabled(bytes32(uint256(0xaaaa)), 10), false);
+        assertEq(Hooks.hasOffsetEnabled(bytes32(uint256(0xaaaa)), 11), true);
+        assertEq(Hooks.hasOffsetEnabled(bytes32(uint256(0xaaaa)), 12), false);
+        assertEq(Hooks.hasOffsetEnabled(bytes32(uint256(0xaaaa)), 13), true);
+        assertEq(Hooks.hasOffsetEnabled(bytes32(uint256(0xaaaa)), 14), false);
+        assertEq(Hooks.hasOffsetEnabled(bytes32(uint256(0xaaaa)), 15), true);
     }
 
     function testIsValidNoOpCall(bytes32 parameters, uint8 noOpOffset, bytes4 selector) public {
