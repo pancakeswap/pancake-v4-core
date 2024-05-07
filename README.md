@@ -6,7 +6,9 @@
 ## Running test
 
 1. Install dependencies with `forge install` and `yarn`
-2. Run test with `forge test`
+2. Run test with `forge test --isolate`
+
+See https://github.com/pancakeswap/pancake-v4-core/pull/35 on why `--isolate` flag is used.
 
 ## Update dependencies
 

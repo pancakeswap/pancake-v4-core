@@ -30,6 +30,9 @@ library BalanceDeltaLibrary {
     // Sentinel return value used to signify that a NoOp occurred.
     BalanceDelta public constant MAXIMUM_DELTA = BalanceDelta.wrap(int256(type(uint256).max));
 
+    // Sentinel return value used for feeDelta to signify that a NoOp occurred.
+    BalanceDelta public constant ZERO_DELTA = BalanceDelta.wrap(0);
+
     function amount0(BalanceDelta balanceDelta) internal pure returns (int128 _amount0) {
         /// @solidity memory-safe-assembly
         assembly {
