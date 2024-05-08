@@ -55,7 +55,7 @@ contract PoolTest is Test {
         } else if (params.tickUpper > TickMath.MAX_TICK) {
             vm.expectRevert(abi.encodeWithSelector(Tick.TickUpperOutOfBounds.selector, params.tickUpper));
         } else if (params.liquidityDelta < 0) {
-            vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
+            vm.expectRevert(SafeCast.SafeCastOverflow.selector);
         } else if (params.liquidityDelta == 0) {
             vm.expectRevert(CLPosition.CannotUpdateEmptyPosition.selector);
         } else if (params.liquidityDelta > int128(Tick.tickSpacingToMaxLiquidityPerTick(params.tickSpacing))) {

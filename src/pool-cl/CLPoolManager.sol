@@ -19,6 +19,7 @@ import {PoolId, PoolIdLibrary} from "../types/PoolId.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../types/BalanceDelta.sol";
 import {Extsload} from "../Extsload.sol";
 import {SafeCast} from "../libraries/SafeCast.sol";
+import {CLPoolGetters} from "./libraries/CLPoolGetters.sol";
 
 contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     using SafeCast for int256;
@@ -28,6 +29,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     using CLPoolParametersHelper for bytes32;
     using CLPool for *;
     using CLPosition for mapping(bytes32 => CLPosition.Info);
+    using CLPoolGetters for CLPool.State;
 
     /// @inheritdoc ICLPoolManager
     int24 public constant override MAX_TICK_SPACING = type(int16).max;
@@ -101,7 +103,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         uint24 lpFee = key.fee.getInitialLPFee();
         lpFee.validate(LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE);
 
-        if (key.parameters.shouldCall(HOOKS_BEFORE_INITIALIZE_OFFSET)) {
+        if (key.parameters.shouldCall(HOOKS_BEFORE_INITIALIZE_OFFSET, hooks)) {
             if (hooks.beforeInitialize(msg.sender, key, sqrtPriceX96, hookData) != ICLHooks.beforeInitialize.selector) {
                 revert Hooks.InvalidHookResponse();
             }
@@ -114,7 +116,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
         emit Initialize(id, key.currency0, key.currency1, key.fee, tickSpacing, hooks);
 
-        if (key.parameters.shouldCall(HOOKS_AFTER_INITIALIZE_OFFSET)) {
+        if (key.parameters.shouldCall(HOOKS_AFTER_INITIALIZE_OFFSET, hooks)) {
             if (
                 hooks.afterInitialize(msg.sender, key, sqrtPriceX96, tick, hookData)
                     != ICLHooks.afterInitialize.selector
@@ -129,7 +131,12 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         PoolKey memory key,
         ICLPoolManager.ModifyLiquidityParams memory params,
         bytes calldata hookData
-    ) external override poolManagerMatch(address(key.poolManager)) returns (BalanceDelta delta) {
+    )
+        external
+        override
+        poolManagerMatch(address(key.poolManager))
+        returns (BalanceDelta delta, BalanceDelta feeDelta)
+    {
         // Do not allow add liquidity when paused()
         if (paused() && params.liquidityDelta > 0) revert PoolPaused();
 
@@ -138,25 +145,26 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
 
         ICLHooks hooks = ICLHooks(address(key.hooks));
 
-        if (params.liquidityDelta > 0 && key.parameters.shouldCall(HOOKS_BEFORE_ADD_LIQUIDITY_OFFSET)) {
+        if (params.liquidityDelta > 0 && key.parameters.shouldCall(HOOKS_BEFORE_ADD_LIQUIDITY_OFFSET, hooks)) {
             bytes4 selector = hooks.beforeAddLiquidity(msg.sender, key, params, hookData);
             if (key.parameters.isValidNoOpCall(HOOKS_NO_OP_OFFSET, selector)) {
                 // Sentinel return value used to signify that a NoOp occurred.
-                return BalanceDeltaLibrary.MAXIMUM_DELTA;
+                return (BalanceDeltaLibrary.MAXIMUM_DELTA, BalanceDeltaLibrary.ZERO_DELTA);
             } else if (selector != ICLHooks.beforeAddLiquidity.selector) {
                 revert Hooks.InvalidHookResponse();
             }
-        } else if (params.liquidityDelta <= 0 && key.parameters.shouldCall(HOOKS_BEFORE_REMOVE_LIQUIDITY_OFFSET)) {
+        } else if (params.liquidityDelta <= 0 && key.parameters.shouldCall(HOOKS_BEFORE_REMOVE_LIQUIDITY_OFFSET, hooks))
+        {
             bytes4 selector = hooks.beforeRemoveLiquidity(msg.sender, key, params, hookData);
             if (key.parameters.isValidNoOpCall(HOOKS_NO_OP_OFFSET, selector)) {
                 // Sentinel return value used to signify that a NoOp occurred.
-                return BalanceDeltaLibrary.MAXIMUM_DELTA;
+                return (BalanceDeltaLibrary.MAXIMUM_DELTA, BalanceDeltaLibrary.ZERO_DELTA);
             } else if (selector != ICLHooks.beforeRemoveLiquidity.selector) {
                 revert Hooks.InvalidHookResponse();
             }
         }
 
-        delta = pools[id].modifyLiquidity(
+        (delta, feeDelta) = pools[id].modifyLiquidity(
             CLPool.ModifyLiquidityParams({
                 owner: msg.sender,
                 tickLower: params.tickLower,
@@ -166,18 +174,19 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
             })
         );
 
-        vault.accountPoolBalanceDelta(key, delta, msg.sender);
+        vault.accountPoolBalanceDelta(key, delta + feeDelta, msg.sender);
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
         emit ModifyLiquidity(id, msg.sender, params.tickLower, params.tickUpper, params.liquidityDelta);
 
-        if (params.liquidityDelta > 0 && key.parameters.shouldCall(HOOKS_AFTER_ADD_LIQUIDITY_OFFSET)) {
+        if (params.liquidityDelta > 0 && key.parameters.shouldCall(HOOKS_AFTER_ADD_LIQUIDITY_OFFSET, hooks)) {
             if (
                 hooks.afterAddLiquidity(msg.sender, key, params, delta, hookData) != ICLHooks.afterAddLiquidity.selector
             ) {
                 revert Hooks.InvalidHookResponse();
             }
-        } else if (params.liquidityDelta <= 0 && key.parameters.shouldCall(HOOKS_AFTER_REMOVE_LIQUIDITY_OFFSET)) {
+        } else if (params.liquidityDelta <= 0 && key.parameters.shouldCall(HOOKS_AFTER_REMOVE_LIQUIDITY_OFFSET, hooks))
+        {
             if (
                 hooks.afterRemoveLiquidity(msg.sender, key, params, delta, hookData)
                     != ICLHooks.afterRemoveLiquidity.selector
@@ -200,7 +209,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
 
         ICLHooks hooks = ICLHooks(address(key.hooks));
 
-        if (key.parameters.shouldCall(HOOKS_BEFORE_SWAP_OFFSET)) {
+        if (key.parameters.shouldCall(HOOKS_BEFORE_SWAP_OFFSET, hooks)) {
             bytes4 selector = hooks.beforeSwap(msg.sender, key, params, hookData);
             if (key.parameters.isValidNoOpCall(HOOKS_NO_OP_OFFSET, selector)) {
                 // Sentinel return value used to signify that a NoOp occurred.
@@ -243,7 +252,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
             state.protocolFee
         );
 
-        if (key.parameters.shouldCall(HOOKS_AFTER_SWAP_OFFSET)) {
+        if (key.parameters.shouldCall(HOOKS_AFTER_SWAP_OFFSET, hooks)) {
             if (hooks.afterSwap(msg.sender, key, params, delta, hookData) != ICLHooks.afterSwap.selector) {
                 revert Hooks.InvalidHookResponse();
             }
@@ -262,7 +271,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         _checkPoolInitialized(id);
 
         ICLHooks hooks = ICLHooks(address(key.hooks));
-        if (key.parameters.shouldCall(HOOKS_BEFORE_DONATE_OFFSET)) {
+        if (key.parameters.shouldCall(HOOKS_BEFORE_DONATE_OFFSET, hooks)) {
             bytes4 selector = hooks.beforeDonate(msg.sender, key, amount0, amount1, hookData);
             if (key.parameters.isValidNoOpCall(HOOKS_NO_OP_OFFSET, selector)) {
                 // Sentinel return value used to signify that a NoOp occurred.
@@ -279,7 +288,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
         emit Donate(id, msg.sender, amount0, amount1, tick);
 
-        if (key.parameters.shouldCall(HOOKS_AFTER_DONATE_OFFSET)) {
+        if (key.parameters.shouldCall(HOOKS_AFTER_DONATE_OFFSET, hooks)) {
             if (hooks.afterDonate(msg.sender, key, amount0, amount1, hookData) != ICLHooks.afterDonate.selector) {
                 revert Hooks.InvalidHookResponse();
             }
@@ -287,11 +296,19 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     }
 
     function getPoolTickInfo(PoolId id, int24 tick) external view returns (Tick.Info memory) {
-        return pools[id].ticks[tick];
+        return pools[id].getPoolTickInfo(tick);
     }
 
     function getPoolBitmapInfo(PoolId id, int16 word) external view returns (uint256 tickBitmap) {
-        return pools[id].tickBitmap[word];
+        return pools[id].getPoolBitmapInfo(word);
+    }
+
+    function getFeeGrowthGlobals(PoolId id)
+        external
+        view
+        returns (uint256 feeGrowthGlobal0x128, uint256 feeGrowthGlobal1x128)
+    {
+        return pools[id].getFeeGrowthGlobals();
     }
 
     /// @inheritdoc IPoolManager
@@ -314,12 +331,12 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
 
     function _validateHookNoOp(PoolKey memory key) internal pure {
         // if no-op is active for hook, there must be a before* hook active too
-        if (key.parameters.shouldCall(HOOKS_NO_OP_OFFSET)) {
+        if (key.parameters.hasOffsetEnabled(HOOKS_NO_OP_OFFSET)) {
             if (
-                !key.parameters.shouldCall(HOOKS_BEFORE_ADD_LIQUIDITY_OFFSET)
-                    && !key.parameters.shouldCall(HOOKS_BEFORE_REMOVE_LIQUIDITY_OFFSET)
-                    && !key.parameters.shouldCall(HOOKS_BEFORE_SWAP_OFFSET)
-                    && !key.parameters.shouldCall(HOOKS_BEFORE_DONATE_OFFSET)
+                !key.parameters.hasOffsetEnabled(HOOKS_BEFORE_ADD_LIQUIDITY_OFFSET)
+                    && !key.parameters.hasOffsetEnabled(HOOKS_BEFORE_REMOVE_LIQUIDITY_OFFSET)
+                    && !key.parameters.hasOffsetEnabled(HOOKS_BEFORE_SWAP_OFFSET)
+                    && !key.parameters.hasOffsetEnabled(HOOKS_BEFORE_DONATE_OFFSET)
             ) {
                 revert Hooks.NoOpHookMissingBeforeCall();
             }

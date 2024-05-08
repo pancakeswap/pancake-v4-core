@@ -7,6 +7,7 @@ import {Test} from "forge-std/Test.sol";
 import {CLPosition} from "../../../src/pool-cl/libraries/CLPosition.sol";
 import {CLPool} from "../../../src/pool-cl/libraries/CLPool.sol";
 import {FixedPoint128} from "../../../src/pool-cl/libraries/FixedPoint128.sol";
+import {SafeCast} from "../../../src/libraries/SafeCast.sol";
 
 contract CLPositionTest is Test, GasSnapshot {
     using CLPosition for mapping(bytes32 => CLPosition.Info);
@@ -31,7 +32,7 @@ contract CLPositionTest is Test, GasSnapshot {
         if (liquidityDelta == 0) {
             vm.expectRevert(CLPosition.CannotUpdateEmptyPosition.selector);
         } else if (liquidityDelta < 0) {
-            vm.expectRevert(stdError.arithmeticError);
+            vm.expectRevert(SafeCast.SafeCastOverflow.selector);
         }
         (uint256 feesOwed0, uint256 feesOwed1) = info.update(liquidityDelta, feeGrowthInside0X128, feeGrowthInside1X128);
 

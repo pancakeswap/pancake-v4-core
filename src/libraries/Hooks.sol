@@ -45,14 +45,22 @@ library Hooks {
         }
     }
 
-    function shouldCall(bytes32 parameters, uint8 offset) internal pure returns (bool) {
+    /// @return true if parameter has offset enabled
+    function hasOffsetEnabled(bytes32 parameters, uint8 offset) internal pure returns (bool) {
         return parameters.decodeBool(offset);
+    }
+
+    /// @notice checks if hook should be called -- based on 2 factors:
+    /// 1. whether pool.parameters has the callback offset registered
+    /// 2. whether msg.sender is the hook itself
+    function shouldCall(bytes32 parameters, uint8 offset, IHooks hook) internal view returns (bool) {
+        return hasOffsetEnabled(parameters, offset) && address(hook) != msg.sender;
     }
 
     /// @dev Verify hook return value matches no-op when these 2 conditions are met
     ///   1) Hook have permission for no-op
     ///   2) Return value is no-op selector
     function isValidNoOpCall(bytes32 parameters, uint8 noOpOffset, bytes4 selector) internal pure returns (bool) {
-        return shouldCall(parameters, noOpOffset) && selector == NO_OP_SELECTOR;
+        return hasOffsetEnabled(parameters, noOpOffset) && selector == NO_OP_SELECTOR;
     }
 }

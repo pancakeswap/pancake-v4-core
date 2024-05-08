@@ -104,21 +104,22 @@ library BinPool {
     {
         Slot0 memory slot0Cache = self.slot0;
         uint24 id = slot0Cache.activeId;
+        bool swapForY = params.swapForY;
         amountOutLeft = amountOut;
 
         uint24 protocolFee =
-            params.swapForY ? slot0Cache.protocolFee.getOneForZeroFee() : slot0Cache.protocolFee.getZeroForOneFee();
+            swapForY ? slot0Cache.protocolFee.getOneForZeroFee() : slot0Cache.protocolFee.getZeroForOneFee();
         uint24 swapFee = protocolFee.calculateSwapFee(params.lpFee);
 
         while (true) {
-            uint128 binReserves = self.reserveOfBin[id].decode(!params.swapForY);
+            uint128 binReserves = self.reserveOfBin[id].decode(!swapForY);
             if (binReserves > 0) {
                 uint256 price = id.getPriceFromId(params.binStep);
 
                 uint128 amountOutOfBin = binReserves > amountOutLeft ? amountOutLeft : binReserves;
 
                 uint128 amountInWithoutFee = uint128(
-                    params.swapForY
+                    swapForY
                         ? uint256(amountOutOfBin).shiftDivRoundUp(Constants.SCALE_OFFSET, price)
                         : uint256(amountOutOfBin).mulShiftRoundUp(price, Constants.SCALE_OFFSET)
                 );
@@ -134,7 +135,7 @@ library BinPool {
             if (amountOutLeft == 0) {
                 break;
             } else {
-                uint24 nextId = getNextNonEmptyBin(self, params.swapForY, id);
+                uint24 nextId = getNextNonEmptyBin(self, swapForY, id);
                 if (nextId == 0 || nextId == type(uint24).max) break;
                 id = nextId;
             }
@@ -148,40 +149,41 @@ library BinPool {
     {
         Slot0 memory slot0Cache = self.slot0;
         uint24 id = slot0Cache.activeId;
-        bytes32 amountsInLeft = amountIn.encode(params.swapForY);
+        bool swapForY = params.swapForY;
+        bytes32 amountsInLeft = amountIn.encode(swapForY);
 
         uint24 swapFee;
         {
             uint24 protocolFee =
-                params.swapForY ? slot0Cache.protocolFee.getOneForZeroFee() : slot0Cache.protocolFee.getZeroForOneFee();
+                swapForY ? slot0Cache.protocolFee.getOneForZeroFee() : slot0Cache.protocolFee.getZeroForOneFee();
             swapFee = protocolFee.calculateSwapFee(params.lpFee);
         }
 
         while (true) {
             bytes32 binReserves = self.reserveOfBin[id];
-            if (!binReserves.isEmpty(!params.swapForY)) {
+            if (!binReserves.isEmpty(!swapForY)) {
                 (bytes32 amountsInWithFees, bytes32 amountsOutOfBin, bytes32 totalFees) =
-                    binReserves.getAmounts(swapFee, params.binStep, params.swapForY, id, amountsInLeft);
+                    binReserves.getAmounts(swapFee, params.binStep, swapForY, id, amountsInLeft);
 
                 if (amountsInWithFees > 0) {
                     amountsInLeft = amountsInLeft.sub(amountsInWithFees);
 
-                    amountOut += amountsOutOfBin.decode(!params.swapForY);
+                    amountOut += amountsOutOfBin.decode(!swapForY);
 
-                    fee += totalFees.decode(params.swapForY);
+                    fee += totalFees.decode(swapForY);
                 }
             }
 
             if (amountsInLeft == 0) {
                 break;
             } else {
-                uint24 nextId = getNextNonEmptyBin(self, params.swapForY, id);
+                uint24 nextId = getNextNonEmptyBin(self, swapForY, id);
                 if (nextId == 0 || nextId == type(uint24).max) break;
                 id = nextId;
             }
         }
 
-        amountInLeft = amountsInLeft.decode(params.swapForY);
+        amountInLeft = amountsInLeft.decode(swapForY);
     }
 
     struct SwapParams {
@@ -202,12 +204,13 @@ library BinPool {
     {
         Slot0 memory slot0Cache = self.slot0;
         swapState.activeId = slot0Cache.activeId;
+        bool swapForY = params.swapForY;
         swapState.protocolFee =
-            params.swapForY ? slot0Cache.protocolFee.getOneForZeroFee() : slot0Cache.protocolFee.getZeroForOneFee();
+            swapForY ? slot0Cache.protocolFee.getOneForZeroFee() : slot0Cache.protocolFee.getZeroForOneFee();
 
         if (amountIn == 0) revert BinPool__InsufficientAmountIn();
 
-        bytes32 amountsLeft = params.swapForY ? amountIn.encodeFirst() : amountIn.encodeSecond();
+        bytes32 amountsLeft = swapForY ? amountIn.encodeFirst() : amountIn.encodeSecond();
         bytes32 amountsOut;
 
         /// @dev swap fee includes protocolFee (charged first) and lpFee
@@ -215,10 +218,9 @@ library BinPool {
 
         while (true) {
             bytes32 binReserves = self.reserveOfBin[swapState.activeId];
-            if (!binReserves.isEmpty(!params.swapForY)) {
-                (bytes32 amountsInWithFees, bytes32 amountsOutOfBin, bytes32 totalFee) = binReserves.getAmounts(
-                    swapState.swapFee, params.binStep, params.swapForY, swapState.activeId, amountsLeft
-                );
+            if (!binReserves.isEmpty(!swapForY)) {
+                (bytes32 amountsInWithFees, bytes32 amountsOutOfBin, bytes32 totalFee) =
+                    binReserves.getAmounts(swapState.swapFee, params.binStep, swapForY, swapState.activeId, amountsLeft);
 
                 if (amountsInWithFees > 0) {
                     amountsLeft = amountsLeft.sub(amountsInWithFees);
@@ -238,7 +240,7 @@ library BinPool {
             if (amountsLeft == 0) {
                 break;
             } else {
-                uint24 nextId = getNextNonEmptyBin(self, params.swapForY, swapState.activeId);
+                uint24 nextId = getNextNonEmptyBin(self, swapForY, swapState.activeId);
                 if (nextId == 0 || nextId == type(uint24).max) revert BinPool__OutOfLiquidity();
                 swapState.activeId = nextId;
             }
@@ -248,7 +250,7 @@ library BinPool {
 
         self.slot0.activeId = swapState.activeId;
 
-        if (params.swapForY) {
+        if (swapForY) {
             uint128 consumed = amountIn - amountsLeft.decodeX();
             result = toBalanceDelta(consumed.safeInt128(), -(amountsOut.decodeY().safeInt128()));
         } else {

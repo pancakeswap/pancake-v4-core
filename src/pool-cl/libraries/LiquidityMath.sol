@@ -9,11 +9,14 @@ library LiquidityMath {
     /// @param y The delta by which liquidity should be changed
     /// @return z The liquidity delta
     function addDelta(uint128 x, int128 y) internal pure returns (uint128 z) {
-        // after 0.8.0 overflow is checked by default
-        if (y < 0) {
-            z = x - uint128(-y);
-        } else {
-            z = x + uint128(y);
+        assembly {
+            z := add(x, y)
+
+            if shr(128, z) {
+                // store 0x93dafdf1, error SafeCastOverflow at memory 0 address and revert from pointer 28, to byte 32
+                mstore(0x0, 0x93dafdf1)
+                revert(0x1c, 0x04)
+            }
         }
     }
 }
