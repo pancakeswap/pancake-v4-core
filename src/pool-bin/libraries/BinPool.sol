@@ -216,7 +216,7 @@ library BinPool {
         while (true) {
             bytes32 binReserves = self.reserveOfBin[swapState.activeId];
             if (!binReserves.isEmpty(!params.swapForY)) {
-                (bytes32 amountsInWithFees, bytes32 amountsOutOfBin,) = binReserves.getAmounts(
+                (bytes32 amountsInWithFees, bytes32 amountsOutOfBin, bytes32 totalFee) = binReserves.getAmounts(
                     swapState.swapFee, params.binStep, params.swapForY, swapState.activeId, amountsLeft
                 );
 
@@ -224,8 +224,8 @@ library BinPool {
                     amountsLeft = amountsLeft.sub(amountsInWithFees);
                     amountsOut = amountsOut.add(amountsOutOfBin);
 
-                    /// @dev calc protocol fee for current bin, charged on amoutIn and charged before lpFee
-                    bytes32 pFee = amountsInWithFees.getExternalFeeAmt(slot0Cache.protocolFee);
+                    /// @dev calc protocol fee for current bin, totalFee * protocolFee / (protocolFee + lpFee)
+                    bytes32 pFee = totalFee.getExternalFeeAmt(slot0Cache.protocolFee, swapState.swapFee);
                     if (pFee != 0) {
                         swapState.feeForProtocol = swapState.feeForProtocol.add(pFee);
                         amountsInWithFees = amountsInWithFees.sub(pFee);
