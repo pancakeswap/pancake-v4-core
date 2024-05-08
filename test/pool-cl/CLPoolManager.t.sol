@@ -34,6 +34,7 @@ import {ProtocolFeeControllerTest} from "./helpers/ProtocolFeeControllerTest.sol
 import {IProtocolFeeController} from "../../src/interfaces/IProtocolFeeController.sol";
 import {CLFeeManagerHook} from "./helpers/CLFeeManagerHook.sol";
 import {CLNoOpTestHook} from "./helpers/CLNoOpTestHook.sol";
+import {SafeCast} from "../../src/libraries/SafeCast.sol";
 
 contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
     using PoolIdLibrary for PoolKey;
@@ -984,7 +985,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         IERC20(Currency.unwrap(currency0)).approve(address(router), 1e30 ether);
         IERC20(Currency.unwrap(currency1)).approve(address(router), 1e30 ether);
 
-        vm.expectRevert(stdError.arithmeticError);
+        vm.expectRevert(SafeCast.SafeCastOverflow.selector);
         router.modifyPosition(
             key, ICLPoolManager.ModifyLiquidityParams({tickLower: 46000, tickUpper: 46050, liquidityDelta: -1}), ""
         );

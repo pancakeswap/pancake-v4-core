@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {stdError} from "forge-std/StdError.sol";
 import {Test} from "forge-std/Test.sol";
+import {SafeCast} from "../../../src/libraries/SafeCast.sol";
 import {LiquidityMath} from "../../../src/pool-cl/libraries/LiquidityMath.sol";
 
 contract LiquidityMathTest is Test, GasSnapshot {
@@ -22,16 +23,16 @@ contract LiquidityMathTest is Test, GasSnapshot {
     }
 
     function testAddDeltaOverflow() public {
-        vm.expectRevert(stdError.arithmeticError);
+        vm.expectRevert(SafeCast.SafeCastOverflow.selector);
         LiquidityMath.addDelta(2 ** 128 - 15, 15);
     }
 
     function testAddDeltaUnderflow() public {
         // underflow
-        vm.expectRevert(stdError.arithmeticError);
+        vm.expectRevert(SafeCast.SafeCastOverflow.selector);
         LiquidityMath.addDelta(0, -1);
 
-        vm.expectRevert(stdError.arithmeticError);
+        vm.expectRevert(SafeCast.SafeCastOverflow.selector);
         LiquidityMath.addDelta(3, -4);
     }
 }
