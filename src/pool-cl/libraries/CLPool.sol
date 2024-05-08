@@ -148,11 +148,6 @@ library CLPool {
         delta = delta - toBalanceDelta(feesOwed0.toInt128(), feesOwed1.toInt128());
     }
 
-    struct SwapCache {
-        // liquidity at the beginning of the swap
-        uint128 liquidityStart;
-    }
-
     // the top level state of the swap, the results of which are recorded in storage at the end
     struct SwapState {
         // the amount remaining to be swapped in/out of the input/output asset
@@ -220,8 +215,8 @@ library CLPool {
             revert InvalidSqrtPriceLimit(slot0Start.sqrtPriceX96, params.sqrtPriceLimitX96);
         }
 
-        // TODO: Check if this is necessary
-        SwapCache memory cache = SwapCache({liquidityStart: self.liquidity});
+        // liquidity at the beginning of the swap
+        uint128 liquidityStart = self.liquidity;
 
         bool exactInput = params.amountSpecified > 0;
 
@@ -239,7 +234,7 @@ library CLPool {
                 protocolFee: protocolFee,
                 feeGrowthGlobalX128: params.zeroForOne ? self.feeGrowthGlobal0X128 : self.feeGrowthGlobal1X128,
                 feeForProtocol: 0,
-                liquidity: cache.liquidityStart
+                liquidity: liquidityStart
             });
         }
 
@@ -351,7 +346,7 @@ library CLPool {
         }
 
         // update liquidity if it changed
-        if (cache.liquidityStart != state.liquidity) self.liquidity = state.liquidity;
+        if (liquidityStart != state.liquidity) self.liquidity = state.liquidity;
 
         // update fee growth global
         if (params.zeroForOne) {

@@ -88,7 +88,7 @@ interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload {
     function getSlot0(PoolId id)
         external
         view
-        returns (uint160 sqrtPriceX96, int24 tick, uint24 protocolFee, uint24 swapFee);
+        returns (uint160 sqrtPriceX96, int24 tick, uint24 protocolFee, uint24 lpFee);
 
     /// @notice Get the current value of liquidity of the given pool
     function getLiquidity(PoolId id) external view returns (uint128 liquidity);
