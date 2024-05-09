@@ -303,6 +303,14 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
         }
     }
 
+    function getPoolNumPositions(PoolId id) external view returns (uint256) {
+        return pools[id].getPoolNumPositions();
+    }
+
+    function getPoolPositionInfo(PoolId id, uint256 index) external view returns (CLPosition.Info memory) {
+        return pools[id].getPoolPositionInfo(index);
+    }
+
     function getPoolTickInfo(PoolId id, int24 tick) external view returns (Tick.Info memory) {
         return pools[id].getPoolTickInfo(tick);
     }

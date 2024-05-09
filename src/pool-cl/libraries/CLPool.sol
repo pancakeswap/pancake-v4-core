@@ -70,6 +70,7 @@ library CLPool {
         mapping(int24 => Tick.Info) ticks;
         mapping(int16 => uint256) tickBitmap;
         mapping(bytes32 => CLPosition.Info) positions;
+        bytes32[] positionKeys;
     }
 
     function initialize(State storage self, uint160 sqrtPriceX96, uint16 protocolFee, uint24 swapFee)
@@ -408,9 +409,13 @@ library CLPool {
 
         ///@dev update user position and collect fees
         /// must be done after ticks are updated in case of a 0 -> 1 flip
-        (cache.feesOwed0, cache.feesOwed1) = self.positions.get(params.owner, params.tickLower, params.tickUpper).update(
-            params.liquidityDelta, cache.feeGrowthInside0X128, cache.feeGrowthInside1X128
-        );
+        CLPosition.Info storage position = self.positions.get(params.owner, params.tickLower, params.tickUpper);
+        if (position.owner == address(0)) {
+            position.init(params.owner, params.tickLower, params.tickUpper);
+            self.positionKeys.push(CLPosition.hashKey(params.owner, params.tickLower, params.tickUpper));
+        }
+        (cache.feesOwed0, cache.feesOwed1) =
+            position.update(params.liquidityDelta, cache.feeGrowthInside0X128, cache.feeGrowthInside1X128);
 
         ///@dev clear any tick data that is no longer needed
         /// must be done after fee collection in case of a 1 -> 0 flip

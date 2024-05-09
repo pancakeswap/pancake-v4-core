@@ -20,6 +20,23 @@ library CLPosition {
         // fee growth per unit of liquidity as of the last update to liquidity or fees owed
         uint256 feeGrowthInside0LastX128;
         uint256 feeGrowthInside1LastX128;
+        // for off-chain farming
+        address owner;
+        int24 tickLower;
+        int24 tickUpper;
+    }
+
+    function hashKey(address owner, int24 tickLower, int24 tickUpper) internal pure returns (bytes32) {
+        bytes32 key;
+        // make use of memory scratch space
+        // ref: https://github.com/Vectorized/solady/blob/main/src/tokens/ERC20.sol#L95
+        assembly {
+            mstore(0x06, tickUpper)
+            mstore(0x03, tickLower)
+            mstore(0x00, owner)
+            key := keccak256(0x0c, 0x1a)
+        }
+        return key;
     }
 
     /// @notice Returns the Info struct of a position, given an owner and position boundaries
@@ -33,16 +50,13 @@ library CLPosition {
         view
         returns (Info storage position)
     {
-        bytes32 key;
-        // make use of memory scratch space
-        // ref: https://github.com/Vectorized/solady/blob/main/src/tokens/ERC20.sol#L95
-        assembly {
-            mstore(0x06, tickUpper)
-            mstore(0x03, tickLower)
-            mstore(0x00, owner)
-            key := keccak256(0x0c, 0x1a)
-        }
-        position = self[key];
+        position = self[hashKey(owner, tickLower, tickUpper)];
+    }
+
+    function init(Info storage self, address owner, int24 tickLower, int24 tickUpper) internal {
+        self.owner = owner;
+        self.tickLower = tickLower;
+        self.tickUpper = tickUpper;
     }
 
     /// @notice Credits accumulated fees to a user's position

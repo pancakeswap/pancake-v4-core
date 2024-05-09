@@ -3,9 +3,22 @@
 pragma solidity ^0.8.24;
 
 import {CLPool} from "./CLPool.sol";
+import {CLPosition} from "./CLPosition.sol";
 import {Tick} from "./Tick.sol";
 
 library CLPoolGetters {
+    function getPoolNumPositions(CLPool.State storage pool) internal view returns (uint256) {
+        return pool.positionKeys.length;
+    }
+
+    function getPoolPositionInfo(CLPool.State storage pool, uint256 index)
+        internal
+        view
+        returns (CLPosition.Info memory)
+    {
+        return pool.positions[pool.positionKeys[index]];
+    }
+
     function getPoolTickInfo(CLPool.State storage pool, int24 tick) internal view returns (Tick.Info memory) {
         return pool.ticks[tick];
     }
