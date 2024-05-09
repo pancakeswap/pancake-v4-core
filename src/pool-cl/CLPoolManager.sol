@@ -177,7 +177,15 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
         vault.accountPoolBalanceDelta(key, delta + feeDelta, msg.sender);
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
-        emit ModifyLiquidity(id, msg.sender, params.tickLower, params.tickUpper, params.liquidityDelta);
+        emit ModifyLiquidity(
+            id,
+            msg.sender,
+            params.tickLower,
+            params.tickUpper,
+            params.liquidityDelta,
+            feeDelta.amount0(),
+            feeDelta.amount1()
+        );
 
         if (params.liquidityDelta > 0 && key.parameters.shouldCall(HOOKS_AFTER_ADD_LIQUIDITY_OFFSET, hooks)) {
             if (

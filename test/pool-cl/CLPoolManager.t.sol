@@ -52,7 +52,13 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         ICLHooks hooks
     );
     event ModifyLiquidity(
-        PoolId indexed poolId, address indexed sender, int24 tickLower, int24 tickUpper, int256 liquidityDelta
+        PoolId indexed poolId,
+        address indexed sender,
+        int24 tickLower,
+        int24 tickUpper,
+        int256 liquidityDelta,
+        int128 feesOwed0,
+        int128 feesOwed1
     );
     event Swap(
         PoolId indexed poolId,
@@ -1204,7 +1210,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
 
         vm.expectEmit(true, true, true, true);
-        emit ModifyLiquidity(key.toId(), address(router), 0, 60, 100);
+        emit ModifyLiquidity(key.toId(), address(router), 0, 60, 100, 0, 0);
 
         router.modifyPosition(
             key, ICLPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 100}), ZERO_BYTES
@@ -1225,7 +1231,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
         vm.expectEmit(true, true, true, true);
-        emit ModifyLiquidity(key.toId(), address(router), 0, 60, 100);
+        emit ModifyLiquidity(key.toId(), address(router), 0, 60, 100, 0, 0);
 
         router.modifyPosition{value: 100}(
             key, ICLPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 100}), ZERO_BYTES
@@ -1325,7 +1331,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         mockHooks.setReturnValue(mockHooks.afterAddLiquidity.selector, mockHooks.afterAddLiquidity.selector);
 
         vm.expectEmit(true, true, true, true);
-        emit ModifyLiquidity(key.toId(), address(router), 0, 60, 100);
+        emit ModifyLiquidity(key.toId(), address(router), 0, 60, 100, 0, 0);
 
         router.modifyPosition(key, params, ZERO_BYTES);
     }

@@ -45,7 +45,13 @@ interface ICLPoolManager is IFees, IPoolManager, IExtsload {
     /// @param tickUpper The upper tick of the position
     /// @param liquidityDelta The amount of liquidity that was added or removed
     event ModifyLiquidity(
-        PoolId indexed id, address indexed sender, int24 tickLower, int24 tickUpper, int256 liquidityDelta
+        PoolId indexed id,
+        address indexed sender,
+        int24 tickLower,
+        int24 tickUpper,
+        int256 liquidityDelta,
+        int128 feesOwed0,
+        int128 feesOwed1
     );
 
     /// @notice Emitted for swaps between currency0 and currency1
