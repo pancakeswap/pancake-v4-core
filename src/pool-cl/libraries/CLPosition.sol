@@ -20,10 +20,6 @@ library CLPosition {
         // fee growth per unit of liquidity as of the last update to liquidity or fees owed
         uint256 feeGrowthInside0LastX128;
         uint256 feeGrowthInside1LastX128;
-        // for off-chain farming
-        address owner;
-        int24 tickLower;
-        int24 tickUpper;
     }
 
     function hashKey(address owner, int24 tickLower, int24 tickUpper) internal pure returns (bytes32) {
@@ -51,12 +47,6 @@ library CLPosition {
         returns (Info storage position)
     {
         position = self[hashKey(owner, tickLower, tickUpper)];
-    }
-
-    function init(Info storage self, address owner, int24 tickLower, int24 tickUpper) internal {
-        self.owner = owner;
-        self.tickLower = tickLower;
-        self.tickUpper = tickUpper;
     }
 
     /// @notice Credits accumulated fees to a user's position

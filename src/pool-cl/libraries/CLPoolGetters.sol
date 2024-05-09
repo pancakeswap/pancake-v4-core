@@ -16,7 +16,8 @@ library CLPoolGetters {
         view
         returns (CLPosition.Info memory)
     {
-        return pool.positions[pool.positionKeys[index]];
+        CLPool.PositionKey memory key = pool.positionKeys[index];
+        return pool.positions[CLPosition.hashKey(key.owner, key.tickLower, key.tickUpper)];
     }
 
     function getPoolTickInfo(CLPool.State storage pool, int24 tick) internal view returns (Tick.Info memory) {
