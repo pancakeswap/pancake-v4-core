@@ -217,9 +217,8 @@ library CLPool {
         bool exactInput = params.amountSpecified > 0;
 
         {
-            uint16 protocolFee = params.zeroForOne
-                ? slot0Start.protocolFee.getZeroForOneFee()
-                : slot0Start.protocolFee.getOneForZeroFee();
+            uint16 protocolFee =
+                zeroForOne ? slot0Start.protocolFee.getZeroForOneFee() : slot0Start.protocolFee.getOneForZeroFee();
 
             state = SwapState({
                 amountSpecifiedRemaining: params.amountSpecified,
@@ -228,7 +227,7 @@ library CLPool {
                 tick: slot0Start.tick,
                 swapFee: protocolFee == 0 ? slot0Start.lpFee : uint24(protocolFee).calculateSwapFee(slot0Start.lpFee),
                 protocolFee: protocolFee,
-                feeGrowthGlobalX128: params.zeroForOne ? self.feeGrowthGlobal0X128 : self.feeGrowthGlobal1X128,
+                feeGrowthGlobalX128: zeroForOne ? self.feeGrowthGlobal0X128 : self.feeGrowthGlobal1X128,
                 feeForProtocol: 0,
                 liquidity: liquidityStart
             });
