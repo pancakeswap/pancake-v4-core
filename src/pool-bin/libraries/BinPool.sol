@@ -202,13 +202,13 @@ library BinPool {
         internal
         returns (BalanceDelta result, SwapState memory swapState)
     {
+        if (amountIn == 0) revert BinPool__InsufficientAmountIn();
+
         Slot0 memory slot0Cache = self.slot0;
         swapState.activeId = slot0Cache.activeId;
         bool swapForY = params.swapForY;
         swapState.protocolFee =
             swapForY ? slot0Cache.protocolFee.getOneForZeroFee() : slot0Cache.protocolFee.getZeroForOneFee();
-
-        if (amountIn == 0) revert BinPool__InsufficientAmountIn();
 
         bytes32 amountsLeft = swapForY ? amountIn.encodeFirst() : amountIn.encodeSecond();
         bytes32 amountsOut;

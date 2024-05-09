@@ -155,7 +155,8 @@ library BinHelper {
     /// @param amountsIn The amounts of tokens to add
     /// @param totalSupply The total supply of the liquidity book
     /// @param shares The share of the liquidity book that the user will receive
-    /// @return fees The encoded fees that will be charged
+    /// @return fees The encoded fees that will be charged (including protocol and LP fee)
+    //// @return feeForProtocol The encoded protocol fee that will be charged
     function getCompositionFees(
         bytes32 binReserves,
         uint24 protocolFee, // fee: 100 = 0.01%
@@ -173,18 +174,18 @@ library BinHelper {
         // if received more X than given X, then swap some Y for X
         if (receivedAmountX > amountX) {
             protocolFee = protocolFee.getOneForZeroFee();
-
             uint24 swapFee = uint24(protocolFee).calculateSwapFee(lpFee);
-            uint128 feeY = (amountY - receivedAmountY).getCompositionFee(swapFee);
-            fees = feeY.encodeSecond();
-            feeForProtocol = (amountY - receivedAmountY).getCompositionFee(protocolFee).encodeSecond();
+
+            uint128 amtSwapped = amountY - receivedAmountY;
+            fees = amtSwapped.getCompositionFee(swapFee).encodeSecond();
+            feeForProtocol = amtSwapped.getCompositionFee(protocolFee).encodeSecond();
         } else if (receivedAmountY > amountY) {
             protocolFee = protocolFee.getZeroForOneFee();
-
             uint24 swapFee = uint24(protocolFee).calculateSwapFee(lpFee);
-            uint128 feeX = (amountX - receivedAmountX).getCompositionFee(swapFee);
-            fees = feeX.encodeFirst();
-            feeForProtocol = (amountX - receivedAmountX).getCompositionFee(protocolFee).encodeFirst();
+
+            uint128 amtSwapped = amountX - receivedAmountX;
+            fees = amtSwapped.getCompositionFee(swapFee).encodeFirst();
+            feeForProtocol = amtSwapped.getCompositionFee(protocolFee).encodeFirst();
         }
     }
 

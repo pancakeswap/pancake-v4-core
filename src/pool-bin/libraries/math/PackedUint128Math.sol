@@ -212,7 +212,8 @@ library PackedUint128Math {
 
     /// @dev given amount and protocolFee, calculate and return external protocol fee amt
     /// @param amount encoded bytes with (x, y)
-    /// @param protocolFee protocolFee
+    /// @param protocolFee Protocol fee from the swap, also denominated in hundredths of a bip
+    /// @param swapFee The fee collected upon every swap in the pool (including protocol fee and LP fee), denominated in hundredths of a bip
     function getExternalFeeAmt(bytes32 amount, uint24 protocolFee, uint24 swapFee) internal pure returns (bytes32 z) {
         if (protocolFee == 0 || swapFee == 0) return 0;
 
@@ -222,6 +223,7 @@ library PackedUint128Math {
 
         uint128 feeForX;
         uint128 feeForY;
+        // todo: double check on this unchecked condition
         unchecked {
             feeForX = fee0 == 0 ? 0 : uint128(uint256(amountX) * fee0 / swapFee);
             feeForY = fee1 == 0 ? 0 : uint128(uint256(amountY) * fee1 / swapFee);
