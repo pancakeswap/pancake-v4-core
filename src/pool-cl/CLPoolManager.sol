@@ -3,7 +3,7 @@
 pragma solidity ^0.8.24;
 
 import "./interfaces/ICLHooks.sol";
-import {Fees} from "../Fees.sol";
+import {ProtocolFees} from "../ProtocolFees.sol";
 import {ICLPoolManager} from "./interfaces/ICLPoolManager.sol";
 import {IVault} from "../interfaces/IVault.sol";
 import {PoolId, PoolIdLibrary} from "../types/PoolId.sol";
@@ -14,18 +14,18 @@ import {IPoolManager} from "../interfaces/IPoolManager.sol";
 import {Hooks} from "../libraries/Hooks.sol";
 import {Tick} from "./libraries/Tick.sol";
 import {CLPoolParametersHelper} from "./libraries/CLPoolParametersHelper.sol";
-import {SwapFeeLibrary} from "../libraries/SwapFeeLibrary.sol";
+import {LPFeeLibrary} from "../libraries/LPFeeLibrary.sol";
 import {PoolId, PoolIdLibrary} from "../types/PoolId.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../types/BalanceDelta.sol";
 import {Extsload} from "../Extsload.sol";
 import {SafeCast} from "../libraries/SafeCast.sol";
 import {CLPoolGetters} from "./libraries/CLPoolGetters.sol";
 
-contract CLPoolManager is ICLPoolManager, Fees, Extsload {
+contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     using SafeCast for int256;
     using PoolIdLibrary for PoolKey;
     using Hooks for bytes32;
-    using SwapFeeLibrary for uint24;
+    using LPFeeLibrary for uint24;
     using CLPoolParametersHelper for bytes32;
     using CLPool for *;
     using CLPosition for mapping(bytes32 => CLPosition.Info);
@@ -39,7 +39,7 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
 
     mapping(PoolId id => CLPool.State) public pools;
 
-    constructor(IVault _vault, uint256 controllerGasLimit) Fees(_vault, controllerGasLimit) {}
+    constructor(IVault _vault, uint256 controllerGasLimit) ProtocolFees(_vault, controllerGasLimit) {}
 
     /// @notice pool manager specified in the pool key must match current contract
     modifier poolManagerMatch(address poolManager) {
@@ -52,10 +52,10 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
         external
         view
         override
-        returns (uint160 sqrtPriceX96, int24 tick, uint16 protocolFee, uint24 swapFee)
+        returns (uint160 sqrtPriceX96, int24 tick, uint24 protocolFee, uint24 lpFee)
     {
         CLPool.Slot0 memory slot0 = pools[id].slot0;
-        return (slot0.sqrtPriceX96, slot0.tick, slot0.protocolFee, slot0.swapFee);
+        return (slot0.sqrtPriceX96, slot0.tick, slot0.protocolFee, slot0.lpFee);
     }
 
     /// @inheritdoc ICLPoolManager
@@ -99,9 +99,9 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
         Hooks.validateHookConfig(key);
         _validateHookNoOp(key);
 
-        /// @notice init value for dynamic swap fee is 0, but hook can still set it in afterInitialize
-        uint24 swapFee = key.fee.getInitialSwapFee();
-        if (swapFee.isSwapFeeTooLarge(SwapFeeLibrary.ONE_HUNDRED_PERCENT_FEE)) revert FeeTooLarge();
+        /// @notice init value for dynamic lp fee is 0, but hook can still set it in afterInitialize
+        uint24 lpFee = key.fee.getInitialLPFee();
+        lpFee.validate(LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE);
 
         if (key.parameters.shouldCall(HOOKS_BEFORE_INITIALIZE_OFFSET, hooks)) {
             if (hooks.beforeInitialize(msg.sender, key, sqrtPriceX96, hookData) != ICLHooks.beforeInitialize.selector) {
@@ -110,8 +110,8 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
         }
 
         PoolId id = key.toId();
-        (, uint16 protocolFee) = _fetchProtocolFee(key);
-        tick = pools[id].initialize(sqrtPriceX96, protocolFee, swapFee);
+        (, uint24 protocolFee) = _fetchProtocolFee(key);
+        tick = pools[id].initialize(sqrtPriceX96, protocolFee, lpFee);
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
         emit Initialize(id, key.currency0, key.currency1, key.fee, tickSpacing, hooks);
@@ -234,8 +234,8 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
         vault.accountPoolBalanceDelta(key, delta, msg.sender);
 
         unchecked {
-            if (state.protocolFee > 0) {
-                protocolFeesAccrued[params.zeroForOne ? key.currency0 : key.currency1] += state.protocolFee;
+            if (state.feeForProtocol > 0) {
+                protocolFeesAccrued[params.zeroForOne ? key.currency0 : key.currency1] += state.feeForProtocol;
             }
         }
 
@@ -312,22 +312,17 @@ contract CLPoolManager is ICLPoolManager, Fees, Extsload {
     }
 
     /// @inheritdoc IPoolManager
-    function setProtocolFee(PoolKey memory key) external {
-        (bool success, uint16 newProtocolFee) = _fetchProtocolFee(key);
-        if (!success) revert ProtocolFeeControllerCallFailedOrInvalidResult();
+    function updateDynamicLPFee(PoolKey memory key, uint24 newDynamicLPFee) external override {
+        if (!key.fee.isDynamicLPFee() || msg.sender != address(key.hooks)) revert UnauthorizedDynamicLPFeeUpdate();
+        newDynamicLPFee.validate(LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE);
+
         PoolId id = key.toId();
-        pools[id].setProtocolFee(newProtocolFee);
-        emit ProtocolFeeUpdated(id, newProtocolFee);
+        pools[id].setLPFee(newDynamicLPFee);
+        emit DynamicLPFeeUpdated(id, newDynamicLPFee);
     }
 
-    /// @inheritdoc IPoolManager
-    function updateDynamicSwapFee(PoolKey memory key, uint24 newDynamicSwapFee) external override {
-        if (!key.fee.isDynamicSwapFee() || msg.sender != address(key.hooks)) revert UnauthorizedDynamicSwapFeeUpdate();
-        if (newDynamicSwapFee.isSwapFeeTooLarge(SwapFeeLibrary.ONE_HUNDRED_PERCENT_FEE)) revert FeeTooLarge();
-
-        PoolId id = key.toId();
-        pools[id].setSwapFee(newDynamicSwapFee);
-        emit DynamicSwapFeeUpdated(id, newDynamicSwapFee);
+    function _setProtocolFee(PoolId id, uint24 newProtocolFee) internal override {
+        pools[id].setProtocolFee(newProtocolFee);
     }
 
     function _checkPoolInitialized(PoolId id) internal view {

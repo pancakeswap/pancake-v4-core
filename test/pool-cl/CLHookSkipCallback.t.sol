@@ -18,7 +18,7 @@ import {CLPoolManagerRouter} from "./helpers/CLPoolManagerRouter.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Deployers} from "./helpers/Deployers.sol";
 import {TokenFixture} from "../helpers/TokenFixture.sol";
-import {SwapFeeLibrary} from "../../src/libraries/SwapFeeLibrary.sol";
+import {LPFeeLibrary} from "../../src/libraries/LPFeeLibrary.sol";
 import {CLPoolParametersHelper} from "../../src/pool-cl/libraries/CLPoolParametersHelper.sol";
 import {ParametersHelper} from "../../src/libraries/math/ParametersHelper.sol";
 import {CLSkipCallbackHook} from "./helpers/CLSkipCallbackHook.sol";
@@ -28,7 +28,7 @@ contract CLHookSkipCallbackTest is Test, Deployers, TokenFixture, GasSnapshot {
     using CurrencyLibrary for Currency;
     using CLPoolParametersHelper for bytes32;
     using ParametersHelper for bytes32;
-    using SwapFeeLibrary for uint24;
+    using LPFeeLibrary for uint24;
 
     PoolKey key;
     IVault public vault;

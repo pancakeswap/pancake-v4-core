@@ -12,7 +12,7 @@ import {Tick} from "../../../src/pool-cl/libraries/Tick.sol";
 import {FixedPoint96} from "../../../src/pool-cl/libraries/FixedPoint96.sol";
 import {SafeCast} from "../../../src/libraries/SafeCast.sol";
 import {LiquidityAmounts} from "../helpers/LiquidityAmounts.sol";
-import {SwapFeeLibrary} from "../../../src/libraries/SwapFeeLibrary.sol";
+import {LPFeeLibrary} from "../../../src/libraries/LPFeeLibrary.sol";
 import {FullMath} from "../../../src/pool-cl/libraries/FullMath.sol";
 import {FixedPoint128} from "../../../src/pool-cl/libraries/FixedPoint128.sol";
 
@@ -35,7 +35,7 @@ contract PoolTest is Test {
             assertEq(state.slot0.tick, TickMath.getTickAtSqrtRatio(sqrtPriceX96));
             assertLt(state.slot0.tick, TickMath.MAX_TICK);
             assertGt(state.slot0.tick, TickMath.MIN_TICK - 1);
-            assertEq(state.slot0.swapFee, swapFee);
+            assertEq(state.slot0.lpFee, swapFee);
         }
     }
 
@@ -44,7 +44,7 @@ contract PoolTest is Test {
     {
         // Assumptions tested in PoolManager.t.sol
         params.tickSpacing = int24(bound(params.tickSpacing, 1, 32767));
-        swapFee = uint24(bound(swapFee, 0, SwapFeeLibrary.ONE_HUNDRED_PERCENT_FEE - 1));
+        swapFee = uint24(bound(swapFee, 0, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE - 1));
 
         testPoolInitialize(sqrtPriceX96, 0, swapFee);
 

@@ -2,7 +2,7 @@
 // Copyright (C) 2024 PancakeSwap
 pragma solidity ^0.8.24;
 
-import {Fees} from "../Fees.sol";
+import {ProtocolFees} from "../ProtocolFees.sol";
 import {Hooks} from "../libraries/Hooks.sol";
 import {BinPool} from "./libraries/BinPool.sol";
 import {BinPoolParametersHelper} from "./libraries/BinPoolParametersHelper.sol";
@@ -15,18 +15,18 @@ import {PoolKey} from "../types/PoolKey.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../types/BalanceDelta.sol";
 import {IVault} from "../interfaces/IVault.sol";
 import {BinPosition} from "./libraries/BinPosition.sol";
-import {SwapFeeLibrary} from "../libraries/SwapFeeLibrary.sol";
+import {LPFeeLibrary} from "../libraries/LPFeeLibrary.sol";
 import {PackedUint128Math} from "./libraries/math/PackedUint128Math.sol";
 import {Extsload} from "../Extsload.sol";
 import "./interfaces/IBinHooks.sol";
 
 /// @notice Holds the state for all bin pools
-contract BinPoolManager is IBinPoolManager, Fees, Extsload {
+contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
     using PoolIdLibrary for PoolKey;
     using BinPool for *;
     using BinPosition for mapping(bytes32 => BinPosition.Info);
     using BinPoolParametersHelper for bytes32;
-    using SwapFeeLibrary for uint24;
+    using LPFeeLibrary for uint24;
     using PackedUint128Math for bytes32;
     using Hooks for bytes32;
 
@@ -38,7 +38,7 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
 
     mapping(PoolId id => BinPool.State) public pools;
 
-    constructor(IVault vault, uint256 controllerGasLimit) Fees(vault, controllerGasLimit) {}
+    constructor(IVault vault, uint256 controllerGasLimit) ProtocolFees(vault, controllerGasLimit) {}
 
     /// @notice pool manager specified in the pool key must match current contract
     modifier poolManagerMatch(address poolManager) {
@@ -51,10 +51,10 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
     }
 
     /// @inheritdoc IBinPoolManager
-    function getSlot0(PoolId id) external view override returns (uint24 activeId, uint16 protocolFee, uint24 swapFee) {
+    function getSlot0(PoolId id) external view override returns (uint24 activeId, uint24 protocolFee, uint24 lpFee) {
         BinPool.Slot0 memory slot0 = pools[id].slot0;
 
-        return (slot0.activeId, slot0.protocolFee, slot0.swapFee);
+        return (slot0.activeId, slot0.protocolFee, slot0.lpFee);
     }
 
     /// @inheritdoc IBinPoolManager
@@ -102,9 +102,9 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         Hooks.validateHookConfig(key);
         _validateHookNoOp(key);
 
-        /// @notice init value for dynamic swap fee is 0, but hook can still set it in afterInitialize
-        uint24 swapFee = key.fee.getInitialSwapFee();
-        if (swapFee.isSwapFeeTooLarge(SwapFeeLibrary.TEN_PERCENT_FEE)) revert FeeTooLarge();
+        /// @notice init value for dynamic lp fee is 0, but hook can still set it in afterInitialize
+        uint24 lpFee = key.fee.getInitialLPFee();
+        lpFee.validate(LPFeeLibrary.TEN_PERCENT_FEE);
 
         if (key.parameters.shouldCall(HOOKS_BEFORE_INITIALIZE_OFFSET, hooks)) {
             if (hooks.beforeInitialize(msg.sender, key, activeId, hookData) != IBinHooks.beforeInitialize.selector) {
@@ -114,8 +114,8 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
 
         PoolId id = key.toId();
 
-        (, uint16 protocolFee) = _fetchProtocolFee(key);
-        pools[id].initialize(activeId, protocolFee, swapFee);
+        (, uint24 protocolFee) = _fetchProtocolFee(key);
+        pools[id].initialize(activeId, protocolFee, lpFee);
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
         emit Initialize(id, key.currency0, key.currency1, key.fee, binStep, hooks);
@@ -151,23 +151,23 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
 
         /// @dev fix stack too deep
         {
-            bytes32 feeForProtocol;
-            uint24 activeId;
-            uint24 swapFee;
-            (delta, feeForProtocol, activeId, swapFee) =
+            BinPool.SwapState memory state;
+            (delta, state) =
                 pools[id].swap(BinPool.SwapParams({swapForY: swapForY, binStep: key.parameters.getBinStep()}), amountIn);
 
             vault.accountPoolBalanceDelta(key, delta, msg.sender);
 
             unchecked {
-                if (feeForProtocol > 0) {
-                    protocolFeesAccrued[key.currency0] += feeForProtocol.decodeX();
-                    protocolFeesAccrued[key.currency1] += feeForProtocol.decodeY();
+                if (state.feeForProtocol > 0) {
+                    protocolFeesAccrued[key.currency0] += state.feeForProtocol.decodeX();
+                    protocolFeesAccrued[key.currency1] += state.feeForProtocol.decodeY();
                 }
             }
 
             /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
-            emit Swap(id, msg.sender, delta.amount0(), delta.amount1(), activeId, swapFee, feeForProtocol);
+            emit Swap(
+                id, msg.sender, delta.amount0(), delta.amount1(), state.activeId, state.swapFee, state.protocolFee
+            );
         }
 
         if (key.parameters.shouldCall(HOOKS_AFTER_SWAP_OFFSET, hooks)) {
@@ -187,20 +187,19 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         PoolId id = key.toId();
         _checkPoolInitialized(id);
 
-        uint24 totalSwapFee;
-        if (key.fee.isDynamicSwapFee()) {
-            totalSwapFee = IBinDynamicFeeManager(address(key.hooks)).getFeeForSwapInSwapOut(
+        uint24 lpFee;
+        if (key.fee.isDynamicLPFee()) {
+            lpFee = IBinDynamicFeeManager(address(key.hooks)).getFeeForSwapInSwapOut(
                 msg.sender, key, swapForY, 0, amountOut
             );
-            if (totalSwapFee > SwapFeeLibrary.TEN_PERCENT_FEE) revert FeeTooLarge();
         } else {
             // clear the top 4 bits since they may be flagged
-            totalSwapFee = key.fee.getInitialSwapFee();
+            lpFee = key.fee.getInitialLPFee();
         }
+        lpFee.validate(LPFeeLibrary.TEN_PERCENT_FEE);
 
         (amountIn, amountOutLeft, fee) = pools[id].getSwapIn(
-            BinPool.SwapViewParams({swapForY: swapForY, binStep: key.parameters.getBinStep(), fee: totalSwapFee}),
-            amountOut
+            BinPool.SwapViewParams({swapForY: swapForY, binStep: key.parameters.getBinStep(), lpFee: lpFee}), amountOut
         );
     }
 
@@ -214,18 +213,17 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         PoolId id = key.toId();
         _checkPoolInitialized(id);
 
-        uint24 totalSwapFee;
-        if (key.fee.isDynamicSwapFee()) {
-            totalSwapFee =
+        uint24 lpFee;
+        if (key.fee.isDynamicLPFee()) {
+            lpFee =
                 IBinDynamicFeeManager(address(key.hooks)).getFeeForSwapInSwapOut(msg.sender, key, swapForY, amountIn, 0);
-            if (totalSwapFee > SwapFeeLibrary.TEN_PERCENT_FEE) revert FeeTooLarge();
         } else {
-            totalSwapFee = key.fee.getInitialSwapFee();
+            lpFee = key.fee.getInitialLPFee();
         }
+        lpFee.validate(LPFeeLibrary.TEN_PERCENT_FEE);
 
         (amountInLeft, amountOut, fee) = pools[id].getSwapOut(
-            BinPool.SwapViewParams({swapForY: swapForY, binStep: key.parameters.getBinStep(), fee: totalSwapFee}),
-            amountIn
+            BinPool.SwapViewParams({swapForY: swapForY, binStep: key.parameters.getBinStep(), lpFee: lpFee}), amountIn
         );
     }
 
@@ -354,14 +352,6 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         }
     }
 
-    function setProtocolFee(PoolKey memory key) external override {
-        (bool success, uint16 newProtocolFee) = _fetchProtocolFee(key);
-        if (!success) revert ProtocolFeeControllerCallFailedOrInvalidResult();
-        PoolId id = key.toId();
-        pools[id].setProtocolFee(newProtocolFee);
-        emit ProtocolFeeUpdated(id, newProtocolFee);
-    }
-
     /// @inheritdoc IBinPoolManager
     function setMaxBinStep(uint16 maxBinStep) external override onlyOwner {
         if (maxBinStep <= MIN_BIN_STEP) revert MaxBinStepTooSmall(maxBinStep);
@@ -371,13 +361,17 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
     }
 
     /// @inheritdoc IPoolManager
-    function updateDynamicSwapFee(PoolKey memory key, uint24 newDynamicSwapFee) external override {
-        if (!key.fee.isDynamicSwapFee() || msg.sender != address(key.hooks)) revert UnauthorizedDynamicSwapFeeUpdate();
-        if (newDynamicSwapFee.isSwapFeeTooLarge(SwapFeeLibrary.TEN_PERCENT_FEE)) revert FeeTooLarge();
+    function updateDynamicLPFee(PoolKey memory key, uint24 newDynamicLPFee) external override {
+        if (!key.fee.isDynamicLPFee() || msg.sender != address(key.hooks)) revert UnauthorizedDynamicLPFeeUpdate();
+        newDynamicLPFee.validate(LPFeeLibrary.TEN_PERCENT_FEE);
 
         PoolId id = key.toId();
-        pools[id].setSwapFee(newDynamicSwapFee);
-        emit DynamicSwapFeeUpdated(id, newDynamicSwapFee);
+        pools[id].setLPFee(newDynamicLPFee);
+        emit DynamicLPFeeUpdated(id, newDynamicLPFee);
+    }
+
+    function _setProtocolFee(PoolId id, uint24 newProtocolFee) internal override {
+        pools[id].setProtocolFee(newProtocolFee);
     }
 
     function _checkPoolInitialized(PoolId id) internal view {

@@ -15,7 +15,7 @@ import {PoolKey} from "../../src/types/PoolKey.sol";
 import {PoolId, PoolIdLibrary} from "../../src/types/PoolId.sol";
 import {IHooks} from "../../src/interfaces/IHooks.sol";
 import {TickMath} from "../../src/pool-cl/libraries/TickMath.sol";
-import {IFees} from "../../src/interfaces/IFees.sol";
+import {IProtocolFees} from "../../src/interfaces/IProtocolFees.sol";
 import {ICLHooks, HOOKS_AFTER_INITIALIZE_OFFSET} from "../../src/pool-cl/interfaces/ICLHooks.sol";
 import {Hooks} from "../../src/libraries/Hooks.sol";
 import {CLPoolManagerRouter} from "./helpers/CLPoolManagerRouter.sol";
@@ -25,7 +25,7 @@ import {CLPosition} from "../../src/pool-cl/libraries/CLPosition.sol";
 import {Deployers} from "./helpers/Deployers.sol";
 import {TokenFixture, MockERC20} from "../helpers/TokenFixture.sol";
 import {MockHooks} from "./helpers/MockHooks.sol";
-import {SwapFeeLibrary} from "../../src/libraries/SwapFeeLibrary.sol";
+import {LPFeeLibrary} from "../../src/libraries/LPFeeLibrary.sol";
 import {CLPoolParametersHelper} from "../../src/pool-cl/libraries/CLPoolParametersHelper.sol";
 import {ParametersHelper} from "../../src/libraries/math/ParametersHelper.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../../src/types/BalanceDelta.sol";
@@ -34,6 +34,7 @@ import {ProtocolFeeControllerTest} from "./helpers/ProtocolFeeControllerTest.sol
 import {IProtocolFeeController} from "../../src/interfaces/IProtocolFeeController.sol";
 import {CLFeeManagerHook} from "./helpers/CLFeeManagerHook.sol";
 import {CLNoOpTestHook} from "./helpers/CLNoOpTestHook.sol";
+import {ProtocolFeeLibrary} from "../../src/libraries/ProtocolFeeLibrary.sol";
 import {SafeCast} from "../../src/libraries/SafeCast.sol";
 
 contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
@@ -41,7 +42,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
     using CurrencyLibrary for Currency;
     using CLPoolParametersHelper for bytes32;
     using ParametersHelper for bytes32;
-    using SwapFeeLibrary for uint24;
+    using LPFeeLibrary for uint24;
 
     event Initialize(
         PoolId indexed id,
@@ -63,12 +64,12 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         uint128 liquidity,
         int24 tick,
         uint24 fee,
-        uint256 protocolFee
+        uint24 protocolFee
     );
     event Transfer(address caller, address indexed from, address indexed to, Currency indexed currency, uint256 amount);
 
-    event ProtocolFeeUpdated(PoolId indexed id, uint16 protocolFees);
-    event DynamicSwapFeeUpdated(PoolId indexed id, uint24 dynamicSwapFee);
+    event ProtocolFeeUpdated(PoolId indexed id, uint24 protocolFees);
+    event DynamicLPFeeUpdated(PoolId indexed id, uint24 dynamicLPFee);
     event Donate(PoolId indexed id, address indexed sender, uint256 amount0, uint256 amount1, int24 tick);
 
     IVault public vault;
@@ -161,7 +162,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
                 parameters: bytes32(uint256(0xa0000))
             });
 
-            vm.expectRevert(IFees.FeeTooLarge.selector);
+            vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
             poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
         }
     }
@@ -309,8 +310,8 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         } else if (!_validateHookConfig(key)) {
             vm.expectRevert(abi.encodeWithSelector(Hooks.HookConfigValidationError.selector));
             poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
-        } else if (key.fee & SwapFeeLibrary.STATIC_FEE_MASK > SwapFeeLibrary.ONE_HUNDRED_PERCENT_FEE) {
-            vm.expectRevert(abi.encodeWithSelector(IFees.FeeTooLarge.selector));
+        } else if (key.fee & LPFeeLibrary.STATIC_FEE_MASK > LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE) {
+            vm.expectRevert(abi.encodeWithSelector(IProtocolFees.FeeTooLarge.selector));
             poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
         } else {
             vm.expectEmit(true, true, true, true);
@@ -606,13 +607,13 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
     }
 
     function test_initialize_failsIDynamicFeeTooLarge(uint24 dynamicSwapFee) public {
-        dynamicSwapFee = uint24(bound(dynamicSwapFee, SwapFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1, type(uint24).max));
+        dynamicSwapFee = uint24(bound(dynamicSwapFee, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1, type(uint24).max));
 
         clFeeManagerHook.setHooksRegistrationBitmap(uint16(1 << HOOKS_AFTER_INITIALIZE_OFFSET));
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
-            fee: SwapFeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000), // 3000 = 0.3%
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000), // 3000 = 0.3%
             hooks: IHooks(address(clFeeManagerHook)),
             poolManager: poolManager,
             parameters: CLPoolParametersHelper.setTickSpacing(
@@ -622,7 +623,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         clFeeManagerHook.setFee(dynamicSwapFee);
 
-        vm.expectRevert(IFees.FeeTooLarge.selector);
+        vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
     }
 
@@ -1468,7 +1469,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
-            fee: SwapFeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000), // 0.3%
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000), // 0.3%
             hooks: IHooks(address(clFeeManagerHook)),
             poolManager: poolManager,
             parameters: bytes32(uint256((60 << 16) | clFeeManagerHook.getHooksRegistrationBitmap()))
@@ -1495,6 +1496,56 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         bytes memory data = abi.encode(true, uint24(12000)); // dynamic fee at 1.2% (four times of static fee)
         router.swap(key, params, testSettings, data);
+    }
+
+    function testSwap_succeeds_withBothFeeEnabled() public {
+        PoolKey memory key = PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            // 0.3%
+            fee: 3000,
+            hooks: IHooks(address(0)),
+            poolManager: poolManager,
+            parameters: bytes32(uint256(60) << 16)
+        });
+
+        poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
+        poolManager.setProtocolFeeController(feeController);
+
+        // 0.1%
+        vm.prank(address(feeController));
+        poolManager.setProtocolFee(
+            key, ProtocolFeeLibrary.MAX_PROTOCOL_FEE | (uint24(ProtocolFeeLibrary.MAX_PROTOCOL_FEE) << 12)
+        );
+
+        ICLPoolManager.ModifyLiquidityParams memory modifyPositionParams =
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -60, tickUpper: 60, liquidityDelta: 1 ether});
+
+        router.modifyPosition(key, modifyPositionParams, ZERO_BYTES);
+
+        // 0.1% protocol fee first then 0.3% lp fee charged for the remaining i.e. 0.3997% in total
+        vm.expectEmit(true, true, true, true);
+        emit Swap(
+            key.toId(),
+            address(router),
+            // amt0 = 3013394245478362 and amt1 = -2995354955910780 if it goes without protocol fee
+            3016410656134496,
+            -2995354955910780,
+            56022770974786139918731938227,
+            0,
+            -6932,
+            3997,
+            1000
+        );
+
+        // sell base token(x) for quote token(y), pricea(y / x) decreases
+        ICLPoolManager.SwapParams memory params =
+            ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: 0.1 ether, sqrtPriceLimitX96: SQRT_RATIO_1_2});
+
+        CLPoolManagerRouter.SwapTestSettings memory testSettings =
+            CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true});
+
+        router.swap(key, params, testSettings, ZERO_BYTES);
     }
 
     function testSwap_succeedsWithNativeTokensIfInitialized() public {
@@ -2167,7 +2218,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
     }
 
     function testSetProtocolFee_updatesProtocolFeeForInitializedPool() public {
-        uint16 protocolFee = 4;
+        uint24 protocolFee = 4;
 
         PoolKey memory key = PoolKey({
             currency0: currency0,
@@ -2182,15 +2233,16 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
         assertEq(slot0.protocolFee, 0);
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
-        feeController.setSwapFeeForPool(key.toId(), uint16(protocolFee));
+        feeController.setProtocolFeeForPool(key.toId(), protocolFee);
 
         vm.expectEmit(false, false, false, true);
         emit ProtocolFeeUpdated(key.toId(), protocolFee);
-        poolManager.setProtocolFee(key);
+        vm.prank(address(feeController));
+        poolManager.setProtocolFee(key, protocolFee);
     }
 
     function testCollectProtocolFees_initializesWithProtocolFeeIfCalled() public {
-        uint16 protocolFee = 1028; // 00000100 00000100 i.e. 25%
+        uint24 protocolFee = ProtocolFeeLibrary.MAX_PROTOCOL_FEE | (uint24(ProtocolFeeLibrary.MAX_PROTOCOL_FEE) << 12);
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
@@ -2200,7 +2252,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
             parameters: bytes32(uint256(10) << 16)
         });
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
-        feeController.setSwapFeeForPool(key.toId(), uint16(protocolFee));
+        feeController.setProtocolFeeForPool(key.toId(), protocolFee);
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
         (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
@@ -2208,20 +2260,22 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
     }
 
     function testCollectProtocolFees_ERC20_allowsOwnerToAccumulateFees() public {
-        uint16 protocolFee = 1028; // 00000100 00000100 i.e. 25%
-        // swap fee i.e. 0.3% * protocol fee i.e. 25% * input amount i.e. 10000 = 0.075%
-        uint256 expectedFees = uint256(10000) * 3000 / 1000000 * 25 / 100;
+        // protocol fee 0.1%
+        uint24 protocolFee = ProtocolFeeLibrary.MAX_PROTOCOL_FEE | (uint24(ProtocolFeeLibrary.MAX_PROTOCOL_FEE) << 12);
+        uint256 expectedProtocolFees =
+            uint256(10000) * ProtocolFeeLibrary.MAX_PROTOCOL_FEE / ProtocolFeeLibrary.PIPS_DENOMINATOR;
 
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
+            // 0.3% lp fee
             fee: 3000,
             hooks: IHooks(address(0)),
             poolManager: poolManager,
             parameters: bytes32(uint256(10) << 16)
         });
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
-        feeController.setSwapFeeForPool(key.toId(), uint16(protocolFee));
+        feeController.setProtocolFeeForPool(key.toId(), protocolFee);
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
         (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
@@ -2236,18 +2290,19 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
             ZERO_BYTES
         );
 
-        assertEq(poolManager.protocolFeesAccrued(currency0), expectedFees);
+        assertEq(poolManager.protocolFeesAccrued(currency0), expectedProtocolFees);
         assertEq(poolManager.protocolFeesAccrued(currency1), 0);
         assertEq(currency0.balanceOf(address(1)), 0);
-        poolManager.collectProtocolFees(address(1), currency0, expectedFees);
-        assertEq(currency0.balanceOf(address(1)), expectedFees);
+        poolManager.collectProtocolFees(address(1), currency0, expectedProtocolFees);
+        assertEq(currency0.balanceOf(address(1)), expectedProtocolFees);
         assertEq(poolManager.protocolFeesAccrued(currency0), 0);
     }
 
     function testCollectProtocolFees_ERC20_returnsAllFeesIf0IsProvidedAsParameter() public {
-        uint16 protocolFee = 1028; // 00000100 00000100 i.e. 25%
-        // swap fee i.e. 0.3% * protocol fee i.e. 25% * input amount i.e. 10000 = 0.075%
-        uint256 expectedFees = uint256(10000) * 3000 / 1000000 * 25 / 100;
+        // protocol fee 0.1%
+        uint24 protocolFee = ProtocolFeeLibrary.MAX_PROTOCOL_FEE | (uint24(ProtocolFeeLibrary.MAX_PROTOCOL_FEE) << 12);
+        uint256 expectedProtocolFees =
+            uint256(10000) * ProtocolFeeLibrary.MAX_PROTOCOL_FEE / ProtocolFeeLibrary.PIPS_DENOMINATOR;
 
         PoolKey memory key = PoolKey({
             currency0: currency0,
@@ -2258,7 +2313,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
             parameters: bytes32(uint256(10) << 16)
         });
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
-        feeController.setSwapFeeForPool(key.toId(), uint16(protocolFee));
+        feeController.setProtocolFeeForPool(key.toId(), protocolFee);
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
         (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
@@ -2273,18 +2328,19 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
             ZERO_BYTES
         );
 
-        assertEq(poolManager.protocolFeesAccrued(currency0), expectedFees);
+        assertEq(poolManager.protocolFeesAccrued(currency0), expectedProtocolFees);
         assertEq(poolManager.protocolFeesAccrued(currency1), 0);
         assertEq(currency0.balanceOf(address(1)), 0);
         poolManager.collectProtocolFees(address(1), currency0, 0);
-        assertEq(currency0.balanceOf(address(1)), expectedFees);
+        assertEq(currency0.balanceOf(address(1)), expectedProtocolFees);
         assertEq(poolManager.protocolFeesAccrued(currency0), 0);
     }
 
     function testCollectProtocolFees_nativeToken_allowsOwnerToAccumulateFees() public {
-        uint16 protocolFee = 1028; // 00000100 00000100 i.e. 25%
-        // swap fee i.e. 0.3% * protocol fee i.e. 25% * input amount i.e. 10000 = 0.075%
-        uint256 expectedFees = uint256(10000) * 3000 / 1000000 * 25 / 100;
+        // protocol fee 0.1%
+        uint24 protocolFee = ProtocolFeeLibrary.MAX_PROTOCOL_FEE | (uint24(ProtocolFeeLibrary.MAX_PROTOCOL_FEE) << 12);
+        uint256 expectedProtocolFees =
+            uint256(10000) * ProtocolFeeLibrary.MAX_PROTOCOL_FEE / ProtocolFeeLibrary.PIPS_DENOMINATOR;
         Currency nativeCurrency = Currency.wrap(address(0));
 
         PoolKey memory key = PoolKey({
@@ -2296,7 +2352,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
             parameters: bytes32(uint256(10) << 16)
         });
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
-        feeController.setSwapFeeForPool(key.toId(), uint16(protocolFee));
+        feeController.setProtocolFeeForPool(key.toId(), protocolFee);
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
         (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
@@ -2311,18 +2367,19 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
             ZERO_BYTES
         );
 
-        assertEq(poolManager.protocolFeesAccrued(nativeCurrency), expectedFees);
+        assertEq(poolManager.protocolFeesAccrued(nativeCurrency), expectedProtocolFees);
         assertEq(poolManager.protocolFeesAccrued(currency1), 0);
         assertEq(nativeCurrency.balanceOf(address(1)), 0);
-        poolManager.collectProtocolFees(address(1), nativeCurrency, expectedFees);
-        assertEq(nativeCurrency.balanceOf(address(1)), expectedFees);
+        poolManager.collectProtocolFees(address(1), nativeCurrency, expectedProtocolFees);
+        assertEq(nativeCurrency.balanceOf(address(1)), expectedProtocolFees);
         assertEq(poolManager.protocolFeesAccrued(nativeCurrency), 0);
     }
 
     function testCollectProtocolFees_nativeToken_returnsAllFeesIf0IsProvidedAsParameter() public {
-        uint16 protocolFee = 1028; // 00000100 00000100 i.e. 25%
-        // swap fee i.e. 0.3% * protocol fee i.e. 25% * input amount i.e. 10000 = 0.075%
-        uint256 expectedFees = uint256(10000) * 3000 / 1000000 * 25 / 100;
+        // protocol fee 0.1%
+        uint24 protocolFee = ProtocolFeeLibrary.MAX_PROTOCOL_FEE | (uint24(ProtocolFeeLibrary.MAX_PROTOCOL_FEE) << 12);
+        uint256 expectedProtocolFees =
+            uint256(10000) * ProtocolFeeLibrary.MAX_PROTOCOL_FEE / ProtocolFeeLibrary.PIPS_DENOMINATOR;
         Currency nativeCurrency = Currency.wrap(address(0));
 
         PoolKey memory key = PoolKey({
@@ -2334,7 +2391,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
             parameters: bytes32(uint256(10) << 16)
         });
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
-        feeController.setSwapFeeForPool(key.toId(), uint16(protocolFee));
+        feeController.setProtocolFeeForPool(key.toId(), protocolFee);
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
         (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
@@ -2349,32 +2406,32 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
             ZERO_BYTES
         );
 
-        assertEq(poolManager.protocolFeesAccrued(nativeCurrency), expectedFees);
+        assertEq(poolManager.protocolFeesAccrued(nativeCurrency), expectedProtocolFees);
         assertEq(poolManager.protocolFeesAccrued(currency1), 0);
         assertEq(nativeCurrency.balanceOf(address(1)), 0);
         poolManager.collectProtocolFees(address(1), nativeCurrency, 0);
-        assertEq(nativeCurrency.balanceOf(address(1)), expectedFees);
+        assertEq(nativeCurrency.balanceOf(address(1)), expectedProtocolFees);
         assertEq(poolManager.protocolFeesAccrued(nativeCurrency), 0);
     }
 
-    function testUpdateDynamicSwapFee_FeeTooLarge() public {
+    function testUpdateDynamicLPFee_FeeTooLarge() public {
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
-            fee: SwapFeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000), // 3000 = 0.3%
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000), // 3000 = 0.3%
             hooks: IHooks(address(clFeeManagerHook)),
             poolManager: poolManager,
             parameters: bytes32(uint256(10) << 16)
         });
 
-        clFeeManagerHook.setFee(SwapFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1);
+        clFeeManagerHook.setFee(LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1);
 
-        vm.expectRevert(IFees.FeeTooLarge.selector);
+        vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
         vm.prank(address(clFeeManagerHook));
-        poolManager.updateDynamicSwapFee(key, SwapFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1);
+        poolManager.updateDynamicLPFee(key, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1);
     }
 
-    function testUpdateDynamicSwapFee_FeeNotDynamic() public {
+    function testUpdateDynamicLPFee_FeeNotDynamic() public {
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
@@ -2384,12 +2441,12 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
             parameters: bytes32(uint256(10) << 16)
         });
 
-        vm.expectRevert(IPoolManager.UnauthorizedDynamicSwapFeeUpdate.selector);
-        poolManager.updateDynamicSwapFee(key, 3000);
+        vm.expectRevert(IPoolManager.UnauthorizedDynamicLPFeeUpdate.selector);
+        poolManager.updateDynamicLPFee(key, 3000);
     }
 
-    function testFuzzUpdateDynamicSwapFee(uint24 _swapFee) public {
-        vm.assume(_swapFee < SwapFeeLibrary.ONE_HUNDRED_PERCENT_FEE);
+    function testFuzzUpdateDynamicLPFee(uint24 _swapFee) public {
+        vm.assume(_swapFee < LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE);
 
         uint16 bitMap = 0x0010; // 0000 0000 0001 0000 (before swap call)
         clFeeManagerHook.setHooksRegistrationBitmap(bitMap);
@@ -2397,7 +2454,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
-            fee: SwapFeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000), // 3000 = 0.3%
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000), // 3000 = 0.3%
             hooks: IHooks(address(clFeeManagerHook)),
             poolManager: poolManager,
             parameters: bytes32(uint256((10 << 16) | clFeeManagerHook.getHooksRegistrationBitmap()))
@@ -2408,11 +2465,11 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         clFeeManagerHook.setFee(_swapFee);
 
         vm.expectEmit();
-        emit DynamicSwapFeeUpdated(key.toId(), _swapFee);
+        emit DynamicLPFeeUpdated(key.toId(), _swapFee);
 
-        snapStart("CLPoolManagerTest#testFuzzUpdateDynamicSwapFee");
+        snapStart("CLPoolManagerTest#testFuzzUpdateDynamicLPFee");
         vm.prank(address(clFeeManagerHook));
-        poolManager.updateDynamicSwapFee(key, _swapFee);
+        poolManager.updateDynamicLPFee(key, _swapFee);
         snapEnd();
 
         (,,, uint24 swapFee) = poolManager.getSlot0(key.toId());
@@ -2593,7 +2650,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
     function _validateHookConfig(PoolKey memory poolKey) internal view returns (bool) {
         uint16 bitmapInParameters = poolKey.parameters.getHooksRegistrationBitmap();
         if (address(poolKey.hooks) == address(0)) {
-            if (bitmapInParameters == 0 && !poolKey.fee.isDynamicSwapFee()) {
+            if (bitmapInParameters == 0 && !poolKey.fee.isDynamicLPFee()) {
                 return true;
             }
             return false;

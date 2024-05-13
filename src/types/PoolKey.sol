@@ -15,7 +15,7 @@ struct PoolKey {
     IHooks hooks;
     /// @notice The pool manager of the pool
     IPoolManager poolManager;
-    /// @notice The pool swap fee, capped at 1_000_000. The upper 4 bits determine if the hook sets any fees.
+    /// @notice The pool lp fee, capped at 1_000_000. The upper 4 bits determine if the hook sets any fees.
     uint24 fee;
     /// @notice Hooks callback and pool specific parameters, i.e. tickSpacing for CL, binStep for bin
     bytes32 parameters;

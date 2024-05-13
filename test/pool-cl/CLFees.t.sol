@@ -5,9 +5,9 @@ import {Test} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {IHooks} from "../../src/interfaces/IHooks.sol";
 import {Hooks} from "../../src/libraries/Hooks.sol";
-import {SwapFeeLibrary} from "../../src/libraries/SwapFeeLibrary.sol";
+import {LPFeeLibrary} from "../../src/libraries/LPFeeLibrary.sol";
 import {IPoolManager} from "../../src/interfaces/IPoolManager.sol";
-import {IFees} from "../../src/interfaces/IFees.sol";
+import {IProtocolFees} from "../../src/interfaces/IProtocolFees.sol";
 import {ICLPoolManager} from "../../src/pool-cl/interfaces/ICLPoolManager.sol";
 import {CLPoolManager} from "../../src/pool-cl/CLPoolManager.sol";
 import {TickMath} from "../../src/pool-cl/libraries/TickMath.sol";
@@ -22,10 +22,11 @@ import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {CLPoolManagerRouter} from "./helpers/CLPoolManagerRouter.sol";
 import {ProtocolFeeControllerTest} from "./helpers/ProtocolFeeControllerTest.sol";
 import {IProtocolFeeController} from "../../src/interfaces/IProtocolFeeController.sol";
-import {Fees} from "../../src/Fees.sol";
+import {ProtocolFees} from "../../src/ProtocolFees.sol";
 import {BalanceDelta} from "../../src/types/BalanceDelta.sol";
 import {PoolKey} from "../../src/types/PoolKey.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
+import {ProtocolFeeLibrary} from "../../src/libraries/ProtocolFeeLibrary.sol";
 
 contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
     using Hooks for IHooks;
@@ -72,42 +73,40 @@ contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
         manager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
     }
 
-    function testSetProtocolFeeControllerFuzz(uint16 protocolSwapFee) public {
-        vm.assume(protocolSwapFee < 2 ** 16);
-
+    function testSetProtocolFeeControllerFuzz(uint24 protocolFee) public {
         (CLPool.Slot0 memory slot0,,,) = manager.pools(key.toId());
         assertEq(slot0.protocolFee, 0);
 
-        protocolFeeController.setSwapFeeForPool(key.toId(), protocolSwapFee);
         manager.setProtocolFeeController(IProtocolFeeController(protocolFeeController));
 
-        uint16 protocolSwapFee0 = protocolSwapFee % 256;
-        uint16 protocolSwapFee1 = protocolSwapFee >> 8;
+        uint24 protocolFee0 = protocolFee % 4096;
+        uint24 protocolFee1 = protocolFee >> 12;
 
-        if ((protocolSwapFee1 != 0 && protocolSwapFee1 < 4) || (protocolSwapFee0 != 0 && protocolSwapFee0 < 4)) {
-            vm.expectRevert(IFees.ProtocolFeeControllerCallFailedOrInvalidResult.selector);
-            manager.setProtocolFee(key);
+        if (protocolFee0 > ProtocolFeeLibrary.MAX_PROTOCOL_FEE || protocolFee1 > ProtocolFeeLibrary.MAX_PROTOCOL_FEE) {
+            vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
+            vm.prank(address(protocolFeeController));
+            manager.setProtocolFee(key, protocolFee);
             return;
         }
-        manager.setProtocolFee(key);
+
+        vm.prank(address(protocolFeeController));
+        manager.setProtocolFee(key, protocolFee);
 
         (slot0,,,) = manager.pools(key.toId());
-
-        assertEq(slot0.protocolFee, protocolSwapFee);
+        assertEq(slot0.protocolFee, protocolFee);
     }
 
-    function testNoProtocolFee(uint16 protocolSwapFee) public {
+    function testNoProtocolFee(uint24 protocolFee) public {
         // Early return instead of vm.assume (too many input rejected)
-        if (protocolSwapFee >= 2 ** 16) return;
-        if (protocolSwapFee >> 8 < 4) return;
-        if (protocolSwapFee % 256 < 4) return;
+        if (protocolFee % 4096 > ProtocolFeeLibrary.MAX_PROTOCOL_FEE) return;
+        if (protocolFee >> 12 > ProtocolFeeLibrary.MAX_PROTOCOL_FEE) return;
 
-        protocolFeeController.setSwapFeeForPool(key.toId(), protocolSwapFee);
         manager.setProtocolFeeController(IProtocolFeeController(protocolFeeController));
-        manager.setProtocolFee(key);
+        vm.prank(address(protocolFeeController));
+        manager.setProtocolFee(key, protocolFee);
 
         (CLPool.Slot0 memory slot0,,,) = manager.pools(key.toId());
-        assertEq(slot0.protocolFee, protocolSwapFee);
+        assertEq(slot0.protocolFee, protocolFee);
 
         int256 liquidityDelta = 10000;
         ICLPoolManager.ModifyLiquidityParams memory params =
@@ -122,12 +121,6 @@ contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
             ICLPoolManager.ModifyLiquidityParams(-60, 60, -liquidityDelta);
         router.modifyPosition(key, params2, ZERO_BYTES);
 
-        uint16 protocolSwapFee1 = (protocolSwapFee >> 8);
-
-        // No fees should accrue bc there is no hook so the protocol cant take withdraw fees.
-        assertEq(manager.protocolFeesAccrued(currency0), 0);
-        assertEq(manager.protocolFeesAccrued(currency1), 0);
-
         // add larger liquidity
         params = ICLPoolManager.ModifyLiquidityParams(-60, 60, 10e18);
         router.modifyPosition(key, params, ZERO_BYTES);
@@ -139,19 +132,17 @@ contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
             CLPoolManagerRouter.SwapTestSettings(true, true),
             ZERO_BYTES
         );
-        // key3 pool is 30 bps => 10000 * 0.003 (.3%) = 30
-        uint256 expectedSwapFeeAccrued = 30;
 
-        uint256 expectedProtocolAmount1 = protocolSwapFee1 == 0 ? 0 : expectedSwapFeeAccrued / protocolSwapFee1;
+        uint256 expectedProtocolAmount1 = 10000 * (protocolFee >> 12) / ProtocolFeeLibrary.PIPS_DENOMINATOR;
         assertEq(manager.protocolFeesAccrued(currency0), 0);
         assertEq(manager.protocolFeesAccrued(currency1), expectedProtocolAmount1);
     }
 
     function testCollectFees() public {
-        uint16 protocolFee = _computeFee(_oneForZero, 10); // 10% on 1 to 0 swaps
-        protocolFeeController.setSwapFeeForPool(key.toId(), protocolFee);
+        uint24 protocolFee = ProtocolFeeLibrary.MAX_PROTOCOL_FEE | (uint24(ProtocolFeeLibrary.MAX_PROTOCOL_FEE) << 12); // 0.1% protocol fee
         manager.setProtocolFeeController(IProtocolFeeController(protocolFeeController));
-        manager.setProtocolFee(key);
+        vm.prank(address(protocolFeeController));
+        manager.setProtocolFee(key, protocolFee);
 
         (CLPool.Slot0 memory slot0,,,) = manager.pools(key.toId());
         assertEq(slot0.protocolFee, protocolFee);
@@ -162,23 +153,14 @@ contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
         MockERC20(Currency.unwrap(currency1)).approve(address(router), type(uint256).max);
         router.swap(
             key,
-            ICLPoolManager.SwapParams(false, 10000, TickMath.MAX_SQRT_RATIO - 1),
+            ICLPoolManager.SwapParams(false, 1000000, TickMath.MAX_SQRT_RATIO - 1),
             CLPoolManagerRouter.SwapTestSettings(true, true),
             ZERO_BYTES
         );
 
-        uint256 expectedProtocolFees = 3; // 10% of 30 is 3
+        uint256 expectedProtocolFees = 1000000 * 0.001;
         vm.prank(address(protocolFeeController));
         manager.collectProtocolFees(address(protocolFeeController), currency1, 0);
         assertEq(currency1.balanceOf(address(protocolFeeController)), expectedProtocolFees);
-    }
-
-    // If zeroForOne is true, then value is set on the lower bits. If zeroForOne is false, then value is set on the higher bits.
-    function _computeFee(bool zeroForOne, uint16 value) internal pure returns (uint16 fee) {
-        if (zeroForOne) {
-            fee = value % 256;
-        } else {
-            fee = value << 8;
-        }
     }
 }

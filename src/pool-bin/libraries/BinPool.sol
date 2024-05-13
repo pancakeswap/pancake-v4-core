@@ -13,6 +13,7 @@ import {BinPosition} from "./BinPosition.sol";
 import {SafeCast} from "./math/SafeCast.sol";
 import {Constants} from "./Constants.sol";
 import {FeeHelper} from "./FeeHelper.sol";
+import {ProtocolFeeLibrary} from "../../libraries/ProtocolFeeLibrary.sol";
 
 library BinPool {
     using BinHelper for bytes32;
@@ -28,6 +29,7 @@ library BinPool {
     using SafeCast for uint128;
     using FeeHelper for uint128;
     using BinPool for State;
+    using ProtocolFeeLibrary for uint24;
 
     error PoolNotInitialized();
     error PoolAlreadyInitialized();
@@ -44,21 +46,13 @@ library BinPool {
     struct Slot0 {
         // the current activeId
         uint24 activeId;
-        /// @dev Fee is involved when:
-        // 1. During mint() incur composition fee when amountIn to active bin doesn't match the composition of asset in bin
-        // 2. During swap()
-        // protocol swap fee represented as integer denominator (1/x), taken as a % of the LP swap fee
-        // upper 8 bits are for 1->0, and the lower 8 are for 0->1
-        // the minimum permitted denominator is 4 - meaning the maximum protocol fee is 25%
-        // granularity is increments of 0.38% (100/type(uint8).max)
-        /// bits          16 14 12 10 8  6  4  2  0
-        ///               |         swap          |
-        ///               ┌───────────┬───────────┬
-        /// protocolFee : |  1->0     |  0 -> 1   |
-        ///               └───────────┴───────────┴
-        uint16 protocolFee;
-        // used for the swap fee, either static at initialize or dynamic via hook
-        uint24 swapFee;
+        // protocol fee, expressed in hundredths of a bip
+        // upper 12 bits are for 1->0, and the lower 12 are for 0->1
+        // the maximum is 1000 - meaning the maximum protocol fee is 0.1%
+        // the protocolFee is taken from the input first, then the lpFee is taken from the remaining input
+        uint24 protocolFee;
+        // lp fee, either static at initialize or dynamic via hook
+        uint24 lpFee;
     }
 
     /// @dev The state of a pool
@@ -78,29 +72,29 @@ library BinPool {
         mapping(bytes32 => bytes32) level2;
     }
 
-    function initialize(State storage self, uint24 activeId, uint16 protocolFee, uint24 swapFee) internal {
+    function initialize(State storage self, uint24 activeId, uint24 protocolFee, uint24 lpFee) internal {
         /// An initialized pool will not have activeId: 0
         if (self.slot0.activeId != 0) revert PoolAlreadyInitialized();
 
-        self.slot0 = Slot0({activeId: activeId, protocolFee: protocolFee, swapFee: swapFee});
+        self.slot0 = Slot0({activeId: activeId, protocolFee: protocolFee, lpFee: lpFee});
     }
 
-    function setProtocolFee(State storage self, uint16 protocolFee) internal {
+    function setProtocolFee(State storage self, uint24 protocolFee) internal {
         if (self.isNotInitialized()) revert PoolNotInitialized();
         self.slot0.protocolFee = protocolFee;
     }
 
     /// @notice Only dynamic fee pools may update the swap fee.
-    function setSwapFee(State storage self, uint24 swapFee) internal {
+    function setLPFee(State storage self, uint24 lpFee) internal {
         if (self.isNotInitialized()) revert PoolNotInitialized();
 
-        self.slot0.swapFee = swapFee;
+        self.slot0.lpFee = lpFee;
     }
 
     struct SwapViewParams {
         bool swapForY;
         uint16 binStep;
-        uint24 fee;
+        uint24 lpFee;
     }
 
     function getSwapIn(State storage self, SwapViewParams memory params, uint128 amountOut)
@@ -108,9 +102,14 @@ library BinPool {
         view
         returns (uint128 amountIn, uint128 amountOutLeft, uint128 fee)
     {
+        Slot0 memory slot0Cache = self.slot0;
+        uint24 id = slot0Cache.activeId;
         bool swapForY = params.swapForY;
-        uint24 id = self.slot0.activeId;
         amountOutLeft = amountOut;
+
+        uint24 protocolFee =
+            swapForY ? slot0Cache.protocolFee.getOneForZeroFee() : slot0Cache.protocolFee.getZeroForOneFee();
+        uint24 swapFee = protocolFee.calculateSwapFee(params.lpFee);
 
         while (true) {
             uint128 binReserves = self.reserveOfBin[id].decode(!swapForY);
@@ -125,7 +124,7 @@ library BinPool {
                         : uint256(amountOutOfBin).mulShiftRoundUp(price, Constants.SCALE_OFFSET)
                 );
 
-                uint128 feeAmount = amountInWithoutFee.getFeeAmount(params.fee);
+                uint128 feeAmount = amountInWithoutFee.getFeeAmount(swapFee);
 
                 amountIn += amountInWithoutFee + feeAmount;
                 amountOutLeft -= amountOutOfBin;
@@ -148,15 +147,23 @@ library BinPool {
         view
         returns (uint128 amountInLeft, uint128 amountOut, uint128 fee)
     {
+        Slot0 memory slot0Cache = self.slot0;
+        uint24 id = slot0Cache.activeId;
         bool swapForY = params.swapForY;
-        uint24 id = self.slot0.activeId;
         bytes32 amountsInLeft = amountIn.encode(swapForY);
+
+        uint24 swapFee;
+        {
+            uint24 protocolFee =
+                swapForY ? slot0Cache.protocolFee.getOneForZeroFee() : slot0Cache.protocolFee.getZeroForOneFee();
+            swapFee = protocolFee.calculateSwapFee(params.lpFee);
+        }
 
         while (true) {
             bytes32 binReserves = self.reserveOfBin[id];
             if (!binReserves.isEmpty(!swapForY)) {
                 (bytes32 amountsInWithFees, bytes32 amountsOutOfBin, bytes32 totalFees) =
-                    binReserves.getAmounts(params.fee, params.binStep, swapForY, id, amountsInLeft);
+                    binReserves.getAmounts(swapFee, params.binStep, swapForY, id, amountsInLeft);
 
                 if (amountsInWithFees > 0) {
                     amountsInLeft = amountsInLeft.sub(amountsInWithFees);
@@ -184,51 +191,64 @@ library BinPool {
         uint16 binStep;
     }
 
+    struct SwapState {
+        uint24 activeId;
+        uint24 protocolFee;
+        uint24 swapFee;
+        bytes32 feeForProtocol;
+    }
+
     function swap(State storage self, SwapParams memory params, uint128 amountIn)
         internal
-        returns (BalanceDelta result, bytes32 feeForProtocol, uint24 activeId, uint24 swapFee)
+        returns (BalanceDelta result, SwapState memory swapState)
     {
         if (amountIn == 0) revert BinPool__InsufficientAmountIn();
 
-        activeId = self.slot0.activeId;
+        Slot0 memory slot0Cache = self.slot0;
+        swapState.activeId = slot0Cache.activeId;
         bool swapForY = params.swapForY;
+        swapState.protocolFee =
+            swapForY ? slot0Cache.protocolFee.getOneForZeroFee() : slot0Cache.protocolFee.getZeroForOneFee();
 
         bytes32 amountsLeft = swapForY ? amountIn.encodeFirst() : amountIn.encodeSecond();
         bytes32 amountsOut;
-        swapFee = self.slot0.swapFee;
+
+        /// @dev swap fee includes protocolFee (charged first) and lpFee
+        swapState.swapFee = swapState.protocolFee.calculateSwapFee(slot0Cache.lpFee);
 
         while (true) {
-            bytes32 binReserves = self.reserveOfBin[activeId];
+            bytes32 binReserves = self.reserveOfBin[swapState.activeId];
             if (!binReserves.isEmpty(!swapForY)) {
-                (bytes32 amountsInWithFees, bytes32 amountsOutOfBin, bytes32 totalFees) =
-                    binReserves.getAmounts(swapFee, params.binStep, swapForY, activeId, amountsLeft);
+                (bytes32 amountsInWithFees, bytes32 amountsOutOfBin, bytes32 totalFee) =
+                    binReserves.getAmounts(swapState.swapFee, params.binStep, swapForY, swapState.activeId, amountsLeft);
 
                 if (amountsInWithFees > 0) {
                     amountsLeft = amountsLeft.sub(amountsInWithFees);
                     amountsOut = amountsOut.add(amountsOutOfBin);
 
-                    bytes32 pFee = totalFees.getExternalFeeAmt(self.slot0.protocolFee);
+                    /// @dev calc protocol fee for current bin, totalFee * protocolFee / (protocolFee + lpFee)
+                    bytes32 pFee = totalFee.getExternalFeeAmt(slot0Cache.protocolFee, swapState.swapFee);
                     if (pFee != 0) {
-                        feeForProtocol = feeForProtocol.add(pFee);
+                        swapState.feeForProtocol = swapState.feeForProtocol.add(pFee);
                         amountsInWithFees = amountsInWithFees.sub(pFee);
                     }
 
-                    self.reserveOfBin[activeId] = binReserves.add(amountsInWithFees).sub(amountsOutOfBin);
+                    self.reserveOfBin[swapState.activeId] = binReserves.add(amountsInWithFees).sub(amountsOutOfBin);
                 }
             }
 
             if (amountsLeft == 0) {
                 break;
             } else {
-                uint24 nextId = getNextNonEmptyBin(self, swapForY, activeId);
+                uint24 nextId = getNextNonEmptyBin(self, swapForY, swapState.activeId);
                 if (nextId == 0 || nextId == type(uint24).max) revert BinPool__OutOfLiquidity();
-                activeId = nextId;
+                swapState.activeId = nextId;
             }
         }
 
         if (amountsOut == 0) revert BinPool__InsufficientAmountOut();
 
-        self.slot0.activeId = activeId;
+        self.slot0.activeId = swapState.activeId;
 
         if (swapForY) {
             uint128 consumed = amountIn - amountsLeft.decodeX();
@@ -416,7 +436,8 @@ library BinPool {
             bytes32 compositionFee
         )
     {
-        uint24 activeId = self.slot0.activeId;
+        Slot0 memory slot0Cache = self.slot0;
+        uint24 activeId = slot0Cache.activeId;
         bytes32 binReserves = self.reserveOfBin[id];
 
         uint256 price = id.getPriceFromId(params.binStep);
@@ -428,7 +449,9 @@ library BinPool {
         if (id == activeId) {
             // Fees happens when user try to add liquidity in active bin but with different ratio of (x, y)
             /// eg. current bin is 40/60 (a,b) but user tries to add liquidity with 50/50 ratio
-            bytes32 fees = binReserves.getCompositionFees(self.slot0.swapFee, amountsIn, supply, shares);
+            bytes32 fees;
+            (fees, feeForProtocol) =
+                binReserves.getCompositionFees(slot0Cache.protocolFee, slot0Cache.lpFee, amountsIn, supply, shares);
             compositionFee = fees;
             if (fees != 0) {
                 {
@@ -437,11 +460,8 @@ library BinPool {
                     shares = userLiquidity.mulDivRoundDown(supply, binLiquidity);
                 }
 
-                {
-                    feeForProtocol = fees.getExternalFeeAmt(self.slot0.protocolFee);
-                    if (feeForProtocol != 0) {
-                        amountsInToBin = amountsInToBin.sub(feeForProtocol);
-                    }
+                if (feeForProtocol != 0) {
+                    amountsInToBin = amountsInToBin.sub(feeForProtocol);
                 }
             }
         } else {

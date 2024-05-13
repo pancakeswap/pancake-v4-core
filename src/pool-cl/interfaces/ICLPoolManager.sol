@@ -5,14 +5,14 @@ import {Currency} from "../../types/Currency.sol";
 import {PoolKey} from "../../types/PoolKey.sol";
 import {CLPool} from "../libraries/CLPool.sol";
 import {ICLHooks} from "./ICLHooks.sol";
-import {IFees} from "../../interfaces/IFees.sol";
+import {IProtocolFees} from "../../interfaces/IProtocolFees.sol";
 import {BalanceDelta} from "../../types/BalanceDelta.sol";
 import {PoolId} from "../../types/PoolId.sol";
 import {CLPosition} from "../libraries/CLPosition.sol";
 import {IPoolManager} from "../../interfaces/IPoolManager.sol";
 import {IExtsload} from "../../interfaces/IExtsload.sol";
 
-interface ICLPoolManager is IFees, IPoolManager, IExtsload {
+interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @notice PoolManagerMismatch is thrown when pool manager specified in the pool key does not match current contract
     error PoolManagerMismatch();
     /// @notice Pools are limited to type(int16).max tickSpacing in #initialize, to prevent overflow
@@ -26,7 +26,7 @@ interface ICLPoolManager is IFees, IPoolManager, IExtsload {
     /// @param id The abi encoded hash of the pool key struct for the new pool
     /// @param currency0 The first currency of the pool by address sort order
     /// @param currency1 The second currency of the pool by address sort order
-    /// @param fee The fee collected upon every swap in the pool, denominated in hundredths of a bip
+    /// @param fee The lp fee collected upon every swap in the pool, denominated in hundredths of a bip
     /// @param tickSpacing The minimum number of ticks between initialized ticks
     /// @param hooks The hooks contract address for the pool, or address(0) if none
     event Initialize(
@@ -56,8 +56,8 @@ interface ICLPoolManager is IFees, IPoolManager, IExtsload {
     /// @param sqrtPriceX96 The sqrt(price) of the pool after the swap, as a Q64.96
     /// @param liquidity The liquidity of the pool after the swap
     /// @param tick The log base 1.0001 of the price of the pool after the swap
-    /// @param fee The fee collected upon every swap in the pool, denominated in hundredths of a bip
-    /// @param protocolFee Protocol fee from the swap, and it is only on the input currency
+    /// @param fee The fee collected upon every swap in the pool (including protocol fee and LP fee), denominated in hundredths of a bip
+    /// @param protocolFee Protocol fee from the swap, also denominated in hundredths of a bip
     event Swap(
         PoolId indexed id,
         address indexed sender,
@@ -67,7 +67,7 @@ interface ICLPoolManager is IFees, IPoolManager, IExtsload {
         uint128 liquidity,
         int24 tick,
         uint24 fee,
-        uint256 protocolFee
+        uint24 protocolFee
     );
 
     /// @notice Emitted when donate happen
@@ -88,7 +88,7 @@ interface ICLPoolManager is IFees, IPoolManager, IExtsload {
     function getSlot0(PoolId id)
         external
         view
-        returns (uint160 sqrtPriceX96, int24 tick, uint16 protocolFee, uint24 swapFee);
+        returns (uint160 sqrtPriceX96, int24 tick, uint24 protocolFee, uint24 lpFee);
 
     /// @notice Get the current value of liquidity of the given pool
     function getLiquidity(PoolId id) external view returns (uint128 liquidity);

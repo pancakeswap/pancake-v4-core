@@ -5,7 +5,7 @@ pragma solidity ^0.8.24;
 import {SafeCast} from "../../libraries/SafeCast.sol";
 
 import {FullMath} from "./FullMath.sol";
-import {UnsafeMath} from "./UnsafeMath.sol";
+import {UnsafeMath} from "../../libraries/math/UnsafeMath.sol";
 import {FixedPoint96} from "./FixedPoint96.sol";
 
 /// @title Functions based on Q64.96 sqrt price and liquidity

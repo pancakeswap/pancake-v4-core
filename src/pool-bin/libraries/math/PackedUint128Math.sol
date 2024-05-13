@@ -3,10 +3,13 @@
 pragma solidity ^0.8.24;
 
 import {Constants} from "../Constants.sol";
+import {ProtocolFeeLibrary} from "../../../libraries/ProtocolFeeLibrary.sol";
 
 /// @notice This library contains functions to encode and decode two uint128 into a single bytes32
 ///         and interact with the encoded bytes32.
 library PackedUint128Math {
+    using ProtocolFeeLibrary for uint24;
+
     error PackedUint128Math__AddOverflow();
     error PackedUint128Math__SubUnderflow();
 
@@ -209,17 +212,22 @@ library PackedUint128Math {
 
     /// @dev given amount and protocolFee, calculate and return external protocol fee amt
     /// @param amount encoded bytes with (x, y)
-    /// @param fee protocolFee
-    function getExternalFeeAmt(bytes32 amount, uint16 fee) internal pure returns (bytes32 z) {
-        if (fee == 0) return 0;
+    /// @param protocolFee Protocol fee from the swap, also denominated in hundredths of a bip
+    /// @param swapFee The fee collected upon every swap in the pool (including protocol fee and LP fee), denominated in hundredths of a bip
+    function getExternalFeeAmt(bytes32 amount, uint24 protocolFee, uint24 swapFee) internal pure returns (bytes32 z) {
+        if (protocolFee == 0 || swapFee == 0) return 0;
 
         (uint128 amountX, uint128 amountY) = decode(amount);
+        uint16 fee0 = protocolFee.getZeroForOneFee();
+        uint16 fee1 = protocolFee.getOneForZeroFee();
 
-        uint16 fee0 = fee % 256;
-        uint16 fee1 = fee >> 8;
-
-        uint128 feeForX = fee0 == 0 ? 0 : amountX / fee0;
-        uint128 feeForY = fee1 == 0 ? 0 : amountY / fee1;
+        uint128 feeForX;
+        uint128 feeForY;
+        // todo: double check on this unchecked condition
+        unchecked {
+            feeForX = fee0 == 0 ? 0 : uint128(uint256(amountX) * fee0 / swapFee);
+            feeForY = fee1 == 0 ? 0 : uint128(uint256(amountY) * fee1 / swapFee);
+        }
 
         return encode(feeForX, feeForY);
     }

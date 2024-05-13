@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {Currency} from "../../types/Currency.sol";
-import {IFees} from "../../interfaces/IFees.sol";
+import {IProtocolFees} from "../../interfaces/IProtocolFees.sol";
 import {PoolId} from "../../types/PoolId.sol";
 import {PoolKey} from "../../types/PoolKey.sol";
 import {BalanceDelta} from "../../types/BalanceDelta.sol";
@@ -11,7 +11,7 @@ import {IExtsload} from "../../interfaces/IExtsload.sol";
 import {IBinHooks} from "./IBinHooks.sol";
 import {BinPosition, BinPool} from "../libraries/BinPool.sol";
 
-interface IBinPoolManager is IFees, IPoolManager, IExtsload {
+interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @notice PoolManagerMismatch is thrown when pool manager specified in the pool key does not match current contract
     error PoolManagerMismatch();
 
@@ -36,7 +36,7 @@ interface IBinPoolManager is IFees, IPoolManager, IExtsload {
     /// @param id The abi encoded hash of the pool key struct for the new pool
     /// @param currency0 The first currency of the pool by address sort order
     /// @param currency1 The second currency of the pool by address sort order
-    /// @param fee The fee collected upon every swap in the pool, denominated in hundredths of a bip
+    /// @param fee The lp fee collected upon every swap in the pool, denominated in hundredths of a bip
     /// @param binStep The bin step in basis point, used to calculate log(1 + binStep / 10_000)
     /// @param hooks The hooks contract address for the pool, or address(0) if none
     event Initialize(
@@ -54,8 +54,8 @@ interface IBinPoolManager is IFees, IPoolManager, IExtsload {
     /// @param amount0 The delta of the currency0 balance of the pool
     /// @param amount1 The delta of the currency1 balance of the pool
     /// @param activeId The activeId of the pool after the swap
-    /// @param fee Total swap fee - 10_000 = 1%
-    /// @param pFee Protocol fee from the swap: token0 and token1 amount
+    /// @param fee The fee collected upon every swap in the pool (including protocol fee and LP fee), denominated in hundredths of a bip
+    /// @param protocolFee Protocol fee from the swap, also denominated in hundredths of a bip
     event Swap(
         PoolId indexed id,
         address indexed sender,
@@ -63,7 +63,7 @@ interface IBinPoolManager is IFees, IPoolManager, IExtsload {
         int128 amount1,
         uint24 activeId,
         uint24 fee,
-        bytes32 pFee
+        uint24 protocolFee
     );
 
     /// @notice Emitted when liquidity is added
@@ -114,7 +114,7 @@ interface IBinPoolManager is IFees, IPoolManager, IExtsload {
     }
 
     /// @notice Get the current value in slot0 of the given pool
-    function getSlot0(PoolId id) external view returns (uint24 activeId, uint16 protocolFee, uint24 swapFee);
+    function getSlot0(PoolId id) external view returns (uint24 activeId, uint24 protocolFee, uint24 lpFee);
 
     /// @notice Returns the reserves of a bin
     /// @param id The id of the bin
