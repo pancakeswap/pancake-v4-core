@@ -93,6 +93,8 @@ contract PoolTest is Test {
         CLPool.SwapParams memory swapParams,
         uint24 swapFee
     ) public {
+        swapParams.amountSpecified = int256(bound(swapParams.amountSpecified, 0, type(int128).max));
+
         testModifyPosition(sqrtPriceX96, modifyLiquidityParams, swapFee);
 
         swapParams.tickSpacing = modifyLiquidityParams.tickSpacing;
