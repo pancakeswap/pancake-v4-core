@@ -36,8 +36,9 @@ import {CLFeeManagerHook} from "./helpers/CLFeeManagerHook.sol";
 import {CLNoOpTestHook} from "./helpers/CLNoOpTestHook.sol";
 import {ProtocolFeeLibrary} from "../../src/libraries/ProtocolFeeLibrary.sol";
 import {SafeCast} from "../../src/libraries/SafeCast.sol";
+import {NoIsolate} from "../helpers/NoIsolate.sol";
 
-contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
+contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnapshot {
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
     using CLPoolParametersHelper for bytes32;
@@ -1386,9 +1387,9 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         );
 
         // token0: roughly 5 ether
-        assertEq(vault.reservesOfVault(currency0), 4977594234867895338);
+        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 4977594234867895338);
         // token1: roughly 502 ether
-        assertEq(vault.reservesOfVault(currency1), 502165582277283491084);
+        assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 502165582277283491084);
 
         // swap 10 ether token0 for token1
         snapStart("CLPoolManagerTest#swap_runOutOfLiquidity");
@@ -1404,8 +1405,8 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         );
         snapEnd();
 
-        //        console2.log("token0 balance: ", int256(vault.reservesOfVault(currency0)));
-        //        console2.log("token1 balance: ", int256(vault.reservesOfVault(currency1)));
+        console2.log("token0 balance: ", IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)));
+        console2.log("token1 balance: ", IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)));
     }
 
     function testSwap_failsIfNotInitialized(uint160 sqrtPriceX96) public {

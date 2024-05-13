@@ -84,15 +84,16 @@ contract CLSkipCallbackHook is BaseCLTestHook {
     function modifyPositionCallback(bytes memory rawData) private returns (bytes memory) {
         ModifyPositionCallbackData memory data = abi.decode(rawData, (ModifyPositionCallbackData));
 
-        (BalanceDelta delta, BalanceDelta feeDelta) = poolManager.modifyLiquidity(data.key, data.params, data.hookData);
+        (BalanceDelta delta,) = poolManager.modifyLiquidity(data.key, data.params, data.hookData);
 
         // For now assume to always settle feeDelta in the same way as delta
-        BalanceDelta totalDelta = delta + feeDelta;
+        // BalanceDelta totalDelta = delta + feeDelta;
 
         if (delta.amount0() > 0) {
             if (data.key.currency0.isNative()) {
                 vault.settle{value: uint128(delta.amount0())}(data.key.currency0);
             } else {
+                vault.sync(data.key.currency0);
                 IERC20(Currency.unwrap(data.key.currency0)).transferFrom(
                     data.sender, address(vault), uint128(delta.amount0())
                 );
@@ -103,6 +104,7 @@ contract CLSkipCallbackHook is BaseCLTestHook {
             if (data.key.currency1.isNative()) {
                 vault.settle{value: uint128(delta.amount1())}(data.key.currency1);
             } else {
+                vault.sync(data.key.currency1);
                 IERC20(Currency.unwrap(data.key.currency1)).transferFrom(
                     data.sender, address(vault), uint128(delta.amount1())
                 );
@@ -160,6 +162,7 @@ contract CLSkipCallbackHook is BaseCLTestHook {
                     if (data.key.currency0.isNative()) {
                         vault.settle{value: uint128(delta.amount0())}(data.key.currency0);
                     } else {
+                        vault.sync(data.key.currency0);
                         IERC20(Currency.unwrap(data.key.currency0)).transferFrom(
                             data.sender, address(vault), uint128(delta.amount0())
                         );
@@ -184,6 +187,7 @@ contract CLSkipCallbackHook is BaseCLTestHook {
                     if (data.key.currency1.isNative()) {
                         vault.settle{value: uint128(delta.amount1())}(data.key.currency1);
                     } else {
+                        vault.sync(data.key.currency1);
                         IERC20(Currency.unwrap(data.key.currency1)).transferFrom(
                             data.sender, address(vault), uint128(delta.amount1())
                         );
@@ -241,6 +245,7 @@ contract CLSkipCallbackHook is BaseCLTestHook {
             if (data.key.currency0.isNative()) {
                 vault.settle{value: uint128(delta.amount0())}(data.key.currency0);
             } else {
+                vault.sync(data.key.currency0);
                 IERC20(Currency.unwrap(data.key.currency0)).transferFrom(
                     data.sender, address(vault), uint128(delta.amount0())
                 );
@@ -251,6 +256,7 @@ contract CLSkipCallbackHook is BaseCLTestHook {
             if (data.key.currency1.isNative()) {
                 vault.settle{value: uint128(delta.amount1())}(data.key.currency1);
             } else {
+                vault.sync(data.key.currency1);
                 IERC20(Currency.unwrap(data.key.currency1)).transferFrom(
                     data.sender, address(vault), uint128(delta.amount1())
                 );

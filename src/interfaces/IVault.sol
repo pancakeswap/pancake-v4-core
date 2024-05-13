@@ -32,7 +32,7 @@ interface IVault is IVaultToken {
 
     function isPoolManagerRegistered(address poolManager) external returns (bool);
 
-    /// @notice Returns the reserves for a given ERC20 currency
+    /// @notice Returns the reserves for a currency thats sync in transient storage
     function reservesOfVault(Currency currency) external view returns (uint256);
 
     /// @notice Returns the reserves for a a given pool type and currency
@@ -67,19 +67,11 @@ interface IVault is IVaultToken {
     /// @dev Can also be used as a mechanism for _free_ flash loans
     function take(Currency currency, address to, uint256 amount) external;
 
+    /// @notice Called before erc20 transfer to tstore the current reserve balance
+    function sync(Currency token0) external returns (uint256 balance);
+
     /// @notice Called by the user to pay what is owed
     function settle(Currency token) external payable returns (uint256 paid);
-
-    /// @notice Called by the user to pay what is owed. If the payment is more than the debt, the surplus is refunded by minting
-    /// @dev To claim the refund, caller must eventually call vault.burn() -> vault.take() to take the ERC20 token from vault
-    /// @param currency The currency to settle
-    /// @param to The address to mint the refund
-    /// @return paid The amount paid
-    /// @return refund The amount refunded
-    function settleAndMintRefund(Currency currency, address to)
-        external
-        payable
-        returns (uint256 paid, uint256 refund);
 
     /// @notice move the delta from target to the msg.sender, only payment delta can be moved
     /// @param currency The currency to settle

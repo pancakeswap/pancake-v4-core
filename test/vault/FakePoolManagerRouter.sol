@@ -9,7 +9,7 @@ import {Currency, CurrencyLibrary} from "../../src/types/Currency.sol";
 import {IPoolManager} from "../../src/interfaces/IPoolManager.sol";
 import {toBalanceDelta} from "../../src/types/BalanceDelta.sol";
 
-contract FakePoolManagerRouter {
+contract FakePoolManagerRouter is Test {
     using CurrencyLibrary for Currency;
 
     event LockAcquired();
@@ -48,7 +48,8 @@ contract FakePoolManagerRouter {
             vault.take(poolKey.currency1, address(this), 20 ether);
 
             // ... flashloan logic
-
+            vault.sync(poolKey.currency0);
+            vault.sync(poolKey.currency1);
             poolKey.currency0.transfer(address(vault), 20 ether);
             poolKey.currency1.transfer(address(vault), 20 ether);
             vault.settle(poolKey.currency0);
@@ -66,6 +67,8 @@ contract FakePoolManagerRouter {
             forwarder.forward(vault);
         } else if (data[0] == 0x08) {
             // settle generated balance delta by 0x07
+            vault.sync(poolKey.currency0);
+            vault.sync(poolKey.currency1);
             poolKey.currency0.transfer(address(vault), 5 ether);
             poolKey.currency1.transfer(address(vault), 5 ether);
             vault.settle(poolKey.currency0);
@@ -78,23 +81,24 @@ contract FakePoolManagerRouter {
         } else if (data[0] == 0x11) {
             // settleFor
             Payer payer = new Payer();
-            payer.settleFor(vault, poolKey, 5 ether);
+            payer.settleFor(vault, poolKey.currency0, 5 ether);
 
+            vault.sync(poolKey.currency0);
             poolKey.currency0.transfer(address(vault), 5 ether);
-            payer.settle(vault, poolKey);
+            payer.settle(vault, poolKey.currency0);
 
             vault.take(poolKey.currency0, address(this), 5 ether);
         } else if (data[0] == 0x12) {
             // settleFor(, , 0)
             Payer payer = new Payer();
 
+            vault.sync(poolKey.currency0);
             uint256 amt = poolKey.currency0.balanceOfSelf();
             poolKey.currency0.transfer(address(vault), amt);
-            payer.settle(vault, poolKey);
+            payer.settle(vault, poolKey.currency0);
 
             vault.take(poolKey.currency0, address(this), amt);
-
-            payer.settleFor(vault, poolKey, 0);
+            payer.settleFor(vault, poolKey.currency0, 0);
         } else if (data[0] == 0x13) {
             // mint
             uint256 amt = poolKey.currency0.balanceOf(address(vault));
@@ -129,17 +133,42 @@ contract FakePoolManagerRouter {
             vault.settle{value: 5 ether}(CurrencyLibrary.NATIVE);
             vault.take(CurrencyLibrary.NATIVE, address(this), 5 ether);
         } else if (data[0] == 0x18) {
-            // call this method via vault.lock(abi.encodePacked(hex"18", alice));
-            address to = address(uint160(uint256(bytes32(data[1:0x15]) >> 96)));
-            vault.settleAndMintRefund(poolKey.currency0, to);
-            vault.settleAndMintRefund(poolKey.currency1, to);
+            // settle currency0 and verify currencyDelta
+            vault.settle(poolKey.currency0);
+            assertEq(vault.currencyDelta(address(this), poolKey.currency0), 0);
         } else if (data[0] == 0x19) {
-            poolManager.mockAccounting(poolKey, 3 ether, -3 ether);
+            // mint & settle first
+            uint256 maxBalanceAmt = uint256(int256(type(int128).max));
+            uint256 amt = poolKey.currency0.balanceOf(address(vault));
+            vault.mint(address(this), poolKey.currency0, amt);
             vault.settle(poolKey.currency0);
 
-            /// try to call settleAndMintRefund should not revert
-            vault.settleAndMintRefund(poolKey.currency1, address(this));
-            vault.take(poolKey.currency1, address(this), 3 ether);
+            // assert that the manager balance is the full balance.
+            assertEq(poolKey.currency0.balanceOf(address(vault)), maxBalanceAmt);
+
+            // sync already called in settle
+            assertEq(vault.reservesOfVault(poolKey.currency0), maxBalanceAmt);
+
+            // delta balance should be 0, because it has been fully settled.
+            assertEq(vault.currencyDelta(address(this), poolKey.currency0), 0);
+
+            // if not sync and do take
+            vault.take(poolKey.currency0, address(this), amt);
+
+            // assert that the manager balance is the full balance.
+            assertEq(poolKey.currency0.balanceOf(address(vault)), 0);
+
+            // sync not called so reserveOfVault should still be maxBalanceAmt
+            assertEq(vault.reservesOfVault(poolKey.currency0), maxBalanceAmt);
+
+            // Expect an underflow/overflow because reservesBefore > reservesNow since sync() had not been called before settle.
+            vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
+            vault.settle(poolKey.currency0);
+
+            // reset reserveOfVault to 0
+            vault.sync(poolKey.currency0);
+            poolKey.currency0.transfer(address(vault), amt);
+            vault.settle(poolKey.currency0);
         } else if (data[0] == 0x20) {
             // burn on behalf of someone else
             uint256 amt = poolKey.currency0.balanceOf(address(vault));
@@ -160,11 +189,18 @@ contract FakePoolManagerRouter {
 
             // ... flashloan logic
 
+            // no need to sync currency0 as it is native
+            // vault.sync(poolKey.currency0);
+            vault.sync(poolKey.currency1);
+
             // only for erc20 as native will call settle with value
             poolKey.currency1.transfer(address(vault), 20 ether);
 
             vault.settle{value: 20 ether}(poolKey.currency0);
             vault.settle(poolKey.currency1);
+        } else if (data[0] == 0x23) {
+            vault.mint(address(this), poolKey.currency0, 10 ether);
+            vault.settle(poolKey.currency0);
         }
 
         return "";
@@ -190,11 +226,11 @@ contract Forwarder {
 }
 
 contract Payer {
-    function settleFor(IVault vault, PoolKey calldata poolKey, uint256 amt) public {
-        vault.settleFor(poolKey.currency0, msg.sender, amt);
+    function settleFor(IVault vault, Currency currency, uint256 amt) public {
+        vault.settleFor(currency, msg.sender, amt);
     }
 
-    function settle(IVault vault, PoolKey calldata poolKey) public {
-        vault.settle(poolKey.currency0);
+    function settle(IVault vault, Currency currency) public {
+        vault.settle(currency);
     }
 }

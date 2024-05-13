@@ -68,6 +68,7 @@ contract VaultReentrancyTest is Test, TokenFixture {
         assertEq(delta, 0);
 
         // deposit some tokens
+        vault.sync(currency0);
         currency0.transfer(address(vault), 1);
         vault.settle(currency0);
         nonzeroDeltaCount = vault.getUnsettledDeltasCount();
@@ -103,6 +104,7 @@ contract VaultReentrancyTest is Test, TokenFixture {
                 assertEq(nonzeroDeltaCount, i - 1);
             }
 
+            vault.sync(currency0);
             uint256 paidAmount = i;
             // amount starts from 0 to callerAmount - 1
             currency0.transfer(address(vault), paidAmount);
@@ -152,6 +154,7 @@ contract VaultReentrancyTest is Test, TokenFixture {
 
         // deposit enough liquidity for the vault
         for (uint256 i = 0; i < SETTLERS_AMOUNT; i++) {
+            vault.sync(currency0);
             currency0.transfer(address(vault), 1 ether);
 
             address callerAddr = makeAddr(string(abi.encode(i % SETTLERS_AMOUNT)));
@@ -186,6 +189,7 @@ contract VaultReentrancyTest is Test, TokenFixture {
                 currencyDelta[i % SETTLERS_AMOUNT] += int256(paidAmount);
             } else if (i % 6 == 1) {
                 // settle
+                vault.sync(currency0);
                 currency0.transfer(address(vault), paidAmount);
                 vm.prank(callerAddr);
                 vault.settle(currency0);
@@ -207,6 +211,7 @@ contract VaultReentrancyTest is Test, TokenFixture {
                 vaultTokenBalance[i % SETTLERS_AMOUNT] -= paidAmount;
             } else if (i % 6 == 4) {
                 // settleFor
+                vault.sync(currency0);
                 currency0.transfer(address(vault), paidAmount);
                 vm.prank(callerAddr);
                 vault.settle(currency0);
@@ -254,6 +259,7 @@ contract VaultReentrancyTest is Test, TokenFixture {
             int256 delta = vault.currencyDelta(callerAddr, currency0);
             if (delta > 0) {
                 // user owes token to the vault
+                vault.sync(currency0);
                 currency0.transfer(address(vault), uint256(delta));
                 vm.prank(callerAddr);
                 vault.settle(currency0);
