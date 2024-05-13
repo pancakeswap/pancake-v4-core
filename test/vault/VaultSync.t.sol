@@ -5,8 +5,6 @@ import {Test} from "forge-std/Test.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
 
-import {console2} from "forge-std/Console2.sol";
-
 import {Vault} from "../../src/Vault.sol";
 import {Currency, CurrencyLibrary} from "../../src/types/Currency.sol";
 import {TokenFixture} from "../helpers/TokenFixture.sol";
