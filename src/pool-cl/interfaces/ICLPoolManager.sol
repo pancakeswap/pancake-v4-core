@@ -21,6 +21,8 @@ interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload {
     error TickSpacingTooSmall();
     /// @notice Error thrown when add liquidity is called when paused()
     error PoolPaused();
+    /// @notice Thrown when trying to swap amount of 0
+    error SwapAmountCannotBeZero();
 
     /// @notice Emitted when a new pool is initialized
     /// @param id The abi encoded hash of the pool key struct for the new pool
@@ -119,8 +121,8 @@ interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload {
     }
 
     /// @notice Modify the position for the given pool
-    /// @return delta The balance delta of the liquidity change
-    /// @return feeDelta The balance delta of the fees generated in the liquidity range
+    /// @return delta The total balance delta of the caller of modifyLiquidity.
+    /// @return feeDelta The balance delta of the fees generated in the liquidity range.
     function modifyLiquidity(PoolKey memory key, ModifyLiquidityParams memory params, bytes calldata hookData)
         external
         returns (BalanceDelta delta, BalanceDelta feeDelta);
@@ -132,6 +134,13 @@ interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload {
     }
 
     /// @notice Swap against the given pool
+    /// @param key The pool to swap in
+    /// @param params The parameters for swapping
+    /// @param hookData Any data to pass to the callback
+    /// @return delta The balance delta of the address swapping
+    /// @dev Swapping on low liquidity pools may cause unexpected swap amounts when liquidity available is less than amountSpecified.
+    /// Additionally note that if interacting with hooks that have the BEFORE_SWAP_RETURNS_DELTA_FLAG or AFTER_SWAP_RETURNS_DELTA_FLAG
+    /// the hook may alter the swap input/output. Integrators should perform checks on the returned swapDelta.
     function swap(PoolKey memory key, SwapParams memory params, bytes calldata hookData)
         external
         returns (BalanceDelta);

@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 
 import {CLPosition} from "./CLPosition.sol";
 import {TickMath} from "./TickMath.sol";
-import {BalanceDelta, toBalanceDelta} from "../../types/BalanceDelta.sol";
+import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta} from "../../types/BalanceDelta.sol";
 import {Tick} from "./Tick.sol";
 import {TickBitmap} from "./TickBitmap.sol";
 import {SqrtPriceMath} from "./SqrtPriceMath.sol";
@@ -32,9 +32,6 @@ library CLPool {
 
     /// @notice Thrown when trying to interact with a non-initialized pool
     error PoolNotInitialized();
-
-    /// @notice Thrown when trying to swap amount of 0
-    error SwapAmountCannotBeZero();
 
     /// @notice Thrown when trying to swap with max lp fee and specifying an output amount
     error InvalidFeeForExactOut();
@@ -198,12 +195,12 @@ library CLPool {
         internal
         returns (BalanceDelta balanceDelta, SwapState memory state)
     {
-        if (params.amountSpecified == 0) revert SwapAmountCannotBeZero();
-
+        // cache variables for gas optimization
         Slot0 memory slot0Start = self.slot0;
-        // Declare zeroForOne and sqrtPriceLimitX96 upfront for gas optmization
         bool zeroForOne = params.zeroForOne;
         uint160 sqrtPriceLimitX96 = params.sqrtPriceLimitX96;
+
+        // check price limit
         if (
             zeroForOne
                 ? (sqrtPriceLimitX96 >= slot0Start.sqrtPriceX96 || sqrtPriceLimitX96 <= TickMath.MIN_SQRT_RATIO)
@@ -212,10 +209,12 @@ library CLPool {
             revert InvalidSqrtPriceLimit(slot0Start.sqrtPriceX96, sqrtPriceLimitX96);
         }
 
+        // cache variables for gas optimization
         // liquidity at the beginning of the swap
         uint128 liquidityStart = self.liquidity;
         bool exactInput = params.amountSpecified > 0;
 
+        // init swap state
         {
             uint16 protocolFee =
                 zeroForOne ? slot0Start.protocolFee.getZeroForOneFee() : slot0Start.protocolFee.getOneForZeroFee();
@@ -238,6 +237,9 @@ library CLPool {
         if (!exactInput && (state.swapFee == LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE)) {
             revert InvalidFeeForExactOut();
         }
+
+        /// @notice early return if hook has updated amountSpecified to 0
+        if (params.amountSpecified == 0) return (BalanceDeltaLibrary.ZERO_DELTA, state);
 
         StepComputations memory step;
         // continue swapping as long as we haven't used the entire input/output and haven't reached the price limit

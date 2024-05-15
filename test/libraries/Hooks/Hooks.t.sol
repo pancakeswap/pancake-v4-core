@@ -90,21 +90,4 @@ contract HooksTest is Test {
         assertEq(Hooks.hasOffsetEnabled(bytes32(uint256(0xaaaa)), 14), false);
         assertEq(Hooks.hasOffsetEnabled(bytes32(uint256(0xaaaa)), 15), true);
     }
-
-    function testIsValidNoOpCall(bytes32 parameters, uint8 noOpOffset, bytes4 selector) public {
-        // make sure enough true cases are covered
-        noOpOffset = uint8(bound(noOpOffset, 0, 15));
-        if (uint32(selector) > type(uint32).max / 2) {
-            selector = Hooks.NO_OP_SELECTOR;
-        }
-
-        bool expectRet;
-        assembly {
-            expectRet := and(shr(noOpOffset, parameters), 1)
-        }
-        expectRet = expectRet && selector == Hooks.NO_OP_SELECTOR;
-
-        bool actualRet = Hooks.isValidNoOpCall(parameters, noOpOffset, selector);
-        assertEq(expectRet, actualRet);
-    }
 }

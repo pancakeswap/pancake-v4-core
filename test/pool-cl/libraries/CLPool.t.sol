@@ -15,6 +15,7 @@ import {LiquidityAmounts} from "../helpers/LiquidityAmounts.sol";
 import {LPFeeLibrary} from "../../../src/libraries/LPFeeLibrary.sol";
 import {FullMath} from "../../../src/pool-cl/libraries/FullMath.sol";
 import {FixedPoint128} from "../../../src/pool-cl/libraries/FixedPoint128.sol";
+import {ICLPoolManager} from "../../../src/pool-cl/interfaces/ICLPoolManager.sol";
 
 contract PoolTest is Test {
     using CLPool for CLPool.State;
@@ -101,7 +102,7 @@ contract PoolTest is Test {
         CLPool.Slot0 memory slot0 = state.slot0;
 
         if (swapParams.amountSpecified == 0) {
-            vm.expectRevert(CLPool.SwapAmountCannotBeZero.selector);
+            vm.expectRevert(ICLPoolManager.SwapAmountCannotBeZero.selector);
         } else if (swapParams.zeroForOne) {
             if (swapParams.sqrtPriceLimitX96 >= slot0.sqrtPriceX96) {
                 vm.expectRevert(

@@ -9,7 +9,6 @@ import {ICLPoolManager} from "../../../src/pool-cl/interfaces/ICLPoolManager.sol
 import {console2} from "forge-std/console2.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../../../src/types/BalanceDelta.sol";
-import {HOOKS_NO_OP_OFFSET} from "../../../src/pool-cl/interfaces/ICLHooks.sol";
 import {Hooks} from "../../../src/libraries/Hooks.sol";
 
 contract CLPoolManagerRouter {
@@ -62,13 +61,6 @@ contract CLPoolManagerRouter {
         ModifyPositionCallbackData memory data = abi.decode(rawData, (ModifyPositionCallbackData));
 
         (BalanceDelta delta, BalanceDelta feeDelta) = poolManager.modifyLiquidity(data.key, data.params, data.hookData);
-        if (delta == BalanceDeltaLibrary.MAXIMUM_DELTA) {
-            // check if the hook has permission to no-op, if true, return early
-            if (!data.key.parameters.shouldCall(HOOKS_NO_OP_OFFSET, data.key.hooks)) {
-                revert HookMissingNoOpPermission();
-            }
-            return abi.encode(delta, feeDelta);
-        }
 
         // For now assume to always settle feeDelta in the same way as delta
         BalanceDelta totalDelta = delta + feeDelta;
@@ -138,14 +130,6 @@ contract CLPoolManagerRouter {
         SwapCallbackData memory data = abi.decode(rawData, (SwapCallbackData));
 
         BalanceDelta delta = poolManager.swap(data.key, data.params, data.hookData);
-
-        if (delta == BalanceDeltaLibrary.MAXIMUM_DELTA) {
-            // check if the hook has permission to no-op, if true, return early
-            if (!data.key.parameters.shouldCall(HOOKS_NO_OP_OFFSET, data.key.hooks)) {
-                revert HookMissingNoOpPermission();
-            }
-            return abi.encode(delta);
-        }
 
         if (data.params.zeroForOne) {
             if (delta.amount0() > 0) {
@@ -230,14 +214,6 @@ contract CLPoolManagerRouter {
         DonateCallbackData memory data = abi.decode(rawData, (DonateCallbackData));
 
         BalanceDelta delta = poolManager.donate(data.key, data.amount0, data.amount1, data.hookData);
-
-        if (delta == BalanceDeltaLibrary.MAXIMUM_DELTA) {
-            // check if the hook has permission to no-op, if true, return early
-            if (!data.key.parameters.shouldCall(HOOKS_NO_OP_OFFSET, data.key.hooks)) {
-                revert HookMissingNoOpPermission();
-            }
-            return abi.encode(delta);
-        }
 
         if (delta.amount0() > 0) {
             if (data.key.currency0.isNative()) {

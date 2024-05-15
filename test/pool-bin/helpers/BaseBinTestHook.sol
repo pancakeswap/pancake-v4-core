@@ -1,19 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import {
-    HOOKS_BEFORE_INITIALIZE_OFFSET,
-    HOOKS_AFTER_INITIALIZE_OFFSET,
-    HOOKS_BEFORE_MINT_OFFSET,
-    HOOKS_AFTER_MINT_OFFSET,
-    HOOKS_BEFORE_BURN_OFFSET,
-    HOOKS_AFTER_BURN_OFFSET,
-    HOOKS_BEFORE_SWAP_OFFSET,
-    HOOKS_AFTER_SWAP_OFFSET,
-    HOOKS_BEFORE_DONATE_OFFSET,
-    HOOKS_AFTER_DONATE_OFFSET,
-    HOOKS_NO_OP_OFFSET
-} from "../../../src/pool-bin/interfaces/IBinHooks.sol";
+import "../../../src/pool-bin/interfaces/IBinHooks.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {BalanceDelta} from "../../../src/types/BalanceDelta.sol";
 import {IBinHooks} from "../../../src/pool-bin/interfaces/IBinHooks.sol";
@@ -120,7 +108,6 @@ contract BaseBinTestHook is IBinHooks {
                 | (permissions.afterSwap ? 1 << HOOKS_AFTER_SWAP_OFFSET : 0)
                 | (permissions.beforeDonate ? 1 << HOOKS_BEFORE_DONATE_OFFSET : 0)
                 | (permissions.afterDonate ? 1 << HOOKS_AFTER_DONATE_OFFSET : 0)
-                | (permissions.noOp ? 1 << HOOKS_NO_OP_OFFSET : 0)
         );
     }
 }

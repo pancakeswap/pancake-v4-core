@@ -24,6 +24,9 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @notice Error thrown when owner set max bin step too small
     error MaxBinStepTooSmall(uint16 maxBinStep);
 
+    /// @notice Error thrown when amountIn is 0
+    error InsufficientAmountIn();
+
     /// @notice Returns the constant representing the max bin step
     /// @return maxBinStep a value of 100 would represent a 1% price jump between bin (limit can be raised by owner)
     function MAX_BIN_STEP() external view returns (uint16);

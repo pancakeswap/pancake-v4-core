@@ -627,24 +627,6 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
     }
 
-    function test_initialize_failsNoOpMissingBeforeCall() public {
-        uint16 bitMap = 0x0400; // 0000 0100 0000 0000 (only noOp)
-
-        CLNoOpTestHook noOpHook = new CLNoOpTestHook();
-        noOpHook.setHooksRegistrationBitmap(bitMap);
-        PoolKey memory key = PoolKey({
-            currency0: currency0,
-            currency1: currency1,
-            fee: 3000,
-            hooks: IHooks(noOpHook),
-            poolManager: poolManager,
-            parameters: bytes32(uint256((60 << 16) | noOpHook.getHooksRegistrationBitmap()))
-        });
-
-        vm.expectRevert(Hooks.NoOpHookMissingBeforeCall.selector);
-        poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
-    }
-
     // **************                  *************** //
     // **************  modifyPosition  *************** //
     // **************                  *************** //
@@ -2474,54 +2456,6 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         (,,, uint24 swapFee) = poolManager.getSlot0(key.toId());
         assertEq(swapFee, _swapFee);
-    }
-
-    function testNoOp_gas() public {
-        uint16 bitMap = 0x0550; // 0000 0101 0101 0000 (only noOp, beforeRemoveLiquidity, beforeSwap, beforeDonate)
-
-        // pre-req create pool
-        CLNoOpTestHook noOpHook = new CLNoOpTestHook();
-        noOpHook.setHooksRegistrationBitmap(bitMap);
-        PoolKey memory key = PoolKey({
-            currency0: currency0,
-            currency1: currency1,
-            fee: 3000,
-            hooks: IHooks(noOpHook),
-            poolManager: poolManager,
-            parameters: bytes32(uint256((60 << 16) | noOpHook.getHooksRegistrationBitmap()))
-        });
-
-        snapStart("CLPoolManagerTest#testNoOp_gas_Initialize");
-        poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
-        snapEnd();
-
-        BalanceDelta delta;
-        BalanceDelta feeDelta;
-
-        // Action 1: modify
-        ICLPoolManager.ModifyLiquidityParams memory params;
-        snapStart("CLPoolManagerTest#testNoOp_gas_ModifyPosition");
-        (delta, feeDelta) = router.modifyPosition(key, params, ZERO_BYTES);
-        snapEnd();
-        assertTrue(delta == BalanceDeltaLibrary.MAXIMUM_DELTA);
-        assertTrue(feeDelta == BalanceDeltaLibrary.ZERO_DELTA);
-
-        // Action 2: swap
-        snapStart("CLPoolManagerTest#testNoOp_gas_Swap");
-        delta = router.swap(
-            key,
-            ICLPoolManager.SwapParams(true, 10000, SQRT_RATIO_1_2),
-            CLPoolManagerRouter.SwapTestSettings(true, true),
-            ZERO_BYTES
-        );
-        snapEnd();
-        assertTrue(delta == BalanceDeltaLibrary.MAXIMUM_DELTA);
-
-        // Action 3: donate
-        snapStart("CLPoolManagerTest#testNoOp_gas_Donate");
-        delta = router.donate(key, 100, 100, ZERO_BYTES);
-        snapEnd();
-        assertTrue(delta == BalanceDeltaLibrary.MAXIMUM_DELTA);
     }
 
     function testModifyLiquidity_Add_WhenPaused() public {

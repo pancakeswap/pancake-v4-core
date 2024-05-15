@@ -38,7 +38,6 @@ library BinPool {
     error BinPool__InvalidBurnInput();
     error BinPool__BurnZeroAmount(uint24 id);
     error BinPool__ZeroAmountsOut(uint24 id);
-    error BinPool__InsufficientAmountIn();
     error BinPool__OutOfLiquidity();
     error BinPool__InsufficientAmountOut();
     error BinPool__NoLiquidityToReceiveFees();
@@ -202,8 +201,6 @@ library BinPool {
         internal
         returns (BalanceDelta result, SwapState memory swapState)
     {
-        if (amountIn == 0) revert BinPool__InsufficientAmountIn();
-
         Slot0 memory slot0Cache = self.slot0;
         swapState.activeId = slot0Cache.activeId;
         bool swapForY = params.swapForY;
@@ -215,6 +212,9 @@ library BinPool {
 
         /// @dev swap fee includes protocolFee (charged first) and lpFee
         swapState.swapFee = swapState.protocolFee.calculateSwapFee(slot0Cache.lpFee);
+
+        /// @notice early return if hook has updated amountIn to 0
+        if (amountIn == 0) return (result, swapState);
 
         while (true) {
             bytes32 binReserves = self.reserveOfBin[swapState.activeId];

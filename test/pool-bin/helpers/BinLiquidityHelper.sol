@@ -3,7 +3,6 @@ pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IVault} from "../../../src/interfaces/IVault.sol";
-import {HOOKS_NO_OP_OFFSET} from "../../../src/pool-bin/interfaces/IBinHooks.sol";
 import {IBinPoolManager} from "../../../src/pool-bin/interfaces/IBinPoolManager.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../../../src/types/BalanceDelta.sol";
 import {CurrencyLibrary, Currency} from "../../../src/types/Currency.sol";
@@ -84,14 +83,6 @@ contract BinLiquidityHelper {
             key = data.key;
             sender = data.sender;
             (delta,) = binManager.mint(data.key, data.params, data.hookData);
-        }
-
-        if (delta == BalanceDeltaLibrary.MAXIMUM_DELTA) {
-            // check if the hook has permission to no-op, if true, return early
-            if (!key.parameters.shouldCall(HOOKS_NO_OP_OFFSET, key.hooks)) {
-                revert HookMissingNoOpPermission();
-            }
-            return abi.encode(delta);
         }
 
         if (delta.amount0() > 0) {
