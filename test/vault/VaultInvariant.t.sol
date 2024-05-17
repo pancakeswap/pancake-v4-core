@@ -12,6 +12,7 @@ import {PoolKey} from "../../src/types/PoolKey.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
 import {SafeCast} from "../../src/pool-bin/libraries/math/SafeCast.sol";
 import {IHooks} from "../../src/interfaces/IHooks.sol";
+import {NoIsolate} from "../helpers/NoIsolate.sol";
 
 contract VaultPoolManager is Test {
     using SafeCast for uint128;
@@ -31,7 +32,6 @@ contract VaultPoolManager is Test {
     enum ActionType {
         Take,
         Settle,
-        SettleAndMintRefund,
         SettleFor,
         Mint,
         Burn
@@ -83,21 +83,6 @@ contract VaultPoolManager is Test {
         token0.mint(address(this), amt0);
         token1.mint(address(this), amt1);
         vault.lock(abi.encode(Action(ActionType.Settle, uint128(amt0), uint128(amt1))));
-    }
-
-    /// @dev In settleAndRefund case, assume user add liquidity and paying to the vault
-    ///      but theres another folk who minted extra token to the vault
-    function settleAndMintRefund(uint256 amt0, uint256 amt1, bool sendToVault) public {
-        amt0 = bound(amt0, 0, MAX_TOKEN_BALANCE - 1 ether);
-        amt1 = bound(amt1, 0, MAX_TOKEN_BALANCE - 1 ether);
-
-        // someone send some token directly to vault
-        if (sendToVault) token0.mint(address(vault), 1 ether);
-
-        // mint token to VaultPoolManager, so VaultPoolManager can pay to the vault
-        token0.mint(address(this), amt0);
-        token1.mint(address(this), amt1);
-        vault.lock(abi.encode(Action(ActionType.SettleAndMintRefund, uint128(amt0), uint128(amt1))));
     }
 
     /// @dev In settleFor case, assume user is paying for hook
@@ -176,23 +161,14 @@ contract VaultPoolManager is Test {
             BalanceDelta delta = toBalanceDelta(int128(action.amt0), int128(action.amt1));
             vault.accountPoolBalanceDelta(poolKey, delta, address(this));
 
+            vault.sync(currency0);
+            vault.sync(currency1);
+
             token0.transfer(address(vault), action.amt0);
             token1.transfer(address(vault), action.amt1);
 
             vault.settle(currency0);
             vault.settle(currency1);
-        } else if (action.actionType == ActionType.SettleAndMintRefund) {
-            BalanceDelta delta = toBalanceDelta(int128(action.amt0), int128(action.amt1));
-            vault.accountPoolBalanceDelta(poolKey, delta, address(this));
-
-            token0.transfer(address(vault), action.amt0);
-            token1.transfer(address(vault), action.amt1);
-
-            (, uint256 refund0) = vault.settleAndMintRefund(currency0, address(this));
-            (, uint256 refund1) = vault.settleAndMintRefund(currency1, address(this));
-
-            totalMintedCurrency0 += refund0;
-            totalMintedCurrency1 += refund1;
         } else if (action.actionType == ActionType.SettleFor) {
             // hook cash out the fee ahead
             BalanceDelta delta = toBalanceDelta(int128(action.amt0), int128(action.amt1));
@@ -201,6 +177,9 @@ contract VaultPoolManager is Test {
             // transfer hook's fee to user
             vault.settleFor(currency0, makeAddr("hook"), action.amt0);
             vault.settleFor(currency1, makeAddr("hook"), action.amt1);
+
+            vault.sync(currency0);
+            vault.sync(currency1);
 
             // handle user's own deltas
             token0.transfer(address(vault), action.amt0);
@@ -222,7 +201,7 @@ contract VaultPoolManager is Test {
     }
 }
 
-contract VaultInvariant is Test, GasSnapshot {
+contract VaultInvariant is Test, NoIsolate, GasSnapshot {
     VaultPoolManager public vaultPoolManager;
     Vault public vault;
     MockERC20 token0;
@@ -240,20 +219,21 @@ contract VaultInvariant is Test, GasSnapshot {
         // Only call vaultPoolManager, otherwise all other contracts deployed in setUp will be called
         targetContract(address(vaultPoolManager));
 
-        bytes4[] memory selectors = new bytes4[](7);
+        bytes4[] memory selectors = new bytes4[](6);
         selectors[0] = VaultPoolManager.take.selector;
         selectors[1] = VaultPoolManager.mint.selector;
         selectors[2] = VaultPoolManager.settle.selector;
         selectors[3] = VaultPoolManager.burn.selector;
         selectors[4] = VaultPoolManager.settleFor.selector;
         selectors[5] = VaultPoolManager.collectFee.selector;
-        selectors[6] = VaultPoolManager.settleAndMintRefund.selector;
         targetSelector(FuzzSelector({addr: address(vaultPoolManager), selectors: selectors}));
     }
 
-    function invariant_TokenbalanceInVaultGeReserveOfVault() public {
+    function invariant_TokenbalanceInVaultGeReserveOfVault() public noIsolate {
         (uint256 amt0Bal, uint256 amt1Bal) = getTokenBalanceInVault();
 
+        vault.sync(vaultPoolManager.currency0());
+        vault.sync(vaultPoolManager.currency1());
         assertGe(amt0Bal, vault.reservesOfVault(vaultPoolManager.currency0()));
         assertGe(amt1Bal, vault.reservesOfVault(vaultPoolManager.currency1()));
     }
@@ -269,11 +249,13 @@ contract VaultInvariant is Test, GasSnapshot {
         assertGe(amt1Bal, vault.reservesOfPoolManager(manager, vaultPoolManager.currency1()) + totalMintedCurrency1);
     }
 
-    function invariant_ReserveOfVaultEqReserveOfPoolManagerPlusSurplusToken() public {
+    function invariant_ReserveOfVaultEqReserveOfPoolManagerPlusSurplusToken() public noIsolate {
         uint256 totalMintedCurrency0 = vaultPoolManager.totalMintedCurrency0();
         uint256 totalMintedCurrency1 = vaultPoolManager.totalMintedCurrency1();
 
         IPoolManager manager = IPoolManager(address(vaultPoolManager));
+        vault.sync(vaultPoolManager.currency0());
+        vault.sync(vaultPoolManager.currency1());
         assertEq(
             vault.reservesOfVault(vaultPoolManager.currency0()),
             vault.reservesOfPoolManager(manager, vaultPoolManager.currency0()) + totalMintedCurrency0

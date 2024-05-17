@@ -75,6 +75,7 @@ contract BinSwapHelper {
                     if (data.key.currency0.isNative()) {
                         vault.settle{value: uint128(delta.amount0())}(data.key.currency0);
                     } else {
+                        vault.sync(data.key.currency0);
                         IERC20(Currency.unwrap(data.key.currency0)).transferFrom(
                             data.sender, address(vault), uint128(delta.amount0())
                         );
@@ -99,6 +100,7 @@ contract BinSwapHelper {
                     if (data.key.currency1.isNative()) {
                         vault.settle{value: uint128(delta.amount1())}(data.key.currency1);
                     } else {
+                        vault.sync(data.key.currency1);
                         IERC20(Currency.unwrap(data.key.currency1)).transferFrom(
                             data.sender, address(vault), uint128(delta.amount1())
                         );

@@ -19,7 +19,7 @@ contract TokenFixture {
         (currency0, currency1) = SortTokens.sort(tokenA, tokenB);
     }
 
-    function mint(uint256 amount) internal {
+    function mint(uint256 amount) public {
         MockERC20 tokenA = MockERC20(Currency.unwrap(currency0));
         MockERC20 tokenB = MockERC20(Currency.unwrap(currency1));
 
