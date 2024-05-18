@@ -87,7 +87,7 @@ contract CLReturnsDeltaHook is BaseCLTestHook {
         if (params.zeroForOne == params.amountSpecified > 0) {
             // the specified token is token0
             if (hookDeltaSpecified > 0) {
-                // vault.sync(key.currency0);
+                vault.sync(key.currency0);
                 key.currency0.transfer(address(vault), uint128(hookDeltaSpecified));
                 vault.settle(key.currency0);
             } else {
@@ -96,7 +96,7 @@ contract CLReturnsDeltaHook is BaseCLTestHook {
         } else {
             // the specified token is token1
             if (hookDeltaSpecified > 0) {
-                // vault.sync(key.currency1);
+                vault.sync(key.currency1);
                 key.currency1.transfer(address(vault), uint128(hookDeltaSpecified));
                 vault.settle(key.currency1);
             } else {
