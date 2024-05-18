@@ -98,7 +98,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
 
         ICLHooks hooks = ICLHooks(address(key.hooks));
         Hooks.validateHookConfig(key);
-        CLHooks.validate(key);
+        CLHooks.validatePermissionsConflict(key);
 
         /// @notice init value for dynamic lp fee is 0, but hook can still set it in afterInitialize
         uint24 lpFee = key.fee.getInitialLPFee();

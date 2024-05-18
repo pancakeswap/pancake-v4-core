@@ -61,7 +61,7 @@ contract BinFeeManagerHook is BaseBinTestHook, IBinDynamicFeeManager {
     function beforeSwap(address, PoolKey calldata key, bool, uint128, bytes calldata hookData)
         external
         override
-        returns (bytes4)
+        returns (bytes4, int128)
     {
         if (hookData.length > 0) {
             (bool _update, uint24 _fee) = abi.decode(hookData, (bool, uint24));
@@ -71,6 +71,6 @@ contract BinFeeManagerHook is BaseBinTestHook, IBinDynamicFeeManager {
             }
         }
 
-        return IBinHooks.beforeSwap.selector;
+        return (IBinHooks.beforeSwap.selector, 0);
     }
 }

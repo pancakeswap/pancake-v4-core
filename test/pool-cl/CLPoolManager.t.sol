@@ -16,7 +16,7 @@ import {PoolId, PoolIdLibrary} from "../../src/types/PoolId.sol";
 import {IHooks} from "../../src/interfaces/IHooks.sol";
 import {TickMath} from "../../src/pool-cl/libraries/TickMath.sol";
 import {IProtocolFees} from "../../src/interfaces/IProtocolFees.sol";
-import {ICLHooks, HOOKS_AFTER_INITIALIZE_OFFSET} from "../../src/pool-cl/interfaces/ICLHooks.sol";
+import "../../src/pool-cl/interfaces/ICLHooks.sol";
 import {Hooks} from "../../src/libraries/Hooks.sol";
 import {CLPoolManagerRouter} from "./helpers/CLPoolManagerRouter.sol";
 import {FixedPoint96} from "../../src/pool-cl/libraries/FixedPoint96.sol";
@@ -33,7 +33,6 @@ import {NonStandardERC20} from "./helpers/NonStandardERC20.sol";
 import {ProtocolFeeControllerTest} from "./helpers/ProtocolFeeControllerTest.sol";
 import {IProtocolFeeController} from "../../src/interfaces/IProtocolFeeController.sol";
 import {CLFeeManagerHook} from "./helpers/CLFeeManagerHook.sol";
-import {CLNoOpTestHook} from "./helpers/CLNoOpTestHook.sol";
 import {ProtocolFeeLibrary} from "../../src/libraries/ProtocolFeeLibrary.sol";
 import {SafeCast} from "../../src/libraries/SafeCast.sol";
 
@@ -43,6 +42,7 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
     using CLPoolParametersHelper for bytes32;
     using ParametersHelper for bytes32;
     using LPFeeLibrary for uint24;
+    using Hooks for bytes32;
 
     event Initialize(
         PoolId indexed id,
@@ -241,6 +241,46 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
         }
     }
 
+    function testInitialize_HookValidation() external {
+        MockHooks hookAddr = new MockHooks();
+
+        // hook config
+        {
+            PoolKey memory key = PoolKey({
+                currency0: Currency.wrap(makeAddr("token0")),
+                currency1: Currency.wrap(makeAddr("token1")),
+                hooks: IHooks(hookAddr),
+                poolManager: poolManager,
+                fee: uint24(3000),
+                // 0 ~ 15  hookRegistrationMap = 0x1
+                // 16 ~ 24 tickSpacing = 10
+                parameters: bytes32(uint256(0xa0001))
+            });
+
+            vm.expectRevert(abi.encodeWithSelector(Hooks.HookConfigValidationError.selector));
+            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
+        }
+
+        // hook permission
+        {
+            // beforeSwap is disabled but beforeSwapReturnsDelta is enabled
+            hookAddr.setHooksRegistrationBitmap(uint16(1 << HOOKS_BEFORE_SWAP_RETURNS_DELTA_OFFSET));
+            PoolKey memory key = PoolKey({
+                currency0: Currency.wrap(makeAddr("token0")),
+                currency1: Currency.wrap(makeAddr("token1")),
+                hooks: IHooks(hookAddr),
+                poolManager: poolManager,
+                fee: uint24(3000),
+                // 0 ~ 15  hookRegistrationMap =
+                // 16 ~ 24 tickSpacing = 10
+                parameters: bytes32(uint256(0xa0000) | hookAddr.getHooksRegistrationBitmap())
+            });
+
+            vm.expectRevert(abi.encodeWithSelector(Hooks.HookPermissionsValidationError.selector));
+            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
+        }
+    }
+
     function testInitialize_stateCheck() external {
         PoolKey memory key = PoolKey({
             currency0: Currency.wrap(makeAddr("token0")),
@@ -309,6 +349,9 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
             poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
         } else if (!_validateHookConfig(key)) {
             vm.expectRevert(abi.encodeWithSelector(Hooks.HookConfigValidationError.selector));
+            poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
+        } else if (!_validateHookPermissionsConflict(key)) {
+            vm.expectRevert(abi.encodeWithSelector(Hooks.HookPermissionsValidationError.selector));
             poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
         } else if (key.fee & LPFeeLibrary.STATIC_FEE_MASK > LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE) {
             vm.expectRevert(abi.encodeWithSelector(IProtocolFees.FeeTooLarge.selector));
@@ -814,7 +857,9 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
             }),
             ""
         );
-        assertApproxEqRel(uint256(int256(feeDelta.amount0())), 0.003 * 0.1 ether, 1e16); // around 0.3% fee
+
+        // amt0 & amt1 are non positive i.e. the pool owes us tokens
+        assertApproxEqRel(uint256(-int256(feeDelta.amount0())), 0.003 * 0.1 ether, 1e16); // around 0.3% fee
 
         // step 5: Add liquidity, verify feeDelta == 0
         (, feeDelta) = router.modifyPosition(
@@ -848,7 +893,9 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
             }),
             ""
         );
-        assertApproxEqRel(uint256(int256(feeDelta.amount0())), 0.003 * 0.1 ether, 1e16); // around 0.3% fee
+
+        // amt0 & amt1 are non positive i.e. the pool owes us tokens
+        assertApproxEqRel(uint256(-int256(feeDelta.amount0())), 0.003 * 0.1 ether, 1e16); // around 0.3% fee
     }
 
     function testModifyPosition_Liquidity_aboveCurrentTick() external {
@@ -2594,6 +2641,37 @@ contract CLPoolManagerTest is Test, Deployers, TokenFixture, GasSnapshot {
             return false;
         }
 
+        return true;
+    }
+
+    function _validateHookPermissionsConflict(PoolKey memory key) internal pure returns (bool) {
+        if (
+            key.parameters.hasOffsetEnabled(HOOKS_BEFORE_SWAP_RETURNS_DELTA_OFFSET)
+                && !key.parameters.hasOffsetEnabled(HOOKS_BEFORE_SWAP_OFFSET)
+        ) {
+            return false;
+        }
+
+        if (
+            key.parameters.hasOffsetEnabled(HOOKS_AFTER_SWAP_RETURNS_DELTA_OFFSET)
+                && !key.parameters.hasOffsetEnabled(HOOKS_AFTER_SWAP_OFFSET)
+        ) {
+            return false;
+        }
+
+        if (
+            key.parameters.hasOffsetEnabled(HOOKS_AFTER_ADD_LIQUIDIY_RETURNS_DELTA_OFFSET)
+                && !key.parameters.hasOffsetEnabled(HOOKS_AFTER_ADD_LIQUIDITY_OFFSET)
+        ) {
+            return false;
+        }
+
+        if (
+            key.parameters.hasOffsetEnabled(HOOKS_AFTER_REMOVE_LIQUIDIY_RETURNS_DELTA_OFFSET)
+                && !key.parameters.hasOffsetEnabled(HOOKS_AFTER_REMOVE_LIQUIDITY_OFFSET)
+        ) {
+            return false;
+        }
         return true;
     }
 

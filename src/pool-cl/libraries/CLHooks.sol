@@ -11,7 +11,7 @@ import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta} from "../../types/Bal
 library CLHooks {
     using Hooks for bytes32;
 
-    function validate(PoolKey memory key) internal pure {
+    function validatePermissionsConflict(PoolKey memory key) internal pure {
         if (
             key.parameters.hasOffsetEnabled(HOOKS_BEFORE_SWAP_RETURNS_DELTA_OFFSET)
                 && !key.parameters.hasOffsetEnabled(HOOKS_BEFORE_SWAP_OFFSET)
@@ -115,6 +115,7 @@ library CLHooks {
         int128 hookDeltaSpecified
     ) internal returns (BalanceDelta swapperDelta, BalanceDelta hookDelta) {
         ICLHooks hooks = ICLHooks(address(key.hooks));
+        swapperDelta = delta;
 
         int128 hookDeltaUnspecified;
         if (key.parameters.shouldCall(HOOKS_AFTER_SWAP_OFFSET, hooks)) {

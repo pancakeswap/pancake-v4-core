@@ -21,7 +21,10 @@ contract BaseBinTestHook is IBinHooks {
         bool afterSwap;
         bool beforeDonate;
         bool afterDonate;
-        bool noOp;
+        bool beforeSwapReturnsDelta;
+        bool afterSwapReturnsDelta;
+        bool afterMintReturnsDelta;
+        bool afterBurnReturnsDelta;
     }
 
     function getHooksRegistrationBitmap() external view virtual returns (uint16) {
@@ -47,7 +50,7 @@ contract BaseBinTestHook is IBinHooks {
     function afterMint(address, PoolKey calldata, IBinPoolManager.MintParams calldata, BalanceDelta, bytes calldata)
         external
         virtual
-        returns (bytes4)
+        returns (bytes4, BalanceDelta)
     {
         revert HookNotImplemented();
     }
@@ -63,19 +66,23 @@ contract BaseBinTestHook is IBinHooks {
     function afterBurn(address, PoolKey calldata, IBinPoolManager.BurnParams calldata, BalanceDelta, bytes calldata)
         external
         virtual
-        returns (bytes4)
+        returns (bytes4, BalanceDelta)
     {
         revert HookNotImplemented();
     }
 
-    function beforeSwap(address, PoolKey calldata, bool, uint128, bytes calldata) external virtual returns (bytes4) {
+    function beforeSwap(address, PoolKey calldata, bool, uint128, bytes calldata)
+        external
+        virtual
+        returns (bytes4, int128)
+    {
         revert HookNotImplemented();
     }
 
     function afterSwap(address, PoolKey calldata, bool, uint128, BalanceDelta, bytes calldata)
         external
         virtual
-        returns (bytes4)
+        returns (bytes4, int128)
     {
         revert HookNotImplemented();
     }
@@ -108,6 +115,10 @@ contract BaseBinTestHook is IBinHooks {
                 | (permissions.afterSwap ? 1 << HOOKS_AFTER_SWAP_OFFSET : 0)
                 | (permissions.beforeDonate ? 1 << HOOKS_BEFORE_DONATE_OFFSET : 0)
                 | (permissions.afterDonate ? 1 << HOOKS_AFTER_DONATE_OFFSET : 0)
+                | (permissions.beforeSwapReturnsDelta ? 1 << HOOKS_BEFORE_SWAP_RETURNS_DELTA_OFFSET : 0)
+                | (permissions.afterSwapReturnsDelta ? 1 << HOOKS_AFTER_SWAP_RETURNS_DELTA_OFFSET : 0)
+                | (permissions.afterMintReturnsDelta ? 1 << HOOKS_AFTER_MINT_RETURNS_DELTA_OFFSET : 0)
+                | (permissions.afterBurnReturnsDelta ? 1 << HOOKS_AFTER_BURN_RETURNS_DELTA_OFFSET : 0)
         );
     }
 }

@@ -49,7 +49,7 @@ contract CLFeeManagerHook is BaseCLTestHook {
     function beforeSwap(address, PoolKey calldata key, ICLPoolManager.SwapParams calldata, bytes calldata hookData)
         external
         override
-        returns (bytes4)
+        returns (bytes4, int128)
     {
         if (hookData.length > 0) {
             (bool _update, uint24 _fee) = abi.decode(hookData, (bool, uint24));
@@ -59,6 +59,6 @@ contract CLFeeManagerHook is BaseCLTestHook {
             }
         }
 
-        return ICLHooks.beforeSwap.selector;
+        return (ICLHooks.beforeSwap.selector, 0);
     }
 }

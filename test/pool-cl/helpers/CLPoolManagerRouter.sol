@@ -60,37 +60,35 @@ contract CLPoolManagerRouter {
     function modifyPositionCallback(bytes memory rawData) private returns (bytes memory) {
         ModifyPositionCallbackData memory data = abi.decode(rawData, (ModifyPositionCallbackData));
 
+        // delta already takes feeDelta into account
         (BalanceDelta delta, BalanceDelta feeDelta) = poolManager.modifyLiquidity(data.key, data.params, data.hookData);
 
-        // For now assume to always settle feeDelta in the same way as delta
-        BalanceDelta totalDelta = delta + feeDelta;
-
-        if (totalDelta.amount0() > 0) {
+        if (delta.amount0() > 0) {
             if (data.key.currency0.isNative()) {
-                vault.settle{value: uint128(totalDelta.amount0())}(data.key.currency0);
+                vault.settle{value: uint128(delta.amount0())}(data.key.currency0);
             } else {
                 IERC20(Currency.unwrap(data.key.currency0)).transferFrom(
-                    data.sender, address(vault), uint128(totalDelta.amount0())
+                    data.sender, address(vault), uint128(delta.amount0())
                 );
                 vault.settle(data.key.currency0);
             }
         }
-        if (totalDelta.amount1() > 0) {
+        if (delta.amount1() > 0) {
             if (data.key.currency1.isNative()) {
-                vault.settle{value: uint128(totalDelta.amount1())}(data.key.currency1);
+                vault.settle{value: uint128(delta.amount1())}(data.key.currency1);
             } else {
                 IERC20(Currency.unwrap(data.key.currency1)).transferFrom(
-                    data.sender, address(vault), uint128(totalDelta.amount1())
+                    data.sender, address(vault), uint128(delta.amount1())
                 );
                 vault.settle(data.key.currency1);
             }
         }
 
-        if (totalDelta.amount0() < 0) {
-            vault.take(data.key.currency0, data.sender, uint128(-totalDelta.amount0()));
+        if (delta.amount0() < 0) {
+            vault.take(data.key.currency0, data.sender, uint128(-delta.amount0()));
         }
-        if (totalDelta.amount1() < 0) {
-            vault.take(data.key.currency1, data.sender, uint128(-totalDelta.amount1()));
+        if (delta.amount1() < 0) {
+            vault.take(data.key.currency1, data.sender, uint128(-delta.amount1()));
         }
 
         return abi.encode(delta, feeDelta);

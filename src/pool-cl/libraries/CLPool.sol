@@ -142,7 +142,7 @@ library CLPool {
         }
 
         // Fees earned from LPing are removed from the pool balance.
-        feeDelta = toBalanceDelta(feesOwed0.toInt128(), feesOwed1.toInt128());
+        feeDelta = toBalanceDelta(-feesOwed0.toInt128(), -feesOwed1.toInt128());
     }
 
     // the top level state of the swap, the results of which are recorded in storage at the end

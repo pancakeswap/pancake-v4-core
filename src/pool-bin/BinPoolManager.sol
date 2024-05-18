@@ -101,7 +101,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
 
         IBinHooks hooks = IBinHooks(address(key.hooks));
         Hooks.validateHookConfig(key);
-        BinHooks.validate(key);
+        BinHooks.validatePermissionsConflict(key);
 
         /// @notice init value for dynamic lp fee is 0, but hook can still set it in afterInitialize
         uint24 lpFee = key.fee.getInitialLPFee();

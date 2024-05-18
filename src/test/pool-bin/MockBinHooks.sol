@@ -5,7 +5,7 @@ import {Hooks} from "../../libraries/Hooks.sol";
 import {IBinHooks} from "../../pool-bin/interfaces/IBinHooks.sol";
 import {IBinPoolManager} from "../../pool-bin/interfaces/IBinPoolManager.sol";
 import {PoolKey} from "../../types/PoolKey.sol";
-import {BalanceDelta} from "../../types/BalanceDelta.sol";
+import {BalanceDelta, BalanceDeltaLibrary} from "../../types/BalanceDelta.sol";
 import {PoolId, PoolIdLibrary} from "../../types/PoolId.sol";
 
 contract MockBinHooks is IBinHooks {
@@ -67,10 +67,10 @@ contract MockBinHooks is IBinHooks {
         IBinPoolManager.MintParams calldata,
         BalanceDelta,
         bytes calldata hookData
-    ) external override returns (bytes4) {
+    ) external override returns (bytes4, BalanceDelta) {
         afterMintData = hookData;
         bytes4 selector = MockBinHooks.afterMint.selector;
-        return returnValues[selector] == bytes4(0) ? selector : returnValues[selector];
+        return (returnValues[selector] == bytes4(0) ? selector : returnValues[selector], BalanceDeltaLibrary.ZERO_DELTA);
     }
 
     function beforeBurn(address, PoolKey calldata, IBinPoolManager.BurnParams calldata, bytes calldata hookData)
@@ -89,30 +89,30 @@ contract MockBinHooks is IBinHooks {
         IBinPoolManager.BurnParams calldata,
         BalanceDelta,
         bytes calldata hookData
-    ) external override returns (bytes4) {
+    ) external override returns (bytes4, BalanceDelta) {
         afterBurnData = hookData;
         bytes4 selector = MockBinHooks.afterBurn.selector;
-        return returnValues[selector] == bytes4(0) ? selector : returnValues[selector];
+        return (returnValues[selector] == bytes4(0) ? selector : returnValues[selector], BalanceDeltaLibrary.ZERO_DELTA);
     }
 
     function beforeSwap(address, PoolKey calldata, bool, uint128, bytes calldata hookData)
         external
         override
-        returns (bytes4)
+        returns (bytes4, int128)
     {
         beforeSwapData = hookData;
         bytes4 selector = MockBinHooks.beforeSwap.selector;
-        return returnValues[selector] == bytes4(0) ? selector : returnValues[selector];
+        return (returnValues[selector] == bytes4(0) ? selector : returnValues[selector], 0);
     }
 
     function afterSwap(address, PoolKey calldata, bool, uint128, BalanceDelta, bytes calldata hookData)
         external
         override
-        returns (bytes4)
+        returns (bytes4, int128)
     {
         afterSwapData = hookData;
         bytes4 selector = MockBinHooks.afterSwap.selector;
-        return returnValues[selector] == bytes4(0) ? selector : returnValues[selector];
+        return (returnValues[selector] == bytes4(0) ? selector : returnValues[selector], 0);
     }
 
     function beforeDonate(address, PoolKey calldata, uint256, uint256, bytes calldata hookData)

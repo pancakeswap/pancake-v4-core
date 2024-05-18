@@ -101,9 +101,7 @@ contract PoolTest is Test {
         swapParams.tickSpacing = modifyLiquidityParams.tickSpacing;
         CLPool.Slot0 memory slot0 = state.slot0;
 
-        if (swapParams.amountSpecified == 0) {
-            vm.expectRevert(ICLPoolManager.SwapAmountCannotBeZero.selector);
-        } else if (swapParams.zeroForOne) {
+        if (swapParams.zeroForOne) {
             if (swapParams.sqrtPriceLimitX96 >= slot0.sqrtPriceX96) {
                 vm.expectRevert(
                     abi.encodeWithSelector(

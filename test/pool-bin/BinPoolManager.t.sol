@@ -25,7 +25,7 @@ import {PackedUint128Math} from "../../src/pool-bin/libraries/math/PackedUint128
 import {SafeCast} from "../../src/pool-bin/libraries/math/SafeCast.sol";
 import {BinPoolParametersHelper} from "../../src/pool-bin/libraries/BinPoolParametersHelper.sol";
 import {Constants} from "../../src/pool-bin/libraries/Constants.sol";
-import {IBinHooks} from "../../src/pool-bin/interfaces/IBinHooks.sol";
+import "../../src/pool-bin/interfaces/IBinHooks.sol";
 import {BinFeeManagerHook} from "./helpers/BinFeeManagerHook.sol";
 import {IHooks} from "../../src/interfaces/IHooks.sol";
 import {IBinHooks} from "../../src/pool-bin/interfaces/IBinHooks.sol";
@@ -33,7 +33,6 @@ import {BinSwapHelper} from "./helpers/BinSwapHelper.sol";
 import {BinLiquidityHelper} from "./helpers/BinLiquidityHelper.sol";
 import {BinDonateHelper} from "./helpers/BinDonateHelper.sol";
 import {BinTestHelper} from "./helpers/BinTestHelper.sol";
-import {BinNoOpTestHook} from "./helpers/BinNoOpTestHook.sol";
 import {Hooks} from "../../src/libraries/Hooks.sol";
 
 contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
@@ -153,6 +152,44 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         emit Initialize(key.toId(), key.currency0, key.currency1, key.fee, binStep, IBinHooks(address(mockHooks)));
 
         poolManager.initialize(key, activeId, new bytes(0));
+    }
+
+    function testInitializeHookValidation() public {
+        uint16 bitMap = 0x0008; // after mint call
+        MockBinHooks mockHooks = new MockBinHooks();
+        mockHooks.setHooksRegistrationBitmap(bitMap);
+
+        // hook config
+        {
+            key = PoolKey({
+                currency0: currency0,
+                currency1: currency1,
+                // hooks: hook,
+                hooks: IHooks(address(mockHooks)),
+                poolManager: IPoolManager(address(poolManager)),
+                fee: uint24(3000), // 3000 = 0.3%
+                parameters: bytes32(uint256(bitMap - 1)).setBinStep(10)
+            });
+            vm.expectRevert(abi.encodeWithSelector(Hooks.HookConfigValidationError.selector));
+            poolManager.initialize(key, activeId, new bytes(0));
+        }
+
+        // hook permission
+        {
+            bitMap = uint16(1 << HOOKS_AFTER_BURN_RETURNS_DELTA_OFFSET);
+            mockHooks.setHooksRegistrationBitmap(bitMap);
+            key = PoolKey({
+                currency0: currency0,
+                currency1: currency1,
+                // hooks: hook,
+                hooks: IHooks(address(mockHooks)),
+                poolManager: IPoolManager(address(poolManager)),
+                fee: uint24(3000), // 3000 = 0.3%
+                parameters: bytes32(uint256(bitMap)).setBinStep(10)
+            });
+            vm.expectRevert(abi.encodeWithSelector(Hooks.HookPermissionsValidationError.selector));
+            poolManager.initialize(key, activeId, new bytes(0));
+        }
     }
 
     function testInitializeSamePool() public {
