@@ -110,7 +110,7 @@ contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         int256 liquidityDelta = 10000;
         ICLPoolManager.ModifyLiquidityParams memory params =
-            ICLPoolManager.ModifyLiquidityParams(-60, 60, liquidityDelta);
+            ICLPoolManager.ModifyLiquidityParams(-60, 60, liquidityDelta, 0);
         router.modifyPosition(key, params, ZERO_BYTES);
 
         // Fees dont accrue for positive liquidity delta.
@@ -118,11 +118,11 @@ contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
         assertEq(manager.protocolFeesAccrued(currency1), 0);
 
         ICLPoolManager.ModifyLiquidityParams memory params2 =
-            ICLPoolManager.ModifyLiquidityParams(-60, 60, -liquidityDelta);
+            ICLPoolManager.ModifyLiquidityParams(-60, 60, -liquidityDelta, 0);
         router.modifyPosition(key, params2, ZERO_BYTES);
 
         // add larger liquidity
-        params = ICLPoolManager.ModifyLiquidityParams(-60, 60, 10e18);
+        params = ICLPoolManager.ModifyLiquidityParams(-60, 60, 10e18, 0);
         router.modifyPosition(key, params, ZERO_BYTES);
 
         MockERC20(Currency.unwrap(currency1)).approve(address(router), type(uint256).max);
@@ -147,7 +147,7 @@ contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
         (CLPool.Slot0 memory slot0,,,) = manager.pools(key.toId());
         assertEq(slot0.protocolFee, protocolFee);
 
-        ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-120, 120, 10e18);
+        ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-120, 120, 10e18, 0);
         router.modifyPosition(key, params, ZERO_BYTES);
         // 1 for 0 swap
         MockERC20(Currency.unwrap(currency1)).approve(address(router), type(uint256).max);

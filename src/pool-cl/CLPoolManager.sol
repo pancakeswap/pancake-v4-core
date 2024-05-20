@@ -65,23 +65,23 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     }
 
     /// @inheritdoc ICLPoolManager
-    function getLiquidity(PoolId id, address _owner, int24 tickLower, int24 tickUpper)
+    function getLiquidity(PoolId id, address _owner, int24 tickLower, int24 tickUpper, bytes32 salt)
         external
         view
         override
         returns (uint128 liquidity)
     {
-        return pools[id].positions.get(_owner, tickLower, tickUpper).liquidity;
+        return pools[id].positions.get(_owner, tickLower, tickUpper, salt).liquidity;
     }
 
     /// @inheritdoc ICLPoolManager
-    function getPosition(PoolId id, address owner, int24 tickLower, int24 tickUpper)
+    function getPosition(PoolId id, address owner, int24 tickLower, int24 tickUpper, bytes32 salt)
         external
         view
         override
         returns (CLPosition.Info memory position)
     {
-        return pools[id].positions.get(owner, tickLower, tickUpper);
+        return pools[id].positions.get(owner, tickLower, tickUpper, salt);
     }
 
     /// @inheritdoc ICLPoolManager
@@ -165,12 +165,13 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
                 tickLower: params.tickLower,
                 tickUpper: params.tickUpper,
                 liquidityDelta: params.liquidityDelta.toInt128(),
-                tickSpacing: key.parameters.getTickSpacing()
+                tickSpacing: key.parameters.getTickSpacing(),
+                salt: params.salt
             })
         );
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
-        emit ModifyLiquidity(id, msg.sender, params.tickLower, params.tickUpper, params.liquidityDelta);
+        emit ModifyLiquidity(id, msg.sender, params.tickLower, params.tickUpper, params.salt, params.liquidityDelta);
 
         BalanceDelta hookDelta;
         (delta, hookDelta) = CLHooks.afterModifyLiquidity(key, params, delta + feeDelta, hookData);

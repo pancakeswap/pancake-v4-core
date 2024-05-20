@@ -16,7 +16,7 @@ contract CLPositionTest is Test, GasSnapshot {
     CLPool.State public pool;
 
     function test_get_emptyPosition() public {
-        CLPosition.Info memory info = pool.positions.get(address(this), 1, 2);
+        CLPosition.Info memory info = pool.positions.get(address(this), 1, 2, 0);
         assertEq(info.liquidity, 0);
         assertEq(info.feeGrowthInside0LastX128, 0);
         assertEq(info.feeGrowthInside1LastX128, 0);
@@ -27,7 +27,7 @@ contract CLPositionTest is Test, GasSnapshot {
         uint256 feeGrowthInside0X128,
         uint256 feeGrowthInside1X128
     ) public {
-        CLPosition.Info storage info = pool.positions.get(address(this), 1, 2);
+        CLPosition.Info storage info = pool.positions.get(address(this), 1, 2, 0);
 
         if (liquidityDelta == 0) {
             vm.expectRevert(CLPosition.CannotUpdateEmptyPosition.selector);
@@ -44,7 +44,7 @@ contract CLPositionTest is Test, GasSnapshot {
     }
 
     function test_set_updateNonEmptyPosition() public {
-        CLPosition.Info storage info = pool.positions.get(address(this), 1, 2);
+        CLPosition.Info storage info = pool.positions.get(address(this), 1, 2, 0);
 
         // init
         {

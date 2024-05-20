@@ -54,7 +54,12 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         ICLHooks hooks
     );
     event ModifyLiquidity(
-        PoolId indexed poolId, address indexed sender, int24 tickLower, int24 tickUpper, int256 liquidityDelta
+        PoolId indexed poolId,
+        address indexed sender,
+        int24 tickLower,
+        int24 tickUpper,
+        bytes32 salt,
+        int256 liquidityDelta
     );
     event Swap(
         PoolId indexed poolId,
@@ -706,7 +711,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             ICLPoolManager.ModifyLiquidityParams({
                 tickLower: TickMath.MIN_TICK,
                 tickUpper: TickMath.MAX_TICK,
-                liquidityDelta: 1e24
+                liquidityDelta: 1e24,
+                salt: 0
             }),
             ""
         );
@@ -723,15 +729,17 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             assertEq(1e10 ether - token1Left, 9999999999999999999945788);
 
             assertEq(poolManager.getLiquidity(key.toId()), 1e24);
-            assertEq(poolManager.getLiquidity(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK), 1e24);
+            assertEq(
+                poolManager.getLiquidity(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK, 0), 1e24
+            );
 
             assertEq(
-                poolManager.getPosition(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK)
+                poolManager.getPosition(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK, 0)
                     .feeGrowthInside0LastX128,
                 0
             );
             assertEq(
-                poolManager.getPosition(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK)
+                poolManager.getPosition(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK, 0)
                     .feeGrowthInside1LastX128,
                 0
             );
@@ -743,7 +751,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             ICLPoolManager.ModifyLiquidityParams({
                 tickLower: TickMath.MIN_TICK,
                 tickUpper: TickMath.MAX_TICK,
-                liquidityDelta: 1e4
+                liquidityDelta: 1e4,
+                salt: 0
             }),
             ""
         );
@@ -761,16 +770,17 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
             assertEq(poolManager.getLiquidity(key.toId()), 1e24 + 1e4);
             assertEq(
-                poolManager.getLiquidity(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK), 1e24 + 1e4
+                poolManager.getLiquidity(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK, 0),
+                1e24 + 1e4
             );
 
             assertEq(
-                poolManager.getPosition(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK)
+                poolManager.getPosition(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK, 0)
                     .feeGrowthInside0LastX128,
                 0
             );
             assertEq(
-                poolManager.getPosition(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK)
+                poolManager.getPosition(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK, 0)
                     .feeGrowthInside1LastX128,
                 0
             );
@@ -808,7 +818,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             ICLPoolManager.ModifyLiquidityParams({
                 tickLower: TickMath.MIN_TICK,
                 tickUpper: TickMath.MAX_TICK,
-                liquidityDelta: 1e18
+                liquidityDelta: 1e18,
+                salt: 0
             }),
             ""
         );
@@ -820,7 +831,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             ICLPoolManager.ModifyLiquidityParams({
                 tickLower: TickMath.MIN_TICK,
                 tickUpper: TickMath.MAX_TICK,
-                liquidityDelta: 1e18
+                liquidityDelta: 1e18,
+                salt: 0
             }),
             ""
         );
@@ -832,7 +844,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             ICLPoolManager.ModifyLiquidityParams({
                 tickLower: TickMath.MIN_TICK,
                 tickUpper: TickMath.MAX_TICK,
-                liquidityDelta: -1e18
+                liquidityDelta: -1e18,
+                salt: 0
             }),
             ""
         );
@@ -854,7 +867,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             ICLPoolManager.ModifyLiquidityParams({
                 tickLower: TickMath.MIN_TICK,
                 tickUpper: TickMath.MAX_TICK,
-                liquidityDelta: 1e18
+                liquidityDelta: 1e18,
+                salt: 0
             }),
             ""
         );
@@ -868,7 +882,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             ICLPoolManager.ModifyLiquidityParams({
                 tickLower: TickMath.MIN_TICK,
                 tickUpper: TickMath.MAX_TICK,
-                liquidityDelta: 1e18
+                liquidityDelta: 1e18,
+                salt: 0
             }),
             ""
         );
@@ -890,7 +905,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             ICLPoolManager.ModifyLiquidityParams({
                 tickLower: TickMath.MIN_TICK,
                 tickUpper: TickMath.MAX_TICK,
-                liquidityDelta: -1e18
+                liquidityDelta: -1e18,
+                salt: 0
             }),
             ""
         );
@@ -925,7 +941,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         IERC20(Currency.unwrap(currency1)).approve(address(router), 1e30 ether);
 
         router.modifyPosition(
-            key, ICLPoolManager.ModifyLiquidityParams({tickLower: 46055, tickUpper: 46060, liquidityDelta: 1e9}), ""
+            key,
+            ICLPoolManager.ModifyLiquidityParams({tickLower: 46055, tickUpper: 46060, liquidityDelta: 1e9, salt: 0}),
+            ""
         );
 
         uint256 token0Left = IERC20(Currency.unwrap(currency0)).balanceOf(address(this));
@@ -939,10 +957,10 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         // no active liquidity
         assertEq(poolManager.getLiquidity(key.toId()), 0);
-        assertEq(poolManager.getLiquidity(key.toId(), address(router), 46055, 46060), 1e9);
+        assertEq(poolManager.getLiquidity(key.toId(), address(router), 46055, 46060, 0), 1e9);
 
-        assertEq(poolManager.getPosition(key.toId(), address(this), 46055, 46060).feeGrowthInside0LastX128, 0);
-        assertEq(poolManager.getPosition(key.toId(), address(this), 46055, 46060).feeGrowthInside1LastX128, 0);
+        assertEq(poolManager.getPosition(key.toId(), address(this), 46055, 46060, 0).feeGrowthInside0LastX128, 0);
+        assertEq(poolManager.getPosition(key.toId(), address(this), 46055, 46060, 0).feeGrowthInside1LastX128, 0);
     }
 
     function testModifyPosition_addLiquidity_belowCurrentTick() external {
@@ -971,7 +989,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         IERC20(Currency.unwrap(currency1)).approve(address(router), 1e30 ether);
 
         router.modifyPosition(
-            key, ICLPoolManager.ModifyLiquidityParams({tickLower: 46000, tickUpper: 46050, liquidityDelta: 1e9}), ""
+            key,
+            ICLPoolManager.ModifyLiquidityParams({tickLower: 46000, tickUpper: 46050, liquidityDelta: 1e9, salt: 0}),
+            ""
         );
 
         uint256 token0Left = IERC20(Currency.unwrap(currency0)).balanceOf(address(this));
@@ -985,10 +1005,10 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         // no active liquidity
         assertEq(poolManager.getLiquidity(key.toId()), 0);
-        assertEq(poolManager.getLiquidity(key.toId(), address(router), 46000, 46050), 1e9);
+        assertEq(poolManager.getLiquidity(key.toId(), address(router), 46000, 46050, 0), 1e9);
 
-        assertEq(poolManager.getPosition(key.toId(), address(router), 46000, 46050).feeGrowthInside0LastX128, 0);
-        assertEq(poolManager.getPosition(key.toId(), address(router), 46000, 46050).feeGrowthInside1LastX128, 0);
+        assertEq(poolManager.getPosition(key.toId(), address(router), 46000, 46050, 0).feeGrowthInside0LastX128, 0);
+        assertEq(poolManager.getPosition(key.toId(), address(router), 46000, 46050, 0).feeGrowthInside1LastX128, 0);
     }
 
     function testModifyPosition_removeLiquidity_fromEmpty() external {
@@ -1018,7 +1038,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         vm.expectRevert(SafeCast.SafeCastOverflow.selector);
         router.modifyPosition(
-            key, ICLPoolManager.ModifyLiquidityParams({tickLower: 46000, tickUpper: 46050, liquidityDelta: -1}), ""
+            key,
+            ICLPoolManager.ModifyLiquidityParams({tickLower: 46000, tickUpper: 46050, liquidityDelta: -1, salt: 0}),
+            ""
         );
     }
 
@@ -1049,7 +1071,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         vm.expectRevert(CLPosition.CannotUpdateEmptyPosition.selector);
         router.modifyPosition(
-            key, ICLPoolManager.ModifyLiquidityParams({tickLower: 46000, tickUpper: 46050, liquidityDelta: 0}), ""
+            key,
+            ICLPoolManager.ModifyLiquidityParams({tickLower: 46000, tickUpper: 46050, liquidityDelta: 0, salt: 0}),
+            ""
         );
     }
 
@@ -1079,33 +1103,39 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         IERC20(Currency.unwrap(currency1)).approve(address(router), 1e30 ether);
 
         router.modifyPosition(
-            key, ICLPoolManager.ModifyLiquidityParams({tickLower: -1, tickUpper: 1, liquidityDelta: 100 ether}), ""
+            key,
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -1, tickUpper: 1, liquidityDelta: 100 ether, salt: 0}),
+            ""
         );
 
         assertEq(poolManager.getLiquidity(key.toId()), 100 ether, "total liquidity should be 1000");
         assertEq(
-            poolManager.getLiquidity(key.toId(), address(router), -1, 1), 100 ether, "router's liquidity should be 1000"
+            poolManager.getLiquidity(key.toId(), address(router), -1, 1, 0),
+            100 ether,
+            "router's liquidity should be 1000"
         );
 
         assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 4999625031247266);
         assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 4999625031247266);
 
-        assertEq(poolManager.getPosition(key.toId(), address(router), -1, 1).feeGrowthInside0LastX128, 0);
-        assertEq(poolManager.getPosition(key.toId(), address(router), -1, 1).feeGrowthInside1LastX128, 0);
+        assertEq(poolManager.getPosition(key.toId(), address(router), -1, 1, 0).feeGrowthInside0LastX128, 0);
+        assertEq(poolManager.getPosition(key.toId(), address(router), -1, 1, 0).feeGrowthInside1LastX128, 0);
 
         router.modifyPosition(
-            key, ICLPoolManager.ModifyLiquidityParams({tickLower: -1, tickUpper: 1, liquidityDelta: -100 ether}), ""
+            key,
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -1, tickUpper: 1, liquidityDelta: -100 ether, salt: 0}),
+            ""
         );
 
         assertEq(poolManager.getLiquidity(key.toId()), 0);
-        assertEq(poolManager.getLiquidity(key.toId(), address(router), -1, 1), 0);
+        assertEq(poolManager.getLiquidity(key.toId(), address(router), -1, 1, 0), 0);
 
         // expected to receive 0, but got 1 because of precision loss
         assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 1);
         assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 1);
 
-        assertEq(poolManager.getPosition(key.toId(), address(router), -1, 1).feeGrowthInside0LastX128, 0);
-        assertEq(poolManager.getPosition(key.toId(), address(router), -1, 1).feeGrowthInside1LastX128, 0);
+        assertEq(poolManager.getPosition(key.toId(), address(router), -1, 1, 0).feeGrowthInside0LastX128, 0);
+        assertEq(poolManager.getPosition(key.toId(), address(router), -1, 1, 0).feeGrowthInside1LastX128, 0);
     }
 
     function testModifyPosition_removeLiquidity_halfAndThenAll() external {
@@ -1134,7 +1164,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         IERC20(Currency.unwrap(currency1)).approve(address(router), 1e30 ether);
 
         router.modifyPosition(
-            key, ICLPoolManager.ModifyLiquidityParams({tickLower: 46000, tickUpper: 46050, liquidityDelta: 1e9}), ""
+            key,
+            ICLPoolManager.ModifyLiquidityParams({tickLower: 46000, tickUpper: 46050, liquidityDelta: 1e9, salt: 0}),
+            ""
         );
 
         {
@@ -1149,17 +1181,17 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
             // no active liquidity
             assertEq(poolManager.getLiquidity(key.toId()), 0);
-            assertEq(poolManager.getLiquidity(key.toId(), address(router), 46000, 46050), 1e9);
+            assertEq(poolManager.getLiquidity(key.toId(), address(router), 46000, 46050, 0), 1e9);
 
-            assertEq(poolManager.getPosition(key.toId(), address(router), 46000, 46050).feeGrowthInside0LastX128, 0);
-            assertEq(poolManager.getPosition(key.toId(), address(router), 46000, 46050).feeGrowthInside1LastX128, 0);
+            assertEq(poolManager.getPosition(key.toId(), address(router), 46000, 46050, 0).feeGrowthInside0LastX128, 0);
+            assertEq(poolManager.getPosition(key.toId(), address(router), 46000, 46050, 0).feeGrowthInside1LastX128, 0);
         }
 
         // remove half
         snapStart("CLPoolManagerTest#removeLiquidity_toNonEmpty");
         router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: 46000, tickUpper: 46050, liquidityDelta: -5 * 1e8}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: 46000, tickUpper: 46050, liquidityDelta: -5 * 1e8, salt: 0}),
             ""
         );
         snapEnd();
@@ -1174,15 +1206,15 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
             // no active liquidity
             assertEq(poolManager.getLiquidity(key.toId()), 0);
-            assertEq(poolManager.getLiquidity(key.toId(), address(router), 46000, 46050), 5 * 1e8);
+            assertEq(poolManager.getLiquidity(key.toId(), address(router), 46000, 46050, 0), 5 * 1e8);
 
-            assertEq(poolManager.getPosition(key.toId(), address(router), 46000, 46050).feeGrowthInside0LastX128, 0);
-            assertEq(poolManager.getPosition(key.toId(), address(router), 46000, 46050).feeGrowthInside1LastX128, 0);
+            assertEq(poolManager.getPosition(key.toId(), address(router), 46000, 46050, 0).feeGrowthInside0LastX128, 0);
+            assertEq(poolManager.getPosition(key.toId(), address(router), 46000, 46050, 0).feeGrowthInside1LastX128, 0);
         }
 
         router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: 46000, tickUpper: 46050, liquidityDelta: -5 * 1e8}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: 46000, tickUpper: 46050, liquidityDelta: -5 * 1e8, salt: 0}),
             ""
         );
 
@@ -1198,10 +1230,10 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
             // no active liquidity
             assertEq(poolManager.getLiquidity(key.toId()), 0);
-            assertEq(poolManager.getLiquidity(key.toId(), address(router), 46000, 46050), 0);
+            assertEq(poolManager.getLiquidity(key.toId(), address(router), 46000, 46050, 0), 0);
 
-            assertEq(poolManager.getPosition(key.toId(), address(router), 46000, 46050).feeGrowthInside0LastX128, 0);
-            assertEq(poolManager.getPosition(key.toId(), address(router), 46000, 46050).feeGrowthInside1LastX128, 0);
+            assertEq(poolManager.getPosition(key.toId(), address(router), 46000, 46050, 0).feeGrowthInside0LastX128, 0);
+            assertEq(poolManager.getPosition(key.toId(), address(router), 46000, 46050, 0).feeGrowthInside1LastX128, 0);
         }
     }
 
@@ -1216,7 +1248,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
         vm.expectRevert();
         router.modifyPosition(
-            key, ICLPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 100}), ZERO_BYTES
+            key,
+            ICLPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 100, salt: 0}),
+            ZERO_BYTES
         );
     }
 
@@ -1235,10 +1269,12 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
 
         vm.expectEmit(true, true, true, true);
-        emit ModifyLiquidity(key.toId(), address(router), 0, 60, 100);
+        emit ModifyLiquidity(key.toId(), address(router), 0, 60, 0, 100);
 
         router.modifyPosition(
-            key, ICLPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 100}), ZERO_BYTES
+            key,
+            ICLPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 100, salt: 0}),
+            ZERO_BYTES
         );
     }
 
@@ -1256,10 +1292,12 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
         vm.expectEmit(true, true, true, true);
-        emit ModifyLiquidity(key.toId(), address(router), 0, 60, 100);
+        emit ModifyLiquidity(key.toId(), address(router), 0, 60, 0, 100);
 
         router.modifyPosition{value: 100}(
-            key, ICLPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 100}), ZERO_BYTES
+            key,
+            ICLPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 100, salt: 0}),
+            ZERO_BYTES
         );
     }
 
@@ -1278,7 +1316,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         ICLPoolManager.ModifyLiquidityParams memory params =
-            ICLPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 100});
+            ICLPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 100, salt: 0});
 
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
 
@@ -1318,7 +1356,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         ICLPoolManager.ModifyLiquidityParams memory params =
-            ICLPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 100});
+            ICLPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 100, salt: 0});
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
@@ -1348,7 +1386,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         ICLPoolManager.ModifyLiquidityParams memory params =
-            ICLPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 100});
+            ICLPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 100, salt: 0});
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
@@ -1356,7 +1394,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         mockHooks.setReturnValue(mockHooks.afterAddLiquidity.selector, mockHooks.afterAddLiquidity.selector);
 
         vm.expectEmit(true, true, true, true);
-        emit ModifyLiquidity(key.toId(), address(router), 0, 60, 100);
+        emit ModifyLiquidity(key.toId(), address(router), 0, 60, 0, 100);
 
         router.modifyPosition(key, params, ZERO_BYTES);
     }
@@ -1375,7 +1413,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         snapStart("CLPoolManagerTest#addLiquidity_nativeToken");
         router.modifyPosition{value: 100}(
-            key, ICLPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 100}), ZERO_BYTES
+            key,
+            ICLPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 100, salt: 0}),
+            ZERO_BYTES
         );
         snapEnd();
     }
@@ -1411,7 +1451,12 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: 46053, tickUpper: 46055, liquidityDelta: 1000000 ether}),
+            ICLPoolManager.ModifyLiquidityParams({
+                tickLower: 46053,
+                tickUpper: 46055,
+                liquidityDelta: 1000000 ether,
+                salt: 0
+            }),
             ""
         );
 
@@ -1473,7 +1518,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
         ICLPoolManager.ModifyLiquidityParams memory modifyPositionParams =
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -60, tickUpper: 60, liquidityDelta: 1 ether});
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -60, tickUpper: 60, liquidityDelta: 1 ether, salt: 0});
 
         router.modifyPosition(key, modifyPositionParams, ZERO_BYTES);
 
@@ -1508,7 +1553,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
         ICLPoolManager.ModifyLiquidityParams memory modifyPositionParams =
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -60, tickUpper: 60, liquidityDelta: 1 ether});
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -60, tickUpper: 60, liquidityDelta: 1 ether, salt: 0});
 
         router.modifyPosition(key, modifyPositionParams, ZERO_BYTES);
 
@@ -1549,7 +1594,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         );
 
         ICLPoolManager.ModifyLiquidityParams memory modifyPositionParams =
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -60, tickUpper: 60, liquidityDelta: 1 ether});
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -60, tickUpper: 60, liquidityDelta: 1 ether, salt: 0});
 
         router.modifyPosition(key, modifyPositionParams, ZERO_BYTES);
 
@@ -1657,7 +1702,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         ICLPoolManager.ModifyLiquidityParams memory params =
-            ICLPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 100});
+            ICLPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 100, salt: 0});
 
         ICLPoolManager.SwapParams memory swapParams =
             ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: 10, sqrtPriceLimitX96: SQRT_RATIO_1_2});
@@ -1694,7 +1739,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         ICLPoolManager.ModifyLiquidityParams memory params =
-            ICLPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 100});
+            ICLPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 100, salt: 0});
 
         ICLPoolManager.SwapParams memory swapParams =
             ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: 10, sqrtPriceLimitX96: SQRT_RATIO_1_2});
@@ -1733,7 +1778,12 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
         router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -120, tickUpper: 120, liquidityDelta: 1000000000000000000}),
+            ICLPoolManager.ModifyLiquidityParams({
+                tickLower: -120,
+                tickUpper: 120,
+                liquidityDelta: 1000000000000000000,
+                salt: 0
+            }),
             ZERO_BYTES
         );
 
@@ -1764,7 +1814,12 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
         router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -120, tickUpper: 120, liquidityDelta: 1000000000000000000}),
+            ICLPoolManager.ModifyLiquidityParams({
+                tickLower: -120,
+                tickUpper: 120,
+                liquidityDelta: 1000000000000000000,
+                salt: 0
+            }),
             ZERO_BYTES
         );
         vm.expectEmit(true, true, true, true);
@@ -1893,7 +1948,12 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
         router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -120, tickUpper: 120, liquidityDelta: 1000000000000000000}),
+            ICLPoolManager.ModifyLiquidityParams({
+                tickLower: -120,
+                tickUpper: 120,
+                liquidityDelta: 1000000000000000000,
+                salt: 0
+            }),
             ZERO_BYTES
         );
 
@@ -1921,7 +1981,12 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
         router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -120, tickUpper: 120, liquidityDelta: 1000000000000000000}),
+            ICLPoolManager.ModifyLiquidityParams({
+                tickLower: -120,
+                tickUpper: 120,
+                liquidityDelta: 1000000000000000000,
+                salt: 0
+            }),
             ZERO_BYTES
         );
         router.swap(key, params, testSettings, ZERO_BYTES);
@@ -1962,7 +2027,12 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
         router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -120, tickUpper: 120, liquidityDelta: 1000000000000000000}),
+            ICLPoolManager.ModifyLiquidityParams({
+                tickLower: -120,
+                tickUpper: 120,
+                liquidityDelta: 1000000000000000000,
+                salt: 0
+            }),
             ZERO_BYTES
         );
 
@@ -1994,7 +2064,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
         router.modifyPosition{value: 1 ether}(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -120, tickUpper: 120, liquidityDelta: 1 ether}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -120, tickUpper: 120, liquidityDelta: 1 ether, salt: 0}),
             ZERO_BYTES
         );
 
@@ -2052,7 +2122,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
-        ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-60, 60, 100);
+        ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-60, 60, 100, 0);
         router.modifyPosition(key, params, ZERO_BYTES);
         snapStart("CLPoolManagerTest#donateBothTokens");
         router.donate(key, 100, 200, ZERO_BYTES);
@@ -2076,7 +2146,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
-        ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-60, 60, 100);
+        ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-60, 60, 100, 0);
         router.modifyPosition{value: 1}(key, params, ZERO_BYTES);
         router.donate{value: 100}(key, 100, 200, ZERO_BYTES);
 
@@ -2102,7 +2172,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
-        ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-60, 60, 100);
+        ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-60, 60, 100, 0);
         router.modifyPosition(key, params, ZERO_BYTES);
         mockHooks.setReturnValue(mockHooks.beforeDonate.selector, bytes4(0xdeadbeef));
         mockHooks.setReturnValue(mockHooks.afterDonate.selector, bytes4(0xdeadbeef));
@@ -2134,7 +2204,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
-        ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-60, 60, 100);
+        ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-60, 60, 100, 0);
         router.modifyPosition(key, params, ZERO_BYTES);
 
         mockHooks.setReturnValue(mockHooks.beforeDonate.selector, mockHooks.beforeDonate.selector);
@@ -2154,7 +2224,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
-        ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-60, 60, 100);
+        ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-60, 60, 100, 0);
         router.modifyPosition(key, params, ZERO_BYTES);
 
         (, int24 tick,,) = poolManager.getSlot0(key.toId());
@@ -2176,7 +2246,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
-        ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-60, 60, 100);
+        ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-60, 60, 100, 0);
         router.modifyPosition(key, params, ZERO_BYTES);
 
         snapStart("CLPoolManagerTest#gasDonateOneToken");
@@ -2202,7 +2272,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         MockERC20(Currency.unwrap(currency0)).approve(address(router), type(uint256).max);
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
-        ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-60, 60, 1000);
+        ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-60, 60, 1000, 0);
         router.modifyPosition(key, params, ZERO_BYTES);
 
         (uint256 amount0, uint256 amount1) = currency0Invalid ? (1, 0) : (0, 1);
@@ -2226,7 +2296,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
-        ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-60, 60, 100);
+        ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-60, 60, 100, 0);
         router.modifyPosition(key, params, ZERO_BYTES);
         router.take(key, 1, 1); // assertions inside router because it takes then settles
     }
@@ -2242,7 +2312,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
-        ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-60, 60, 100);
+        ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-60, 60, 100, 0);
         router.modifyPosition{value: 100}(key, params, ZERO_BYTES);
         router.take{value: 1}(key, 1, 1); // assertions inside router because it takes then settles
     }
@@ -2311,7 +2381,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
         assertEq(slot0.protocolFee, protocolFee);
 
-        ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-120, 120, 10 ether);
+        ICLPoolManager.ModifyLiquidityParams memory params =
+            ICLPoolManager.ModifyLiquidityParams(-120, 120, 10 ether, 0);
         router.modifyPosition(key, params, ZERO_BYTES);
         router.swap(
             key,
@@ -2349,7 +2420,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
         assertEq(slot0.protocolFee, protocolFee);
 
-        ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-120, 120, 10 ether);
+        ICLPoolManager.ModifyLiquidityParams memory params =
+            ICLPoolManager.ModifyLiquidityParams(-120, 120, 10 ether, 0);
         router.modifyPosition(key, params, ZERO_BYTES);
         router.swap(
             key,
@@ -2388,7 +2460,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
         assertEq(slot0.protocolFee, protocolFee);
 
-        ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-120, 120, 10 ether);
+        ICLPoolManager.ModifyLiquidityParams memory params =
+            ICLPoolManager.ModifyLiquidityParams(-120, 120, 10 ether, 0);
         router.modifyPosition{value: 10 ether}(key, params, ZERO_BYTES);
         router.swap{value: 10000}(
             key,
@@ -2427,7 +2500,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
         assertEq(slot0.protocolFee, protocolFee);
 
-        ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-120, 120, 10 ether);
+        ICLPoolManager.ModifyLiquidityParams memory params =
+            ICLPoolManager.ModifyLiquidityParams(-120, 120, 10 ether, 0);
         router.modifyPosition{value: 10 ether}(key, params, ZERO_BYTES);
         router.swap{value: 10000}(
             key,
@@ -2535,7 +2609,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             ICLPoolManager.ModifyLiquidityParams({
                 tickLower: TickMath.MIN_TICK,
                 tickUpper: TickMath.MAX_TICK,
-                liquidityDelta: 1e24
+                liquidityDelta: 1e24,
+                salt: 0
             }),
             ""
         );
@@ -2563,7 +2638,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         // pre-req add liquidity
         router.modifyPosition(
-            key, ICLPoolManager.ModifyLiquidityParams({tickLower: -120, tickUpper: 120, liquidityDelta: 1e24}), ""
+            key,
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -120, tickUpper: 120, liquidityDelta: 1e24, salt: 0}),
+            ""
         );
 
         // pause
@@ -2571,7 +2648,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         // verify no revert
         router.modifyPosition(
-            key, ICLPoolManager.ModifyLiquidityParams({tickLower: -120, tickUpper: 120, liquidityDelta: -1e24}), ""
+            key,
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -120, tickUpper: 120, liquidityDelta: -1e24, salt: 0}),
+            ""
         );
     }
 

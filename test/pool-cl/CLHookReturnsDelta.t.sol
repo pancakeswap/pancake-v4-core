@@ -63,7 +63,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
     function testModifyPosition_AddMore() external {
         (BalanceDelta delta,) = router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10 ether}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10 ether, salt: 0}),
             abi.encode(0 ether)
         );
 
@@ -71,7 +71,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         (BalanceDelta delta2,) = router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10 ether}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10 ether, salt: 0}),
             abi.encode(10 ether)
         );
         uint128 liquidity2 = poolManager.getLiquidity(key.toId());
@@ -90,7 +90,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
         // add some liquidity first in case the pool is empty
         router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10 ether}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10 ether, salt: 0}),
             abi.encode(10 ether)
         );
 
@@ -100,7 +100,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         (BalanceDelta delta,) = router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10 ether}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10 ether, salt: 0}),
             abi.encode(-10 ether)
         );
         uint128 liquidityAfter = poolManager.getLiquidity(key.toId());
@@ -119,7 +119,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
         // add some liquidity first in case the pool is empty
         (BalanceDelta delta,) = router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10 ether}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10 ether, salt: 0}),
             abi.encode(10 ether)
         );
 
@@ -129,7 +129,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         (BalanceDelta delta2,) = router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: -5 ether}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: -5 ether, salt: 0}),
             abi.encode(-5 ether)
         );
         uint128 liquidityAfter = poolManager.getLiquidity(key.toId());
@@ -148,7 +148,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
         // add some liquidity first in case the pool is empty
         router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10 ether}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10 ether, salt: 0}),
             abi.encode(10 ether)
         );
 
@@ -158,7 +158,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         (BalanceDelta delta,) = router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: -5 ether}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: -5 ether, salt: 0}),
             abi.encode(5 ether)
         );
         uint128 liquidityAfter = poolManager.getLiquidity(key.toId());
@@ -177,7 +177,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
         // add some liquidity first in case the pool is empty
         router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10000 ether}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10000 ether, salt: 0}),
             abi.encode(10000 ether)
         );
 
@@ -218,7 +218,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
         // add some liquidity first in case the pool is empty
         router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10000 ether}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10000 ether, salt: 0}),
             abi.encode(10000 ether)
         );
 
@@ -262,7 +262,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
         // add some liquidity first in case the pool is empty
         router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10000 ether}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10000 ether, salt: 0}),
             abi.encode(10000 ether)
         );
 
@@ -305,7 +305,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
         // add some liquidity first in case the pool is empty
         router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10000 ether}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10000 ether, salt: 0}),
             abi.encode(10000 ether)
         );
 

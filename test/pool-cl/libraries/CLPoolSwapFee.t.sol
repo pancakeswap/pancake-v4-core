@@ -103,7 +103,7 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
         poolManager.initialize(dynamicFeeKey, SQRT_RATIO_1_1, ZERO_BYTES);
 
         ICLPoolManager.ModifyLiquidityParams memory modifyPositionParams =
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -60, tickUpper: 60, liquidityDelta: 1 ether});
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -60, tickUpper: 60, liquidityDelta: 1 ether, salt: 0});
         router.modifyPosition(dynamicFeeKey, modifyPositionParams, ZERO_BYTES);
 
         vm.expectEmit(true, true, true, true);
@@ -133,7 +133,7 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
         poolManager.initialize(staticFeeKey, SQRT_RATIO_1_1, ZERO_BYTES);
 
         ICLPoolManager.ModifyLiquidityParams memory modifyPositionParams =
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -60, tickUpper: 60, liquidityDelta: 1 ether});
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -60, tickUpper: 60, liquidityDelta: 1 ether, salt: 0});
         router.modifyPosition(staticFeeKey, modifyPositionParams, ZERO_BYTES);
 
         vm.expectEmit(true, true, true, true);
@@ -166,7 +166,7 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
         poolManager.initialize(dynamicFeeKey, SQRT_RATIO_1_1, ZERO_BYTES);
 
         ICLPoolManager.ModifyLiquidityParams memory modifyPositionParams =
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -60, tickUpper: 60, liquidityDelta: 1 ether});
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -60, tickUpper: 60, liquidityDelta: 1 ether, salt: 0});
         router.modifyPosition(dynamicFeeKey, modifyPositionParams, ZERO_BYTES);
 
         vm.expectEmit(true, true, true, true);
