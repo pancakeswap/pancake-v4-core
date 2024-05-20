@@ -69,13 +69,13 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
     }
 
     /// @inheritdoc IBinPoolManager
-    function getPosition(PoolId id, address owner, uint24 binId)
+    function getPosition(PoolId id, address owner, uint24 binId, bytes32 salt)
         external
         view
         override
         returns (BinPosition.Info memory position)
     {
-        return pools[id].positions.get(owner, binId);
+        return pools[id].positions.get(owner, binId, salt);
     }
 
     /// @inheritdoc IBinPoolManager
@@ -248,7 +248,8 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
                 to: msg.sender,
                 liquidityConfigs: params.liquidityConfigs,
                 amountIn: params.amountIn,
-                binStep: key.parameters.getBinStep()
+                binStep: key.parameters.getBinStep(),
+                salt: params.salt
             })
         );
 
@@ -260,7 +261,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         }
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
-        emit Mint(id, msg.sender, mintArray.ids, mintArray.amounts, compositionFee, feeForProtocol);
+        emit Mint(id, msg.sender, mintArray.ids, params.salt, mintArray.amounts, compositionFee, feeForProtocol);
 
         BalanceDelta hookDelta;
         (delta, hookDelta) = BinHooks.afterMint(key, params, delta, hookData);
@@ -290,11 +291,17 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
 
         uint256[] memory binIds;
         bytes32[] memory amountRemoved;
-        (delta, binIds, amountRemoved) =
-            pools[id].burn(BinPool.BurnParams({from: msg.sender, ids: params.ids, amountsToBurn: params.amountsToBurn}));
+        (delta, binIds, amountRemoved) = pools[id].burn(
+            BinPool.BurnParams({
+                from: msg.sender,
+                ids: params.ids,
+                amountsToBurn: params.amountsToBurn,
+                salt: params.salt
+            })
+        );
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
-        emit Burn(id, msg.sender, binIds, amountRemoved);
+        emit Burn(id, msg.sender, binIds, params.salt, amountRemoved);
 
         BalanceDelta hookDelta;
         (delta, hookDelta) = BinHooks.afterBurn(key, params, delta, hookData);

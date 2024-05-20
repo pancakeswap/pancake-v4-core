@@ -41,7 +41,8 @@ abstract contract BinTestHelper is Test {
 
         IBinPoolManager.MintParams memory params = IBinPoolManager.MintParams({
             liquidityConfigs: liquidityConfigurations,
-            amountIn: PackedUint128Math.encode(amountX.safe128(), amountY.safe128())
+            amountIn: PackedUint128Math.encode(amountX.safe128(), amountY.safe128()),
+            salt: 0
         });
 
         vm.prank(from);
@@ -87,14 +88,16 @@ abstract contract BinTestHelper is Test {
 
             params = IBinPoolManager.MintParams({
                 liquidityConfigs: liquidityConfigurations,
-                amountIn: PackedUint128Math.encode(0, amount.safe128())
+                amountIn: PackedUint128Math.encode(0, amount.safe128()),
+                salt: 0
             });
         } else {
             liquidityConfigurations[0] = LiquidityConfigurations.encodeParams(1e18, 0, binId);
 
             params = IBinPoolManager.MintParams({
                 liquidityConfigs: liquidityConfigurations,
-                amountIn: PackedUint128Math.encode(amount.safe128(), 0)
+                amountIn: PackedUint128Math.encode(amount.safe128(), 0),
+                salt: 0
             });
         }
     }
@@ -127,7 +130,8 @@ abstract contract BinTestHelper is Test {
 
         params = IBinPoolManager.MintParams({
             liquidityConfigs: liquidityConfigurations,
-            amountIn: PackedUint128Math.encode(amountX.safe128(), amountY.safe128())
+            amountIn: PackedUint128Math.encode(amountX.safe128(), amountY.safe128()),
+            salt: 0
         });
     }
 
@@ -145,7 +149,8 @@ abstract contract BinTestHelper is Test {
         ids[0] = binId;
         amtToBurn[0] = amountsToBurn;
 
-        IBinPoolManager.BurnParams memory params = IBinPoolManager.BurnParams({ids: ids, amountsToBurn: amtToBurn});
+        IBinPoolManager.BurnParams memory params =
+            IBinPoolManager.BurnParams({ids: ids, amountsToBurn: amtToBurn, salt: 0});
 
         vm.prank(from);
         delta = poolManager.burn(key, params, hookData);
@@ -158,7 +163,8 @@ abstract contract BinTestHelper is Test {
         uint256[] memory ids,
         uint256[] memory amountsToBurn
     ) public {
-        IBinPoolManager.BurnParams memory params = IBinPoolManager.BurnParams({ids: ids, amountsToBurn: amountsToBurn});
+        IBinPoolManager.BurnParams memory params =
+            IBinPoolManager.BurnParams({ids: ids, amountsToBurn: amountsToBurn, salt: 0});
 
         vm.prank(from);
         poolManager.burn(key, params, "0x00");
@@ -177,9 +183,9 @@ abstract contract BinTestHelper is Test {
         uint256[] memory balances = new uint256[](1);
 
         ids[0] = binId;
-        balances[0] = (pm.getPosition(_key.toId(), from, binId).share * sharePercentage) / 100;
+        balances[0] = (pm.getPosition(_key.toId(), from, binId, 0).share * sharePercentage) / 100;
 
-        params = IBinPoolManager.BurnParams({ids: ids, amountsToBurn: balances});
+        params = IBinPoolManager.BurnParams({ids: ids, amountsToBurn: balances, salt: 0});
     }
 
     /// @dev get burn params assuming user is burning all liquidity at the binId
@@ -196,10 +202,10 @@ abstract contract BinTestHelper is Test {
 
         for (uint256 i; i < binIds.length; i++) {
             ids[i] = binIds[i];
-            balances[i] = (pm.getPosition(_key.toId(), from, binIds[i]).share * sharePercentage) / 100;
+            balances[i] = (pm.getPosition(_key.toId(), from, binIds[i], 0).share * sharePercentage) / 100;
         }
 
-        params = IBinPoolManager.BurnParams({ids: ids, amountsToBurn: balances});
+        params = IBinPoolManager.BurnParams({ids: ids, amountsToBurn: balances, salt: 0});
     }
 
     function getTotalBins(uint8 nbBinX, uint8 nbBinY) public pure returns (uint256) {

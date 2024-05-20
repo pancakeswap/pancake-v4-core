@@ -61,11 +61,12 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         PoolId indexed id,
         address indexed sender,
         uint256[] ids,
+        bytes32 salt,
         bytes32[] amounts,
         bytes32 compositionFee,
         bytes32 pFees
     );
-    event Burn(PoolId indexed id, address indexed sender, uint256[] ids, bytes32[] amounts);
+    event Burn(PoolId indexed id, address indexed sender, uint256[] ids, bytes32 salt, bytes32[] amounts);
     event Swap(
         PoolId indexed id,
         address indexed sender,
@@ -278,7 +279,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         vm.expectEmit();
         bytes32 compositionFee = uint128(0).encode(uint128(0));
         bytes32 pFee = uint128(0).encode(uint128(0));
-        emit Mint(key.toId(), address(binLiquidityHelper), ids, amounts, compositionFee, pFee);
+        emit Mint(key.toId(), address(binLiquidityHelper), ids, 0, amounts, compositionFee, pFee);
 
         snapStart("BinPoolManagerTest#testGasMintOneBin-1");
         binLiquidityHelper.mint(key, mintParams, "");
@@ -327,7 +328,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         bytes32 compositionFee = uint128(0).encode(uint128(0));
         bytes32 pFee = uint128(0).encode(uint128(0));
         vm.expectEmit();
-        emit Mint(key.toId(), address(binLiquidityHelper), ids, amounts, compositionFee, pFee);
+        emit Mint(key.toId(), address(binLiquidityHelper), ids, 0, amounts, compositionFee, pFee);
 
         // 1 ether as add 1 ether in native currency
         snapStart("BinPoolManagerTest#testMintNativeCurrency");
@@ -354,7 +355,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         ids[0] = activeId;
         amounts[0] = uint128(1e18).encode(uint128(1e18));
         vm.expectEmit();
-        emit Burn(key.toId(), address(binLiquidityHelper), ids, amounts);
+        emit Burn(key.toId(), address(binLiquidityHelper), ids, 0, amounts);
 
         snapStart("BinPoolManagerTest#testGasBurnOneBin");
         binLiquidityHelper.burn(key, burnParams, "");
@@ -423,7 +424,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         ids[0] = activeId;
         amounts[0] = uint128(1e18).encode(uint128(1e18));
         vm.expectEmit();
-        emit Burn(key.toId(), address(binLiquidityHelper), ids, amounts);
+        emit Burn(key.toId(), address(binLiquidityHelper), ids, 0, amounts);
 
         snapStart("BinPoolManagerTest#testBurnNativeCurrency");
         binLiquidityHelper.burn(key, burnParams, "");

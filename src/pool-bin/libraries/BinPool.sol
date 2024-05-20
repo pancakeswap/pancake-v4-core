@@ -264,6 +264,7 @@ library BinPool {
         bytes32[] liquidityConfigs;
         bytes32 amountIn;
         uint16 binStep;
+        bytes32 salt;
     }
 
     struct MintArrays {
@@ -318,6 +319,7 @@ library BinPool {
         address from;
         uint256[] ids;
         uint256[] amountsToBurn;
+        bytes32 salt;
     }
 
     /// @notice Burn user's share and withdraw tokens form the pool.
@@ -342,7 +344,7 @@ library BinPool {
             bytes32 binReserves = self.reserveOfBin[id];
             uint256 supply = self.shareOfBin[id];
 
-            _subShare(self, params.from, id, amountToBurn);
+            _subShare(self, params.from, id, params.salt, amountToBurn);
 
             bytes32 amountsOutFromBin = binReserves.getAmountOutOfBin(amountToBurn, supply);
 
@@ -396,10 +398,21 @@ library BinPool {
         amountsLeft = params.amountIn;
 
         for (uint256 i; i < params.liquidityConfigs.length;) {
-            (bytes32 maxAmountsInToBin, uint24 id) = params.liquidityConfigs[i].getAmountsAndId(params.amountIn);
+            uint24 id;
+            uint256 shares;
+            bytes32 amountsIn;
+            bytes32 amountsInToBin;
+            bytes32 binFeeAmt;
+            bytes32 binCompositionFee;
 
-            (uint256 shares, bytes32 amountsIn, bytes32 amountsInToBin, bytes32 binFeeAmt, bytes32 binCompositionFee) =
-                _updateBin(self, params, id, maxAmountsInToBin);
+            // fix stack too deep
+            {
+                bytes32 maxAmountsInToBin;
+                (maxAmountsInToBin, id) = params.liquidityConfigs[i].getAmountsAndId(params.amountIn);
+
+                (shares, amountsIn, amountsInToBin, binFeeAmt, binCompositionFee) =
+                    _updateBin(self, params, id, maxAmountsInToBin);
+            }
 
             amountsLeft = amountsLeft.sub(amountsIn);
             feeForProtocol = feeForProtocol.add(binFeeAmt);
@@ -408,7 +421,7 @@ library BinPool {
             arrays.amounts[i] = amountsInToBin;
             arrays.liquidityMinted[i] = shares;
 
-            _addShare(self, params.to, id, shares);
+            _addShare(self, params.to, id, params.salt, shares);
 
             compositionFee = compositionFee.add(binCompositionFee);
 
@@ -475,14 +488,14 @@ library BinPool {
     }
 
     /// @notice Subtract share from user's position and update total share supply of bin
-    function _subShare(State storage self, address owner, uint24 binId, uint256 shares) internal {
-        self.positions.get(owner, binId).subShare(shares);
+    function _subShare(State storage self, address owner, uint24 binId, bytes32 salt, uint256 shares) internal {
+        self.positions.get(owner, binId, salt).subShare(shares);
         self.shareOfBin[binId] -= shares;
     }
 
     /// @notice Add share to user's position and update total share supply of bin
-    function _addShare(State storage self, address owner, uint24 binId, uint256 shares) internal {
-        self.positions.get(owner, binId).addShare(shares);
+    function _addShare(State storage self, address owner, uint24 binId, bytes32 salt, uint256 shares) internal {
+        self.positions.get(owner, binId, salt).addShare(shares);
         self.shareOfBin[binId] += shares;
     }
 

@@ -90,4 +90,15 @@ contract CLPositionTest is Test, GasSnapshot {
             assertEq(info.feeGrowthInside1LastX128, 15 * FixedPoint128.Q128);
         }
     }
+
+    function test_MixFuzz(address owner, int24 tickLower, int24 tickUpper, bytes32 salt, int128 liquidityDelta)
+        public
+    {
+        liquidityDelta = int128(bound(liquidityDelta, 1, type(int128).max));
+        CLPosition.Info storage info = pool.positions.get(owner, tickLower, tickUpper, salt);
+        info.update(liquidityDelta, 0, 0);
+
+        bytes32 key = keccak256(abi.encodePacked(owner, tickLower, tickUpper, salt));
+        assertEq(pool.positions[key].liquidity, uint128(liquidityDelta));
+    }
 }
