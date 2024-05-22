@@ -94,6 +94,7 @@ library CLHooks {
         }
 
         bytes4 selector;
+        // TODO: Potentially optimization: skip decoding the second return value when afterSwapReturnDelta not set
         (selector, hookDeltaSpecified) = hooks.beforeSwap(msg.sender, key, params, hookData);
         if (selector != ICLHooks.beforeSwap.selector) {
             revert Hooks.InvalidHookResponse();

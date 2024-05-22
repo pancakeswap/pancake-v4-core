@@ -141,6 +141,7 @@ library BinHooks {
                 revert Hooks.InvalidHookResponse();
             }
 
+            // TODO: Potentially optimization: skip decoding the second return value when afterSwapReturnDelta not set
             if (!key.parameters.hasOffsetEnabled(HOOKS_AFTER_SWAP_RETURNS_DELTA_OFFSET)) {
                 hookDeltaUnspecified = 0;
             }

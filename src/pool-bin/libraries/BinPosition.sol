@@ -34,7 +34,7 @@ library BinPosition {
             mstore(0x03, binId)
             mstore(0x00, owner)
             key := keccak256(0x0c, 0x37)
-            // only 0x00 ~ 0x40 is scratch space
+            // 0x00 - 0x3f is scratch space
             // 0x40 ~ 0x46 should be clear to avoid polluting free pointer
             mstore(0x23, 0)
         }
