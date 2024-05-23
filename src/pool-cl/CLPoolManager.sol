@@ -21,6 +21,7 @@ import {Extsload} from "../Extsload.sol";
 import {SafeCast} from "../libraries/SafeCast.sol";
 import {CLPoolGetters} from "./libraries/CLPoolGetters.sol";
 import {CLHooks} from "./libraries/CLHooks.sol";
+import {BeforeSwapDelta} from "../types/BeforeSwapDelta.sol";
 
 contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     using SafeCast for int256;
@@ -195,14 +196,16 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         PoolId id = key.toId();
         _checkPoolInitialized(id);
 
-        (int256 amountToSwap, int128 hookDeltaSpecified) = CLHooks.beforeSwap(key, params, hookData);
+        (int256 amountToSwap, BeforeSwapDelta beforeSwapDelta, uint24 lpFeeOverride) =
+            CLHooks.beforeSwap(key, params, hookData);
         CLPool.SwapState memory state;
         (delta, state) = pools[id].swap(
             CLPool.SwapParams({
                 tickSpacing: key.parameters.getTickSpacing(),
                 zeroForOne: params.zeroForOne,
                 amountSpecified: amountToSwap,
-                sqrtPriceLimitX96: params.sqrtPriceLimitX96
+                sqrtPriceLimitX96: params.sqrtPriceLimitX96,
+                lpFeeOverride: lpFeeOverride
             })
         );
 
@@ -226,7 +229,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         );
 
         BalanceDelta hookDelta;
-        (delta, hookDelta) = CLHooks.afterSwap(key, params, delta, hookData, hookDeltaSpecified);
+        (delta, hookDelta) = CLHooks.afterSwap(key, params, delta, hookData, beforeSwapDelta);
 
         if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
             vault.accountPoolBalanceDelta(key, hookDelta, address(key.hooks));

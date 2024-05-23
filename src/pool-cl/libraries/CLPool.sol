@@ -26,6 +26,7 @@ library CLPool {
     using LiquidityMath for uint128;
     using CLPool for State;
     using ProtocolFeeLibrary for uint24;
+    using LPFeeLibrary for uint24;
 
     /// @notice Thrown when trying to initalize an already initialized pool
     error PoolAlreadyInitialized();
@@ -191,6 +192,7 @@ library CLPool {
         bool zeroForOne;
         int256 amountSpecified;
         uint160 sqrtPriceLimitX96;
+        uint24 lpFeeOverride;
     }
 
     function swap(State storage self, SwapParams memory params)
@@ -221,12 +223,16 @@ library CLPool {
             uint16 protocolFee =
                 zeroForOne ? slot0Start.protocolFee.getZeroForOneFee() : slot0Start.protocolFee.getOneForZeroFee();
 
+            uint24 lpFee = params.lpFeeOverride.isOverride()
+                ? params.lpFeeOverride.removeOverrideAndValidate(LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE)
+                : slot0Start.lpFee;
+
             state = SwapState({
                 amountSpecifiedRemaining: params.amountSpecified,
                 amountCalculated: 0,
                 sqrtPriceX96: slot0Start.sqrtPriceX96,
                 tick: slot0Start.tick,
-                swapFee: protocolFee == 0 ? slot0Start.lpFee : uint24(protocolFee).calculateSwapFee(slot0Start.lpFee),
+                swapFee: protocolFee == 0 ? lpFee : uint24(protocolFee).calculateSwapFee(lpFee),
                 protocolFee: protocolFee,
                 feeGrowthGlobalX128: zeroForOne ? self.feeGrowthGlobal0X128 : self.feeGrowthGlobal1X128,
                 feeForProtocol: 0,
