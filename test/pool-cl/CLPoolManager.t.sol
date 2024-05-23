@@ -1420,6 +1420,206 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         snapEnd();
     }
 
+    function testModifyPosition_withSalt_addAndRemove() external {
+        bytes32 salt = bytes32(uint256(0x1234));
+        Currency currency0 = Currency.wrap(address(new ERC20PresetFixedSupply("C0", "C0", 1e10 ether, address(this))));
+        Currency currency1 = Currency.wrap(address(new ERC20PresetFixedSupply("C1", "C1", 1e10 ether, address(this))));
+
+        if (currency0 > currency1) {
+            (currency0, currency1) = (currency1, currency0);
+        }
+
+        PoolKey memory key = PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            hooks: IHooks(address(0)),
+            poolManager: poolManager,
+            fee: uint24(3000),
+            // 0 ~ 15  hookRegistrationMap = nil
+            // 16 ~ 24 tickSpacing = 1
+            parameters: bytes32(uint256(0x10000))
+        });
+
+        // price = 100 tick roughly 46054
+        poolManager.initialize(key, uint160(10 * FixedPoint96.Q96), new bytes(0));
+
+        IERC20(Currency.unwrap(currency0)).approve(address(router), 1e10 ether);
+        IERC20(Currency.unwrap(currency1)).approve(address(router), 1e10 ether);
+
+        router.modifyPosition(
+            key,
+            ICLPoolManager.ModifyLiquidityParams({
+                tickLower: TickMath.MIN_TICK,
+                tickUpper: TickMath.MAX_TICK,
+                liquidityDelta: 1e24,
+                salt: salt
+            }),
+            ""
+        );
+
+        {
+            assertEq(poolManager.getLiquidity(key.toId()), 1e24);
+
+            // salt = 0 returns nothing
+            assertEq(poolManager.getLiquidity(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK, 0), 0);
+            assertEq(
+                poolManager.getLiquidity(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK, salt), 1e24
+            );
+        }
+
+        // add into that position
+        router.modifyPosition(
+            key,
+            ICLPoolManager.ModifyLiquidityParams({
+                tickLower: TickMath.MIN_TICK,
+                tickUpper: TickMath.MAX_TICK,
+                liquidityDelta: 1e4,
+                salt: salt
+            }),
+            ""
+        );
+
+        {
+            assertEq(poolManager.getLiquidity(key.toId()), 1e24 + 1e4);
+            assertEq(poolManager.getLiquidity(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK, 0), 0);
+            assertEq(
+                poolManager.getLiquidity(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK, salt),
+                1e24 + 1e4
+            );
+        }
+
+        // decrease liquidity
+        router.modifyPosition(
+            key,
+            ICLPoolManager.ModifyLiquidityParams({
+                tickLower: TickMath.MIN_TICK,
+                tickUpper: TickMath.MAX_TICK,
+                liquidityDelta: -1e4,
+                salt: salt
+            }),
+            ""
+        );
+
+        {
+            assertEq(poolManager.getLiquidity(key.toId()), 1e24);
+            assertEq(poolManager.getLiquidity(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK, 0), 0);
+            assertEq(
+                poolManager.getLiquidity(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK, salt), 1e24
+            );
+        }
+    }
+
+    function testModifyPosition_mixWithAndWithoutSalt() external {
+        bytes32 salt0 = bytes32(0);
+        bytes32 salt1 = bytes32(uint256(0x1234));
+        bytes32 salt2 = bytes32(uint256(0x5678));
+
+        Currency currency0 = Currency.wrap(address(new ERC20PresetFixedSupply("C0", "C0", 1e10 ether, address(this))));
+        Currency currency1 = Currency.wrap(address(new ERC20PresetFixedSupply("C1", "C1", 1e10 ether, address(this))));
+
+        if (currency0 > currency1) {
+            (currency0, currency1) = (currency1, currency0);
+        }
+
+        PoolKey memory key = PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            hooks: IHooks(address(0)),
+            poolManager: poolManager,
+            fee: uint24(3000),
+            // 0 ~ 15  hookRegistrationMap = nil
+            // 16 ~ 24 tickSpacing = 1
+            parameters: bytes32(uint256(0x10000))
+        });
+
+        // price = 100 tick roughly 46054
+        poolManager.initialize(key, uint160(10 * FixedPoint96.Q96), new bytes(0));
+
+        IERC20(Currency.unwrap(currency0)).approve(address(router), 1e10 ether);
+        IERC20(Currency.unwrap(currency1)).approve(address(router), 1e10 ether);
+
+        router.modifyPosition(
+            key,
+            ICLPoolManager.ModifyLiquidityParams({
+                tickLower: TickMath.MIN_TICK,
+                tickUpper: TickMath.MAX_TICK,
+                liquidityDelta: 1e24,
+                salt: salt1
+            }),
+            ""
+        );
+
+        {
+            assertEq(poolManager.getLiquidity(key.toId()), 1e24);
+
+            // both salt0 & salt2 remains 0
+            assertEq(
+                poolManager.getLiquidity(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK, salt0), 0
+            );
+            assertEq(
+                poolManager.getLiquidity(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK, salt1), 1e24
+            );
+            assertEq(
+                poolManager.getLiquidity(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK, salt2), 0
+            );
+        }
+
+        // add into another salt
+        router.modifyPosition(
+            key,
+            ICLPoolManager.ModifyLiquidityParams({
+                tickLower: TickMath.MIN_TICK,
+                tickUpper: TickMath.MAX_TICK,
+                liquidityDelta: 1e4,
+                salt: salt2
+            }),
+            ""
+        );
+
+        {
+            assertEq(poolManager.getLiquidity(key.toId()), 1e24 + 1e4);
+            assertEq(
+                poolManager.getLiquidity(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK, salt0), 0
+            );
+            // salt1 position should be untouched
+            assertEq(
+                poolManager.getLiquidity(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK, salt1), 1e24
+            );
+
+            // salt2 position should be updated
+            assertEq(
+                poolManager.getLiquidity(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK, salt2), 1e4
+            );
+        }
+
+        // add into another salt
+        router.modifyPosition(
+            key,
+            ICLPoolManager.ModifyLiquidityParams({
+                tickLower: TickMath.MIN_TICK,
+                tickUpper: TickMath.MAX_TICK,
+                liquidityDelta: 1e10,
+                salt: salt0
+            }),
+            ""
+        );
+
+        {
+            assertEq(poolManager.getLiquidity(key.toId()), 1e24 + 1e4 + 1e10);
+            assertEq(
+                poolManager.getLiquidity(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK, salt0), 1e10
+            );
+            // salt1 & salt2 positions should be untouched
+            assertEq(
+                poolManager.getLiquidity(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK, salt1), 1e24
+            );
+
+            assertEq(
+                poolManager.getLiquidity(key.toId(), address(router), TickMath.MIN_TICK, TickMath.MAX_TICK, salt2), 1e4
+            );
+        }
+    }
+
     // **************        *************** //
     // **************  swap  *************** //
     // **************        *************** //

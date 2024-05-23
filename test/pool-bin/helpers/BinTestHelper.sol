@@ -135,6 +135,36 @@ abstract contract BinTestHelper is Test {
         });
     }
 
+    function _getMultipleBinMintParams(
+        uint24 binId,
+        uint256 amountX,
+        uint256 amountY,
+        uint8 nbBinX,
+        uint8 nbBinY,
+        bytes32 salt
+    ) internal pure returns (IBinPoolManager.MintParams memory params, uint24[] memory binIds) {
+        uint256 total = getTotalBins(nbBinX, nbBinY); // nbBinX + nbBinY - 1
+
+        bytes32[] memory liquidityConfigurations = new bytes32[](total);
+        binIds = new uint24[](total);
+
+        for (uint256 i; i < total; ++i) {
+            uint24 id = getId(binId, i, nbBinY); // all the binId from left to right ::  id = activeId + i - nBinY + 1
+            binIds[i] = id;
+
+            uint64 distribX = id >= binId && nbBinX > 0 ? (Constants.PRECISION / nbBinX).safe64() : 0;
+            uint64 distribY = id <= binId && nbBinY > 0 ? (Constants.PRECISION / nbBinY).safe64() : 0;
+
+            liquidityConfigurations[i] = LiquidityConfigurations.encodeParams(distribX, distribY, id);
+        }
+
+        params = IBinPoolManager.MintParams({
+            liquidityConfigs: liquidityConfigurations,
+            amountIn: PackedUint128Math.encode(amountX.safe128(), amountY.safe128()),
+            salt: salt
+        });
+    }
+
     function removeLiquidityFromBin(
         PoolKey memory key,
         BinPoolManager poolManager,
@@ -206,6 +236,25 @@ abstract contract BinTestHelper is Test {
         }
 
         params = IBinPoolManager.BurnParams({ids: ids, amountsToBurn: balances, salt: 0});
+    }
+
+    function _getMultipleBinBurnLiquidityParams(
+        PoolKey memory _key,
+        BinPoolManager pm,
+        uint24[] memory binIds,
+        address from,
+        uint256 sharePercentage,
+        bytes32 salt
+    ) internal view returns (IBinPoolManager.BurnParams memory params) {
+        uint256[] memory ids = new uint256[](binIds.length);
+        uint256[] memory balances = new uint256[](binIds.length);
+
+        for (uint256 i; i < binIds.length; i++) {
+            ids[i] = binIds[i];
+            balances[i] = (pm.getPosition(_key.toId(), from, binIds[i], salt).share * sharePercentage) / 100;
+        }
+
+        params = IBinPoolManager.BurnParams({ids: ids, amountsToBurn: balances, salt: salt});
     }
 
     function getTotalBins(uint8 nbBinX, uint8 nbBinY) public pure returns (uint256) {
