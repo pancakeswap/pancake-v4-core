@@ -8,7 +8,7 @@ import {ICLHooks} from "../../../src/pool-cl/interfaces/ICLHooks.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "../../../src/types/BeforeSwapDelta.sol";
 import {LPFeeLibrary} from "../../../src/libraries/LPFeeLibrary.sol";
 
-contract DynamicReturnFeeTestHook is BaseCLTestHook {
+contract CLDynamicReturnsFeeHook is BaseCLTestHook {
     using LPFeeLibrary for uint24;
 
     uint24 internal fee;

@@ -13,7 +13,7 @@ import {CLPoolManager} from "../../src/pool-cl/CLPoolManager.sol";
 import {ICLPoolManager} from "../../src/pool-cl/interfaces/ICLPoolManager.sol";
 import {Deployers} from "./helpers/Deployers.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
-import {DynamicReturnFeeTestHook} from "./helpers/CLDynamicReturnFeeHook.sol";
+import {CLDynamicReturnsFeeHook} from "./helpers/CLDynamicReturnsFeeHook.sol";
 import {Currency, CurrencyLibrary} from "../../src/types/Currency.sol";
 import {MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
 import {FullMath} from "../../src/pool-cl/libraries/FullMath.sol";
@@ -23,13 +23,13 @@ import {CLPoolManagerRouter} from "./helpers/CLPoolManagerRouter.sol";
 import {CLPoolParametersHelper} from "../../src/pool-cl/libraries/CLPoolParametersHelper.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract TestDynamicReturnFees is Test, Deployers, TokenFixture, GasSnapshot {
+contract CLHookReturnsFeeTest is Test, Deployers, TokenFixture, GasSnapshot {
     using PoolIdLibrary for PoolKey;
     using LPFeeLibrary for uint24;
 
     IVault vault;
     ICLPoolManager poolManager;
-    DynamicReturnFeeTestHook dynamicReturnFeesHook;
+    CLDynamicReturnsFeeHook dynamicReturnsFeesHook;
     CLPoolManagerRouter router;
 
     PoolKey key;
@@ -46,21 +46,21 @@ contract TestDynamicReturnFees is Test, Deployers, TokenFixture, GasSnapshot {
     );
 
     function setUp() public {
-        dynamicReturnFeesHook = new DynamicReturnFeeTestHook();
+        dynamicReturnsFeesHook = new CLDynamicReturnsFeeHook();
 
         (vault, poolManager) = createFreshManager();
-        dynamicReturnFeesHook.setManager(poolManager);
+        dynamicReturnsFeesHook.setManager(poolManager);
         router = new CLPoolManagerRouter(vault, poolManager);
 
         initializeTokens();
         key = PoolKey({
             currency0: currency0,
             currency1: currency1,
-            hooks: dynamicReturnFeesHook,
+            hooks: dynamicReturnsFeesHook,
             poolManager: poolManager,
             fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             parameters: CLPoolParametersHelper.setTickSpacing(
-                bytes32(uint256(dynamicReturnFeesHook.getHooksRegistrationBitmap())), 1
+                bytes32(uint256(dynamicReturnsFeesHook.getHooksRegistrationBitmap())), 1
             )
         });
 
@@ -77,7 +77,7 @@ contract TestDynamicReturnFees is Test, Deployers, TokenFixture, GasSnapshot {
 
     function test_fuzz_dynamicReturnSwapFee(uint24 fee) public {
         // hook will handle adding the override flag
-        dynamicReturnFeesHook.setFee(fee);
+        dynamicReturnsFeesHook.setFee(fee);
 
         uint24 actualFee = fee.removeOverrideFlag();
 
@@ -117,7 +117,7 @@ contract TestDynamicReturnFees is Test, Deployers, TokenFixture, GasSnapshot {
 
     function test_dynamicReturnSwapFee_initializeZeroSwapFee() public {
         key.parameters = CLPoolParametersHelper.setTickSpacing(
-            bytes32(uint256(dynamicReturnFeesHook.getHooksRegistrationBitmap())), 10
+            bytes32(uint256(dynamicReturnsFeesHook.getHooksRegistrationBitmap())), 10
         );
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
         assertEq(_fetchPoolSwapFee(key), 0);
@@ -125,7 +125,7 @@ contract TestDynamicReturnFees is Test, Deployers, TokenFixture, GasSnapshot {
 
     function test_dynamicReturnSwapFee_notUsedIfPoolIsStaticFee() public {
         key.fee = 3000; // static fee
-        dynamicReturnFeesHook.setFee(1000); // 0.10% fee is NOT used because the pool has a static fee
+        dynamicReturnsFeesHook.setFee(1000); // 0.10% fee is NOT used because the pool has a static fee
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
@@ -164,7 +164,7 @@ contract TestDynamicReturnFees is Test, Deployers, TokenFixture, GasSnapshot {
 
         // create a new pool with an initial fee of 123
         key.parameters = CLPoolParametersHelper.setTickSpacing(
-            bytes32(uint256(dynamicReturnFeesHook.getHooksRegistrationBitmap())), 10
+            bytes32(uint256(dynamicReturnsFeesHook.getHooksRegistrationBitmap())), 10
         );
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
@@ -176,12 +176,12 @@ contract TestDynamicReturnFees is Test, Deployers, TokenFixture, GasSnapshot {
             ZERO_BYTES
         );
         uint24 initialFee = 123;
-        dynamicReturnFeesHook.forcePoolFeeUpdate(key, initialFee);
+        dynamicReturnsFeesHook.forcePoolFeeUpdate(key, initialFee);
         assertEq(_fetchPoolSwapFee(key), initialFee);
 
         // swap with a different fee
         uint24 newFee = 3000;
-        dynamicReturnFeesHook.setFee(newFee);
+        dynamicReturnsFeesHook.setFee(newFee);
 
         int256 amountSpecified = 10000;
         BalanceDelta result = router.swap(
@@ -206,7 +206,7 @@ contract TestDynamicReturnFees is Test, Deployers, TokenFixture, GasSnapshot {
         assertEq(_fetchPoolSwapFee(key), 0);
 
         // hook adds the override flag
-        dynamicReturnFeesHook.setFee(1000001);
+        dynamicReturnsFeesHook.setFee(1000001);
 
         // a large fee is not used
         int256 amountSpecified = 10000;

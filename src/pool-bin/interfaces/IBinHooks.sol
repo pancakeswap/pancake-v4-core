@@ -5,6 +5,7 @@ import {PoolKey} from "../../types/PoolKey.sol";
 import {BalanceDelta} from "../../types/BalanceDelta.sol";
 import {IBinPoolManager} from "./IBinPoolManager.sol";
 import {IHooks} from "../../interfaces/IHooks.sol";
+import {BeforeSwapDelta} from "../../types/BeforeSwapDelta.sol";
 
 uint8 constant HOOKS_BEFORE_INITIALIZE_OFFSET = 0;
 uint8 constant HOOKS_AFTER_INITIALIZE_OFFSET = 1;
@@ -111,10 +112,14 @@ interface IBinHooks is IHooks {
     /// @param amountIn Amount of tokenX or tokenY in
     /// @param hookData Arbitrary data handed into the PoolManager by the swapper to be be passed on to the hook
     /// @return bytes4 The function selector for the hook
-    /// @return int128 The hook's delta in specified currency
+    /// @return BeforeSwapDelta The hook's delta in specified and unspecified currencies.
+    /// @return uint24 Optionally override the lp fee, only used if three conditions are met:
+    ///     1) the Pool has a dynamic fee,
+    ///     2) the value's override flag is set to 1 i.e. vaule & OVERRIDE_FEE_FLAG = 0x400000 != 0
+    ///     3) the value is less than or equal to the maximum fee (1 million)
     function beforeSwap(address sender, PoolKey calldata key, bool swapForY, uint128 amountIn, bytes calldata hookData)
         external
-        returns (bytes4, int128);
+        returns (bytes4, BeforeSwapDelta, uint24);
 
     /// @notice The hook called after a swap
     /// @param sender The initial msg.sender for the swap call

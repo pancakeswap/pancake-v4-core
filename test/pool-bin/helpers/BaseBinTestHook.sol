@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import "../../../src/pool-bin/interfaces/IBinHooks.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {BalanceDelta} from "../../../src/types/BalanceDelta.sol";
+import {BeforeSwapDelta} from "../../../src/types/BeforeSwapDelta.sol";
 import {IBinHooks} from "../../../src/pool-bin/interfaces/IBinHooks.sol";
 import {IBinPoolManager} from "../../../src/pool-bin/interfaces/IBinPoolManager.sol";
 
@@ -74,7 +75,7 @@ contract BaseBinTestHook is IBinHooks {
     function beforeSwap(address, PoolKey calldata, bool, uint128, bytes calldata)
         external
         virtual
-        returns (bytes4, int128)
+        returns (bytes4, BeforeSwapDelta, uint24)
     {
         revert HookNotImplemented();
     }
