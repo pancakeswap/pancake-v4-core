@@ -108,7 +108,7 @@ contract PoolTest is Test {
         // avoid lpFee override valid
         if (
             swapParams.lpFeeOverride.isOverride()
-                && !swapParams.lpFeeOverride.removeOverrideFlag().isValid(LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE)
+                && swapParams.lpFeeOverride.removeOverrideFlag() > LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE
         ) {
             return;
         }

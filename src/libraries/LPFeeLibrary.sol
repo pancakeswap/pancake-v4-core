@@ -32,12 +32,8 @@ library LPFeeLibrary {
         return self & DYNAMIC_FEE_FLAG != 0;
     }
 
-    function isValid(uint24 self, uint24 maxFee) internal pure returns (bool) {
-        return self <= maxFee;
-    }
-
     function validate(uint24 self, uint24 maxFee) internal pure {
-        if (!self.isValid(maxFee)) revert FeeTooLarge();
+        if (self > maxFee) revert FeeTooLarge();
     }
 
     /// @return lpFee initial lp fee for the pool. For dynamic fee pool, zero is returned

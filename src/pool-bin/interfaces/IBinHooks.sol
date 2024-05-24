@@ -116,7 +116,7 @@ interface IBinHooks is IHooks {
     /// @return uint24 Optionally override the lp fee, only used if three conditions are met:
     ///     1) the Pool has a dynamic fee,
     ///     2) the value's override flag is set to 1 i.e. vaule & OVERRIDE_FEE_FLAG = 0x400000 != 0
-    ///     3) the value is less than or equal to the maximum fee (1 million)
+    ///     3) the value is less than or equal to the maximum fee (100_000) - 10%
     function beforeSwap(address sender, PoolKey calldata key, bool swapForY, uint128 amountIn, bytes calldata hookData)
         external
         returns (bytes4, BeforeSwapDelta, uint24);
