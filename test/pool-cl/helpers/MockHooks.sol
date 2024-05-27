@@ -6,6 +6,7 @@ import {ICLHooks} from "../../../src/pool-cl/interfaces/ICLHooks.sol";
 import {ICLPoolManager} from "../../../src/pool-cl/interfaces/ICLPoolManager.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../../../src/types/BalanceDelta.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "../../../src/types/BeforeSwapDelta.sol";
 import {PoolId, PoolIdLibrary} from "../../../src/types/PoolId.sol";
 
 contract MockHooks is ICLHooks {
@@ -106,11 +107,15 @@ contract MockHooks is ICLHooks {
     function beforeSwap(address, PoolKey calldata, ICLPoolManager.SwapParams calldata, bytes calldata hookData)
         external
         override
-        returns (bytes4, int128)
+        returns (bytes4, BeforeSwapDelta, uint24)
     {
         beforeSwapData = hookData;
         bytes4 selector = MockHooks.beforeSwap.selector;
-        return (returnValues[selector] == bytes4(0) ? selector : returnValues[selector], 0);
+        return (
+            returnValues[selector] == bytes4(0) ? selector : returnValues[selector],
+            BeforeSwapDeltaLibrary.ZERO_DELTA,
+            0
+        );
     }
 
     function afterSwap(

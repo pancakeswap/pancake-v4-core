@@ -63,7 +63,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
     function testModifyPosition_AddMore() external {
         (BalanceDelta delta,) = router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10 ether}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10 ether, salt: 0}),
             abi.encode(0 ether)
         );
 
@@ -71,7 +71,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         (BalanceDelta delta2,) = router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10 ether}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10 ether, salt: 0}),
             abi.encode(10 ether)
         );
         uint128 liquidity2 = poolManager.getLiquidity(key.toId());
@@ -90,7 +90,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
         // add some liquidity first in case the pool is empty
         router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10 ether}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10 ether, salt: 0}),
             abi.encode(10 ether)
         );
 
@@ -100,7 +100,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         (BalanceDelta delta,) = router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10 ether}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10 ether, salt: 0}),
             abi.encode(-10 ether)
         );
         uint128 liquidityAfter = poolManager.getLiquidity(key.toId());
@@ -119,7 +119,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
         // add some liquidity first in case the pool is empty
         (BalanceDelta delta,) = router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10 ether}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10 ether, salt: 0}),
             abi.encode(10 ether)
         );
 
@@ -129,7 +129,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         (BalanceDelta delta2,) = router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: -5 ether}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: -5 ether, salt: 0}),
             abi.encode(-5 ether)
         );
         uint128 liquidityAfter = poolManager.getLiquidity(key.toId());
@@ -148,7 +148,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
         // add some liquidity first in case the pool is empty
         router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10 ether}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10 ether, salt: 0}),
             abi.encode(10 ether)
         );
 
@@ -158,7 +158,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         (BalanceDelta delta,) = router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: -5 ether}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: -5 ether, salt: 0}),
             abi.encode(5 ether)
         );
         uint128 liquidityAfter = poolManager.getLiquidity(key.toId());
@@ -177,7 +177,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
         // add some liquidity first in case the pool is empty
         router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10000 ether}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10000 ether, salt: 0}),
             abi.encode(10000 ether)
         );
 
@@ -193,7 +193,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
                 sqrtPriceLimitX96: TickMath.MIN_SQRT_RATIO + 1
             }),
             CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true}),
-            abi.encode(-1 ether)
+            abi.encode(-1 ether, 0, 0)
         );
 
         uint256 amt0After = IERC20(Currency.unwrap(currency0)).balanceOf(address(vault));
@@ -218,7 +218,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
         // add some liquidity first in case the pool is empty
         router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10000 ether}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10000 ether, salt: 0}),
             abi.encode(10000 ether)
         );
 
@@ -237,7 +237,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
                 sqrtPriceLimitX96: TickMath.MIN_SQRT_RATIO + 1
             }),
             CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true}),
-            abi.encode(1 ether)
+            abi.encode(1 ether, 0, 0)
         );
 
         uint256 amt0After = IERC20(Currency.unwrap(currency0)).balanceOf(address(vault));
@@ -258,11 +258,99 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
         assertEq(liquidityBefore, liquidityAfter);
     }
 
+    function testSwap_noSwap_returnUnspecifiedInBeforeSwap() external {
+        // add some liquidity first in case the pool is empty
+        router.modifyPosition(
+            key,
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10000 ether, salt: 0}),
+            abi.encode(10000 ether)
+        );
+
+        currency1.transfer(address(clReturnsDeltaHook), 1 ether);
+
+        uint256 amt0Before = IERC20(Currency.unwrap(currency0)).balanceOf(address(vault));
+        uint256 amt1Before = IERC20(Currency.unwrap(currency1)).balanceOf(address(vault));
+        uint128 liquidityBefore = poolManager.getLiquidity(key.toId());
+
+        (BalanceDelta delta) = router.swap(
+            key,
+            ICLPoolManager.SwapParams({
+                zeroForOne: true,
+                amountSpecified: 1 ether,
+                sqrtPriceLimitX96: TickMath.MIN_SQRT_RATIO + 1
+            }),
+            CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true}),
+            abi.encode(-1 ether, 1 ether, 0)
+        );
+
+        uint256 amt0After = IERC20(Currency.unwrap(currency0)).balanceOf(address(vault));
+        uint256 amt1After = IERC20(Currency.unwrap(currency1)).balanceOf(address(vault));
+        uint128 liquidityAfter = poolManager.getLiquidity(key.toId());
+
+        // user pays 1 ether of currency0 to hook and no swap happens
+
+        // trader's payment & return
+        assertEq(delta.amount0(), 1 ether);
+        assertEq(delta.amount1(), -1 ether);
+
+        // hook's payment & return
+        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(clReturnsDeltaHook)), 1 ether);
+        assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(clReturnsDeltaHook)), 0 ether);
+
+        assertEq(amt0Before, amt0After);
+        assertEq(amt1Before, amt1After);
+        assertEq(liquidityBefore, liquidityAfter);
+    }
+
+    function testSwap_noSwap_returnUnspecifiedInBeforeSwapAndAfterSwap() external {
+        // add some liquidity first in case the pool is empty
+        router.modifyPosition(
+            key,
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10000 ether, salt: 0}),
+            abi.encode(10000 ether)
+        );
+
+        currency1.transfer(address(clReturnsDeltaHook), 1 ether);
+
+        uint256 amt0Before = IERC20(Currency.unwrap(currency0)).balanceOf(address(vault));
+        uint256 amt1Before = IERC20(Currency.unwrap(currency1)).balanceOf(address(vault));
+        uint128 liquidityBefore = poolManager.getLiquidity(key.toId());
+
+        (BalanceDelta delta) = router.swap(
+            key,
+            ICLPoolManager.SwapParams({
+                zeroForOne: true,
+                amountSpecified: 1 ether,
+                sqrtPriceLimitX96: TickMath.MIN_SQRT_RATIO + 1
+            }),
+            CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true}),
+            abi.encode(-1 ether, 0.5 ether, 0.5 ether)
+        );
+
+        uint256 amt0After = IERC20(Currency.unwrap(currency0)).balanceOf(address(vault));
+        uint256 amt1After = IERC20(Currency.unwrap(currency1)).balanceOf(address(vault));
+        uint128 liquidityAfter = poolManager.getLiquidity(key.toId());
+
+        // user pays 1 ether of currency0 to hook and no swap happens
+
+        // trader's payment & return
+        assertEq(delta.amount0(), 1 ether);
+        assertEq(delta.amount1(), -1 ether);
+
+        // hook's payment & return
+        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(clReturnsDeltaHook)), 1 ether);
+        assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(clReturnsDeltaHook)), 0 ether);
+
+        assertEq(amt0Before, amt0After);
+        assertEq(amt1Before, amt1After);
+        assertEq(liquidityBefore, liquidityAfter);
+    }
+
     function testSwap_SwapMore() external {
         // add some liquidity first in case the pool is empty
         router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10000 ether}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10000 ether, salt: 0}),
             abi.encode(10000 ether)
         );
 
@@ -282,7 +370,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
             }),
             CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true}),
             // double the swap amt
-            abi.encode(1 ether)
+            abi.encode(1 ether, 0, 0)
         );
 
         uint256 amt0After = IERC20(Currency.unwrap(currency0)).balanceOf(address(vault));
@@ -305,7 +393,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
         // add some liquidity first in case the pool is empty
         router.modifyPosition(
             key,
-            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10000 ether}),
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 10000 ether, salt: 0}),
             abi.encode(10000 ether)
         );
 
@@ -321,7 +409,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
                 sqrtPriceLimitX96: TickMath.MIN_SQRT_RATIO + 1
             }),
             CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true}),
-            abi.encode(-0.5 ether)
+            abi.encode(-0.5 ether, 0, 0)
         );
 
         uint256 amt0After = IERC20(Currency.unwrap(currency0)).balanceOf(address(vault));

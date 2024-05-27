@@ -144,7 +144,7 @@ contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
         uint256 amt1Before = token1.balanceOf(address(vault));
 
         BalanceDelta delta =
-            binSwapHelper.swap(key, true, 1 ether, BinSwapHelper.TestSettings(true, true), abi.encode(-1 ether));
+            binSwapHelper.swap(key, true, 1 ether, BinSwapHelper.TestSettings(true, true), abi.encode(-1 ether, 0, 0));
 
         uint256 amt0After = token0.balanceOf(address(vault));
         uint256 amt1After = token1.balanceOf(address(vault));
@@ -162,6 +162,66 @@ contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
         assertEq(token0.balanceOf(address(binReturnsDeltaHook)), 1 ether);
     }
 
+    function testSwap_noSwap_returnUnspecifiedInBeforeSwap() external {
+        IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 10 ether, 10 ether);
+        binLiquidityHelper.mint(key, mintParams, abi.encode(0));
+
+        token1.transfer(address(binReturnsDeltaHook), 1 ether);
+
+        uint256 amt0Before = token0.balanceOf(address(vault));
+        uint256 amt1Before = token1.balanceOf(address(vault));
+
+        BalanceDelta delta = binSwapHelper.swap(
+            key, true, 1 ether, BinSwapHelper.TestSettings(true, true), abi.encode(-1 ether, 1 ether, 0)
+        );
+
+        uint256 amt0After = token0.balanceOf(address(vault));
+        uint256 amt1After = token1.balanceOf(address(vault));
+
+        assertEq(amt0After - amt0Before, 0);
+        assertEq(amt1After - amt1Before, 0);
+
+        // user pays 1 ether of currency0 to hook and no swap happens
+
+        // trader's payment & return
+        assertEq(delta.amount0(), 1 ether);
+        assertEq(delta.amount1(), -1 ether);
+
+        // hook's payment & return
+        assertEq(token0.balanceOf(address(binReturnsDeltaHook)), 1 ether);
+        assertEq(token1.balanceOf(address(binReturnsDeltaHook)), 0 ether);
+    }
+
+    function testSwap_noSwap_returnUnspecifiedInBeforeSwapAndAfterSwap() external {
+        IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 10 ether, 10 ether);
+        binLiquidityHelper.mint(key, mintParams, abi.encode(0));
+
+        token1.transfer(address(binReturnsDeltaHook), 1 ether);
+
+        uint256 amt0Before = token0.balanceOf(address(vault));
+        uint256 amt1Before = token1.balanceOf(address(vault));
+
+        BalanceDelta delta = binSwapHelper.swap(
+            key, true, 1 ether, BinSwapHelper.TestSettings(true, true), abi.encode(-1 ether, 0.5 ether, 0.5 ether)
+        );
+
+        uint256 amt0After = token0.balanceOf(address(vault));
+        uint256 amt1After = token1.balanceOf(address(vault));
+
+        assertEq(amt0After - amt0Before, 0);
+        assertEq(amt1After - amt1Before, 0);
+
+        // user pays 1 ether of currency0 to hook and no swap happens
+
+        // trader's payment & return
+        assertEq(delta.amount0(), 1 ether);
+        assertEq(delta.amount1(), -1 ether);
+
+        // hook's payment & return
+        assertEq(token0.balanceOf(address(binReturnsDeltaHook)), 1 ether);
+        assertEq(token1.balanceOf(address(binReturnsDeltaHook)), 0 ether);
+    }
+
     function testSwap_swapMore() external {
         IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 10 ether, 10 ether);
         binLiquidityHelper.mint(key, mintParams, abi.encode(0));
@@ -172,7 +232,7 @@ contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
         token0.transfer(address(binReturnsDeltaHook), 1 ether);
 
         BalanceDelta delta =
-            binSwapHelper.swap(key, true, 1 ether, BinSwapHelper.TestSettings(true, true), abi.encode(1 ether));
+            binSwapHelper.swap(key, true, 1 ether, BinSwapHelper.TestSettings(true, true), abi.encode(1 ether, 0, 0));
 
         uint256 amt0After = token0.balanceOf(address(vault));
         uint256 amt1After = token1.balanceOf(address(vault));
@@ -198,7 +258,7 @@ contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
         uint256 amt1Before = token1.balanceOf(address(vault));
 
         BalanceDelta delta =
-            binSwapHelper.swap(key, true, 1 ether, BinSwapHelper.TestSettings(true, true), abi.encode(-0.5 ether));
+            binSwapHelper.swap(key, true, 1 ether, BinSwapHelper.TestSettings(true, true), abi.encode(-0.5 ether, 0, 0));
 
         uint256 amt0After = token0.balanceOf(address(vault));
         uint256 amt1After = token1.balanceOf(address(vault));

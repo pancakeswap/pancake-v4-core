@@ -18,8 +18,9 @@ library BinPosition {
     /// @param self The mapping containing all user positions
     /// @param owner The address of the position owner
     /// @param binId The binId
+    /// @param salt The salt to distinguish different positions for the same owner
     /// @return position The position info struct of the given owners' position
-    function get(mapping(bytes32 => Info) storage self, address owner, uint24 binId)
+    function get(mapping(bytes32 => Info) storage self, address owner, uint24 binId, bytes32 salt)
         internal
         view
         returns (BinPosition.Info storage position)
@@ -29,9 +30,13 @@ library BinPosition {
         // ref: https://github.com/Vectorized/solady/blob/main/src/tokens/ERC20.sol#L95
         // memory will be 12 bytes of zeros, the 20 bytes of address, 3 bytes for uint24
         assembly {
+            mstore(0x23, salt)
             mstore(0x03, binId)
             mstore(0x00, owner)
-            key := keccak256(0x0c, 0x17)
+            key := keccak256(0x0c, 0x37)
+            // 0x00 - 0x3f is scratch space
+            // 0x40 ~ 0x46 should be clear to avoid polluting free pointer
+            mstore(0x23, 0)
         }
         position = self[key];
     }

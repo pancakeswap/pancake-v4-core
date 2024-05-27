@@ -7,6 +7,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../../../src/types/BalanceDelta.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "../../../src/types/BeforeSwapDelta.sol";
 import {IBinHooks} from "../../../src/pool-bin/interfaces/IBinHooks.sol";
 import {IBinPoolManager} from "../../../src/pool-bin/interfaces/IBinPoolManager.sol";
 import {Hooks} from "../../../src/libraries/Hooks.sol";
@@ -271,10 +272,10 @@ contract BinSkipCallbackHook is BaseBinTestHook {
     function beforeSwap(address, PoolKey calldata, bool, uint128, bytes calldata)
         external
         override
-        returns (bytes4, int128)
+        returns (bytes4, BeforeSwapDelta, uint24)
     {
         hookCounterCallbackCount++;
-        return (BinSkipCallbackHook.beforeSwap.selector, 0);
+        return (BinSkipCallbackHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
 
     function afterSwap(address, PoolKey calldata, bool, uint128, BalanceDelta, bytes calldata)

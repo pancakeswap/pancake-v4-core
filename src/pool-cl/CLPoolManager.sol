@@ -21,6 +21,7 @@ import {Extsload} from "../Extsload.sol";
 import {SafeCast} from "../libraries/SafeCast.sol";
 import {CLPoolGetters} from "./libraries/CLPoolGetters.sol";
 import {CLHooks} from "./libraries/CLHooks.sol";
+import {BeforeSwapDelta} from "../types/BeforeSwapDelta.sol";
 
 contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     using SafeCast for int256;
@@ -65,23 +66,23 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     }
 
     /// @inheritdoc ICLPoolManager
-    function getLiquidity(PoolId id, address _owner, int24 tickLower, int24 tickUpper)
+    function getLiquidity(PoolId id, address _owner, int24 tickLower, int24 tickUpper, bytes32 salt)
         external
         view
         override
         returns (uint128 liquidity)
     {
-        return pools[id].positions.get(_owner, tickLower, tickUpper).liquidity;
+        return pools[id].positions.get(_owner, tickLower, tickUpper, salt).liquidity;
     }
 
     /// @inheritdoc ICLPoolManager
-    function getPosition(PoolId id, address owner, int24 tickLower, int24 tickUpper)
+    function getPosition(PoolId id, address owner, int24 tickLower, int24 tickUpper, bytes32 salt)
         external
         view
         override
         returns (CLPosition.Info memory position)
     {
-        return pools[id].positions.get(owner, tickLower, tickUpper);
+        return pools[id].positions.get(owner, tickLower, tickUpper, salt);
     }
 
     /// @inheritdoc ICLPoolManager
@@ -165,12 +166,13 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
                 tickLower: params.tickLower,
                 tickUpper: params.tickUpper,
                 liquidityDelta: params.liquidityDelta.toInt128(),
-                tickSpacing: key.parameters.getTickSpacing()
+                tickSpacing: key.parameters.getTickSpacing(),
+                salt: params.salt
             })
         );
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
-        emit ModifyLiquidity(id, msg.sender, params.tickLower, params.tickUpper, params.liquidityDelta);
+        emit ModifyLiquidity(id, msg.sender, params.tickLower, params.tickUpper, params.salt, params.liquidityDelta);
 
         BalanceDelta hookDelta;
         (delta, hookDelta) = CLHooks.afterModifyLiquidity(key, params, delta + feeDelta, hookData);
@@ -194,14 +196,16 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         PoolId id = key.toId();
         _checkPoolInitialized(id);
 
-        (int256 amountToSwap, int128 hookDeltaSpecified) = CLHooks.beforeSwap(key, params, hookData);
+        (int256 amountToSwap, BeforeSwapDelta beforeSwapDelta, uint24 lpFeeOverride) =
+            CLHooks.beforeSwap(key, params, hookData);
         CLPool.SwapState memory state;
         (delta, state) = pools[id].swap(
             CLPool.SwapParams({
                 tickSpacing: key.parameters.getTickSpacing(),
                 zeroForOne: params.zeroForOne,
                 amountSpecified: amountToSwap,
-                sqrtPriceLimitX96: params.sqrtPriceLimitX96
+                sqrtPriceLimitX96: params.sqrtPriceLimitX96,
+                lpFeeOverride: lpFeeOverride
             })
         );
 
@@ -225,7 +229,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         );
 
         BalanceDelta hookDelta;
-        (delta, hookDelta) = CLHooks.afterSwap(key, params, delta, hookData, hookDeltaSpecified);
+        (delta, hookDelta) = CLHooks.afterSwap(key, params, delta, hookData, beforeSwapDelta);
 
         if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
             vault.accountPoolBalanceDelta(key, hookDelta, address(key.hooks));

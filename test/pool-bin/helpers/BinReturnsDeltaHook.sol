@@ -8,6 +8,7 @@ import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {Currency, CurrencyLibrary} from "../../../src/types/Currency.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {toBalanceDelta, BalanceDelta, BalanceDeltaLibrary} from "../../../src/types/BalanceDelta.sol";
+import {BeforeSwapDelta, toBeforeSwapDelta} from "../../../src/types/BeforeSwapDelta.sol";
 import {BaseBinTestHook} from "./BaseBinTestHook.sol";
 
 contract BinReturnsDeltaHook is BaseBinTestHook {
@@ -87,9 +88,9 @@ contract BinReturnsDeltaHook is BaseBinTestHook {
     function beforeSwap(address, PoolKey calldata key, bool swapForY, uint128, bytes calldata data)
         external
         override
-        returns (bytes4, int128)
+        returns (bytes4, BeforeSwapDelta, uint24)
     {
-        (int128 hookDeltaSpecified) = abi.decode(data, (int128));
+        (int128 hookDeltaSpecified, int128 hookDeltaUnspecified,) = abi.decode(data, (int128, int128, int128));
 
         if (swapForY) {
             // the specified token is token0
@@ -100,6 +101,14 @@ contract BinReturnsDeltaHook is BaseBinTestHook {
             } else {
                 vault.take(key.currency0, address(this), uint128(-hookDeltaSpecified));
             }
+
+            if (hookDeltaUnspecified > 0) {
+                vault.sync(key.currency1);
+                key.currency1.transfer(address(vault), uint128(hookDeltaUnspecified));
+                vault.settle(key.currency1);
+            } else {
+                vault.take(key.currency1, address(this), uint128(-hookDeltaUnspecified));
+            }
         } else {
             // the specified token is token1
             if (hookDeltaSpecified > 0) {
@@ -109,16 +118,50 @@ contract BinReturnsDeltaHook is BaseBinTestHook {
             } else {
                 vault.take(key.currency1, address(this), uint128(-hookDeltaSpecified));
             }
+
+            if (hookDeltaUnspecified > 0) {
+                vault.sync(key.currency0);
+                key.currency0.transfer(address(vault), uint128(hookDeltaUnspecified));
+                vault.settle(key.currency0);
+            } else {
+                vault.take(key.currency0, address(this), uint128(-hookDeltaUnspecified));
+            }
         }
-        return (this.beforeSwap.selector, hookDeltaSpecified);
+
+        return (this.beforeSwap.selector, toBeforeSwapDelta(hookDeltaSpecified, hookDeltaUnspecified), 0);
     }
 
-    function afterSwap(address, PoolKey calldata, bool, uint128, BalanceDelta, bytes calldata)
+    function afterSwap(address, PoolKey calldata key, bool swapForY, uint128, BalanceDelta, bytes calldata data)
         external
-        pure
         override
         returns (bytes4, int128)
     {
-        return (this.afterSwap.selector, 0);
+        (,, int128 hookDeltaUnspecified) = abi.decode(data, (int128, int128, int128));
+
+        if (hookDeltaUnspecified == 0) {
+            return (this.afterSwap.selector, 0);
+        }
+
+        if (swapForY) {
+            // the unspecified token is token1
+            if (hookDeltaUnspecified > 0) {
+                vault.sync(key.currency1);
+                key.currency1.transfer(address(vault), uint128(hookDeltaUnspecified));
+                vault.settle(key.currency1);
+            } else {
+                vault.take(key.currency1, address(this), uint128(-hookDeltaUnspecified));
+            }
+        } else {
+            // the unspecified token is token0
+            if (hookDeltaUnspecified > 0) {
+                vault.sync(key.currency0);
+                key.currency0.transfer(address(vault), uint128(hookDeltaUnspecified));
+                vault.settle(key.currency0);
+            } else {
+                vault.take(key.currency0, address(this), uint128(-hookDeltaUnspecified));
+            }
+        }
+
+        return (this.afterSwap.selector, hookDeltaUnspecified);
     }
 }

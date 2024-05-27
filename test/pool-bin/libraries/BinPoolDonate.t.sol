@@ -67,9 +67,9 @@ contract BinPoolDonateTest is BinTestHelper {
         // Initialize. Alice/Bob both add 1e18 token0, token1 to the active bin
         poolManager.initialize(key, activeId, new bytes(0));
         addLiquidityToBin(key, poolManager, alice, activeId, 1e18, 1e18, 1e18, 1e18, "");
-        uint256 aliceShare = poolManager.getPosition(poolId, alice, activeId).share;
+        uint256 aliceShare = poolManager.getPosition(poolId, alice, activeId, 0).share;
         addLiquidityToBin(key, poolManager, bob, activeId, 1e18, 1e18, 1e18, 1e18, "");
-        uint256 bobShare = poolManager.getPosition(poolId, bob, activeId).share;
+        uint256 bobShare = poolManager.getPosition(poolId, bob, activeId, 0).share;
 
         // Verify reserve before donate
         uint128 reserveX;
@@ -110,7 +110,7 @@ contract BinPoolDonateTest is BinTestHelper {
         // Initialize and add 1e18 token0, token1 to the active bin. price of bin: 2**128, 3.4e38
         poolManager.initialize(key, activeId, new bytes(0));
         addLiquidityToBin(key, poolManager, bob, activeId, 1e18, 1e18, 1e18, 1e18, "");
-        poolManager.getPosition(poolId, bob, activeId).share;
+        poolManager.getPosition(poolId, bob, activeId, 0).share;
 
         poolManager.donate(key, amt0, amt1, "");
 

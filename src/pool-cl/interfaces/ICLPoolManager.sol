@@ -45,9 +45,10 @@ interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @param sender The address that modified the pool
     /// @param tickLower The lower tick of the position
     /// @param tickUpper The upper tick of the position
+    /// @param salt The value used to create a unique liquidity position
     /// @param liquidityDelta The amount of liquidity that was added or removed
     event ModifyLiquidity(
-        PoolId indexed id, address indexed sender, int24 tickLower, int24 tickUpper, int256 liquidityDelta
+        PoolId indexed id, address indexed sender, int24 tickLower, int24 tickUpper, bytes32 salt, int256 liquidityDelta
     );
 
     /// @notice Emitted for swaps between currency0 and currency1
@@ -96,13 +97,13 @@ interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload {
     function getLiquidity(PoolId id) external view returns (uint128 liquidity);
 
     /// @notice Get the current value of liquidity for the specified pool and position
-    function getLiquidity(PoolId id, address owner, int24 tickLower, int24 tickUpper)
+    function getLiquidity(PoolId id, address owner, int24 tickLower, int24 tickUpper, bytes32 salt)
         external
         view
         returns (uint128 liquidity);
 
     /// @notice Get the position struct for a specified pool and position
-    function getPosition(PoolId id, address owner, int24 tickLower, int24 tickUpper)
+    function getPosition(PoolId id, address owner, int24 tickLower, int24 tickUpper, bytes32 salt)
         external
         view
         returns (CLPosition.Info memory position);
@@ -118,6 +119,8 @@ interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload {
         int24 tickUpper;
         // how to modify the liquidity
         int256 liquidityDelta;
+        // a value to set if you want unique liquidity positions at the same range
+        bytes32 salt;
     }
 
     /// @notice Modify the position for the given pool

@@ -98,7 +98,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
                     assertEq(binReserveY, 0, "test_SimpleMint::8");
                 }
 
-                assertGt(poolManager.getPosition(poolId, bob, id).share, 0, "test_SimpleMint::9");
+                assertGt(poolManager.getPosition(poolId, bob, id, 0).share, 0, "test_SimpleMint::9");
             }
         }
         {
@@ -123,7 +123,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
                 }
 
                 // verify liquidity minted
-                assertEq(poolManager.getPosition(poolId, bob, id).share, array.liquidityMinted[i]);
+                assertEq(poolManager.getPosition(poolId, bob, id, 0).share, array.liquidityMinted[i]);
             }
         }
     }
@@ -143,7 +143,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
 
         for (uint256 i; i < total; ++i) {
             uint24 id = getId(activeId, i, nbBinY);
-            balances[i] = poolManager.getPosition(poolId, bob, id).share;
+            balances[i] = poolManager.getPosition(poolId, bob, id, 0).share;
         }
 
         addLiquidity(key, poolManager, bob, activeId, amountX, amountY, nbBinX, nbBinY);
@@ -169,7 +169,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
                 assertEq(binReserveY, 0, "test_SimpleMint::6");
             }
 
-            assertEq(poolManager.getPosition(poolId, bob, id).share, 2 * balances[i], "test_DoubleMint:7");
+            assertEq(poolManager.getPosition(poolId, bob, id, 0).share, 2 * balances[i], "test_DoubleMint:7");
         }
     }
 
@@ -188,7 +188,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
 
         for (uint256 i; i < total; ++i) {
             uint24 id = getId(activeId, i, nbBinY);
-            balances[i] = poolManager.getPosition(poolId, bob, id).share;
+            balances[i] = poolManager.getPosition(poolId, bob, id, 0).share;
         }
 
         addLiquidity(key, poolManager, bob, activeId, amountX, amountY, nbBinX, 0);
@@ -199,14 +199,14 @@ contract BinPoolLiquidityTest is BinTestHelper {
 
             if (id == activeId) {
                 assertApproxEqRel(
-                    poolManager.getPosition(poolId, bob, id).share,
+                    poolManager.getPosition(poolId, bob, id, 0).share,
                     2 * balances[i],
                     1e15,
                     "test_MintWithDifferentBins::1"
                 ); // composition fee
             } else {
                 assertEq(
-                    poolManager.getPosition(poolId, bob, id).share, 2 * balances[i], "test_MintWithDifferentBins::2"
+                    poolManager.getPosition(poolId, bob, id, 0).share, 2 * balances[i], "test_MintWithDifferentBins::2"
                 );
             }
         }
@@ -215,8 +215,11 @@ contract BinPoolLiquidityTest is BinTestHelper {
     function test_revert_MintEmptyConfig() public {
         poolManager.initialize(key, activeId, new bytes(0));
 
-        IBinPoolManager.MintParams memory params =
-            IBinPoolManager.MintParams({liquidityConfigs: new bytes32[](0), amountIn: PackedUint128Math.encode(0, 0)});
+        IBinPoolManager.MintParams memory params = IBinPoolManager.MintParams({
+            liquidityConfigs: new bytes32[](0),
+            amountIn: PackedUint128Math.encode(0, 0),
+            salt: 0
+        });
 
         vm.expectRevert(BinPool.BinPool__EmptyLiquidityConfigs.selector);
         poolManager.mint(key, params, "0x00");
@@ -229,7 +232,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
         data[0] = LiquidityConfigurations.encodeParams(1e18, 1e18, activeId);
 
         IBinPoolManager.MintParams memory params =
-            IBinPoolManager.MintParams({liquidityConfigs: data, amountIn: PackedUint128Math.encode(0, 0)});
+            IBinPoolManager.MintParams({liquidityConfigs: data, amountIn: PackedUint128Math.encode(0, 0), salt: 0});
 
         vm.expectRevert(abi.encodeWithSelector(BinPool.BinPool__ZeroShares.selector, activeId));
         poolManager.mint(key, params, "0x00");
@@ -243,14 +246,21 @@ contract BinPoolLiquidityTest is BinTestHelper {
         data[1] = LiquidityConfigurations.encodeParams(0, 0.5e18 + 1, activeId);
         vm.expectRevert(PackedUint128Math.PackedUint128Math__SubUnderflow.selector);
 
-        IBinPoolManager.MintParams memory params =
-            IBinPoolManager.MintParams({liquidityConfigs: data, amountIn: PackedUint128Math.encode(1e18, 1e18)});
+        IBinPoolManager.MintParams memory params = IBinPoolManager.MintParams({
+            liquidityConfigs: data,
+            amountIn: PackedUint128Math.encode(1e18, 1e18),
+            salt: 0
+        });
         poolManager.mint(key, params, "0x00");
 
         data[1] = LiquidityConfigurations.encodeParams(0.5e18, 0, activeId);
         data[0] = LiquidityConfigurations.encodeParams(0.5e18 + 1, 0, activeId + 1);
         vm.expectRevert(PackedUint128Math.PackedUint128Math__SubUnderflow.selector);
-        params = IBinPoolManager.MintParams({liquidityConfigs: data, amountIn: PackedUint128Math.encode(1e18, 1e18)});
+        params = IBinPoolManager.MintParams({
+            liquidityConfigs: data,
+            amountIn: PackedUint128Math.encode(1e18, 1e18),
+            salt: 0
+        });
         poolManager.mint(key, params, "0x00");
     }
 
@@ -271,7 +281,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
         for (uint256 i; i < total; ++i) {
             uint24 id = getId(activeId, i, nbBinY);
             ids[i] = id;
-            balances[i] = poolManager.getPosition(poolId, bob, id).share;
+            balances[i] = poolManager.getPosition(poolId, bob, id, 0).share;
         }
 
         uint256 reserveX = vault.reservesOfPoolManager(key.poolManager, key.currency0);
@@ -313,7 +323,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
             uint24 id = getId(activeId, i, nbBinY);
 
             ids[i] = id;
-            uint256 balance = poolManager.getPosition(poolId, bob, id).share;
+            uint256 balance = poolManager.getPosition(poolId, bob, id, 0).share;
 
             halfbalances[i] = balance / 2;
             balances[i] = balance - balance / 2;
@@ -378,7 +388,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
         uint256[] memory balances = new uint256[](1);
 
         ids[0] = activeId;
-        balances[0] = poolManager.getPosition(poolId, bob, activeId).share + 1;
+        balances[0] = poolManager.getPosition(poolId, bob, activeId, 0).share + 1;
 
         vm.expectRevert(stdError.arithmeticError);
         removeLiquidity(key, poolManager, bob, ids, balances);

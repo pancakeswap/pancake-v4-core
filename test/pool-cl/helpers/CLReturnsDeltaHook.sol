@@ -9,6 +9,7 @@ import {Currency, CurrencyLibrary} from "../../../src/types/Currency.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../../../src/types/BalanceDelta.sol";
 import {BaseCLTestHook} from "./BaseCLTestHook.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary, toBeforeSwapDelta} from "../../../src/types/BeforeSwapDelta.sol";
 
 contract CLReturnsDeltaHook is BaseCLTestHook {
     error InvalidAction();
@@ -80,9 +81,9 @@ contract CLReturnsDeltaHook is BaseCLTestHook {
     function beforeSwap(address, PoolKey calldata key, ICLPoolManager.SwapParams calldata params, bytes calldata data)
         external
         override
-        returns (bytes4, int128)
+        returns (bytes4, BeforeSwapDelta, uint24)
     {
-        (int128 hookDeltaSpecified) = abi.decode(data, (int128));
+        (int128 hookDeltaSpecified, int128 hookDeltaUnspecified,) = abi.decode(data, (int128, int128, int128));
 
         if (params.zeroForOne == params.amountSpecified > 0) {
             // the specified token is token0
@@ -93,6 +94,14 @@ contract CLReturnsDeltaHook is BaseCLTestHook {
             } else {
                 vault.take(key.currency0, address(this), uint128(-hookDeltaSpecified));
             }
+
+            if (hookDeltaUnspecified > 0) {
+                vault.sync(key.currency1);
+                key.currency1.transfer(address(vault), uint128(hookDeltaUnspecified));
+                vault.settle(key.currency1);
+            } else {
+                vault.take(key.currency1, address(this), uint128(-hookDeltaUnspecified));
+            }
         } else {
             // the specified token is token1
             if (hookDeltaSpecified > 0) {
@@ -102,16 +111,51 @@ contract CLReturnsDeltaHook is BaseCLTestHook {
             } else {
                 vault.take(key.currency1, address(this), uint128(-hookDeltaSpecified));
             }
+
+            if (hookDeltaUnspecified > 0) {
+                vault.sync(key.currency0);
+                key.currency0.transfer(address(vault), uint128(hookDeltaUnspecified));
+                vault.settle(key.currency0);
+            } else {
+                vault.take(key.currency0, address(this), uint128(-hookDeltaUnspecified));
+            }
         }
-        return (this.beforeSwap.selector, hookDeltaSpecified);
+        return (this.beforeSwap.selector, toBeforeSwapDelta(hookDeltaSpecified, hookDeltaUnspecified), 0);
     }
 
-    function afterSwap(address, PoolKey calldata, ICLPoolManager.SwapParams calldata, BalanceDelta, bytes calldata)
-        external
-        pure
-        override
-        returns (bytes4, int128)
-    {
-        return (this.afterSwap.selector, 0);
+    function afterSwap(
+        address,
+        PoolKey calldata key,
+        ICLPoolManager.SwapParams calldata params,
+        BalanceDelta,
+        bytes calldata data
+    ) external override returns (bytes4, int128) {
+        (,, int128 hookDeltaUnspecified) = abi.decode(data, (int128, int128, int128));
+
+        if (hookDeltaUnspecified == 0) {
+            return (this.afterSwap.selector, 0);
+        }
+
+        if (params.zeroForOne == params.amountSpecified > 0) {
+            // the unspecified token is token1
+            if (hookDeltaUnspecified > 0) {
+                vault.sync(key.currency1);
+                key.currency1.transfer(address(vault), uint128(hookDeltaUnspecified));
+                vault.settle(key.currency1);
+            } else {
+                vault.take(key.currency1, address(this), uint128(-hookDeltaUnspecified));
+            }
+        } else {
+            // the unspecified token is token0
+            if (hookDeltaUnspecified > 0) {
+                vault.sync(key.currency0);
+                key.currency0.transfer(address(vault), uint128(hookDeltaUnspecified));
+                vault.settle(key.currency0);
+            } else {
+                vault.take(key.currency0, address(this), uint128(-hookDeltaUnspecified));
+            }
+        }
+
+        return (this.afterSwap.selector, hookDeltaUnspecified);
     }
 }
