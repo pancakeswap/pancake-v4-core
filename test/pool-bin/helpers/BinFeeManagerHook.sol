@@ -9,6 +9,7 @@ import {IBinDynamicFeeManager} from "../../../src/pool-bin/interfaces/IBinDynami
 import {PoolId, PoolIdLibrary} from "../../../src/types/PoolId.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {BaseBinTestHook} from "./BaseBinTestHook.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "../../../src/types/BeforeSwapDelta.sol";
 
 contract BinFeeManagerHook is BaseBinTestHook, IBinDynamicFeeManager {
     using PoolIdLibrary for PoolKey;
@@ -61,7 +62,7 @@ contract BinFeeManagerHook is BaseBinTestHook, IBinDynamicFeeManager {
     function beforeSwap(address, PoolKey calldata key, bool, uint128, bytes calldata hookData)
         external
         override
-        returns (bytes4)
+        returns (bytes4, BeforeSwapDelta, uint24)
     {
         if (hookData.length > 0) {
             (bool _update, uint24 _fee) = abi.decode(hookData, (bool, uint24));
@@ -71,6 +72,6 @@ contract BinFeeManagerHook is BaseBinTestHook, IBinDynamicFeeManager {
             }
         }
 
-        return IBinHooks.beforeSwap.selector;
+        return (IBinHooks.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
 }

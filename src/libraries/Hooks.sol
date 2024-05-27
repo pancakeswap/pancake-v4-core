@@ -13,10 +13,12 @@ library Hooks {
     using ParametersHelper for bytes32;
     using LPFeeLibrary for uint24;
 
-    bytes4 constant NO_OP_SELECTOR = bytes4(keccak256(abi.encodePacked("NoOp")));
-
-    /// @notice Hook has no-op defined, but lacking before* call
-    error NoOpHookMissingBeforeCall();
+    /// @notice Hook permissions contain conflict
+    ///  1. enabled beforeSwapReturnsDelta, but lacking beforeSwap call
+    ///  2. enabled afterSwapReturnsDelta, but lacking afterSwap call
+    ///  3. enabled addLiquidityReturnsDelta/mintReturnsDelta, but lacking addLiquidity/mint call
+    ///  4. enabled removeLiquidityReturnsDelta/burnReturnsDelta, but lacking removeLiquidityburn call
+    error HookPermissionsValidationError();
 
     /// @notice Hook config validation failed
     /// 1. either registration bitmap mismatch
@@ -26,6 +28,9 @@ library Hooks {
 
     /// @notice Hook did not return its selector
     error InvalidHookResponse();
+
+    /// @notice Hook delta exceeds swap amount
+    error HookDeltaExceedsSwapAmount();
 
     /// @notice Utility function intended to be used in pool initialization to ensure
     /// the hook contract's hooks registration bitmap match the configration in the pool key
@@ -55,12 +60,5 @@ library Hooks {
     /// 2. whether msg.sender is the hook itself
     function shouldCall(bytes32 parameters, uint8 offset, IHooks hook) internal view returns (bool) {
         return hasOffsetEnabled(parameters, offset) && address(hook) != msg.sender;
-    }
-
-    /// @dev Verify hook return value matches no-op when these 2 conditions are met
-    ///   1) Hook have permission for no-op
-    ///   2) Return value is no-op selector
-    function isValidNoOpCall(bytes32 parameters, uint8 noOpOffset, bytes4 selector) internal pure returns (bool) {
-        return hasOffsetEnabled(parameters, noOpOffset) && selector == NO_OP_SELECTOR;
     }
 }

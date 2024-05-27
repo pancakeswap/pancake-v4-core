@@ -8,6 +8,7 @@ import {IHooks} from "../../../src/interfaces/IHooks.sol";
 import {PoolId, PoolIdLibrary} from "../../../src/types/PoolId.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {BaseCLTestHook} from "./BaseCLTestHook.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "../../../src/types/BeforeSwapDelta.sol";
 
 contract CLFeeManagerHook is BaseCLTestHook {
     using PoolIdLibrary for PoolKey;
@@ -49,7 +50,7 @@ contract CLFeeManagerHook is BaseCLTestHook {
     function beforeSwap(address, PoolKey calldata key, ICLPoolManager.SwapParams calldata, bytes calldata hookData)
         external
         override
-        returns (bytes4)
+        returns (bytes4, BeforeSwapDelta, uint24)
     {
         if (hookData.length > 0) {
             (bool _update, uint24 _fee) = abi.decode(hookData, (bool, uint24));
@@ -59,6 +60,6 @@ contract CLFeeManagerHook is BaseCLTestHook {
             }
         }
 
-        return ICLHooks.beforeSwap.selector;
+        return (ICLHooks.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
 }

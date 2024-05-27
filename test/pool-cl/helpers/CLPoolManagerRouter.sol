@@ -9,7 +9,6 @@ import {ICLPoolManager} from "../../../src/pool-cl/interfaces/ICLPoolManager.sol
 import {console2} from "forge-std/console2.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../../../src/types/BalanceDelta.sol";
-import {HOOKS_NO_OP_OFFSET} from "../../../src/pool-cl/interfaces/ICLHooks.sol";
 import {Hooks} from "../../../src/libraries/Hooks.sol";
 
 contract CLPoolManagerRouter {
@@ -61,47 +60,37 @@ contract CLPoolManagerRouter {
     function modifyPositionCallback(bytes memory rawData) private returns (bytes memory) {
         ModifyPositionCallbackData memory data = abi.decode(rawData, (ModifyPositionCallbackData));
 
+        // delta already takes feeDelta into account
         (BalanceDelta delta, BalanceDelta feeDelta) = poolManager.modifyLiquidity(data.key, data.params, data.hookData);
-        if (delta == BalanceDeltaLibrary.MAXIMUM_DELTA) {
-            // check if the hook has permission to no-op, if true, return early
-            if (!data.key.parameters.shouldCall(HOOKS_NO_OP_OFFSET, data.key.hooks)) {
-                revert HookMissingNoOpPermission();
-            }
-            return abi.encode(delta, feeDelta);
-        }
 
-        // For now assume to always settle feeDelta in the same way as delta
-        BalanceDelta totalDelta = delta + feeDelta;
-
-        if (totalDelta.amount0() > 0) {
+        if (delta.amount0() > 0) {
             if (data.key.currency0.isNative()) {
-                vault.settle{value: uint128(totalDelta.amount0())}(data.key.currency0);
+                vault.settle{value: uint128(delta.amount0())}(data.key.currency0);
             } else {
                 vault.sync(data.key.currency0);
                 IERC20(Currency.unwrap(data.key.currency0)).transferFrom(
-                    data.sender, address(vault), uint128(totalDelta.amount0())
+                    data.sender, address(vault), uint128(delta.amount0())
                 );
                 vault.settle(data.key.currency0);
             }
         }
-
-        if (totalDelta.amount1() > 0) {
+        if (delta.amount1() > 0) {
             if (data.key.currency1.isNative()) {
-                vault.settle{value: uint128(totalDelta.amount1())}(data.key.currency1);
+                vault.settle{value: uint128(delta.amount1())}(data.key.currency1);
             } else {
                 vault.sync(data.key.currency1);
                 IERC20(Currency.unwrap(data.key.currency1)).transferFrom(
-                    data.sender, address(vault), uint128(totalDelta.amount1())
+                    data.sender, address(vault), uint128(delta.amount1())
                 );
                 vault.settle(data.key.currency1);
             }
         }
 
-        if (totalDelta.amount0() < 0) {
-            vault.take(data.key.currency0, data.sender, uint128(-totalDelta.amount0()));
+        if (delta.amount0() < 0) {
+            vault.take(data.key.currency0, data.sender, uint128(-delta.amount0()));
         }
-        if (totalDelta.amount1() < 0) {
-            vault.take(data.key.currency1, data.sender, uint128(-totalDelta.amount1()));
+        if (delta.amount1() < 0) {
+            vault.take(data.key.currency1, data.sender, uint128(-delta.amount1()));
         }
 
         return abi.encode(delta, feeDelta);
@@ -141,14 +130,6 @@ contract CLPoolManagerRouter {
         SwapCallbackData memory data = abi.decode(rawData, (SwapCallbackData));
 
         BalanceDelta delta = poolManager.swap(data.key, data.params, data.hookData);
-
-        if (delta == BalanceDeltaLibrary.MAXIMUM_DELTA) {
-            // check if the hook has permission to no-op, if true, return early
-            if (!data.key.parameters.shouldCall(HOOKS_NO_OP_OFFSET, data.key.hooks)) {
-                revert HookMissingNoOpPermission();
-            }
-            return abi.encode(delta);
-        }
 
         if (data.params.zeroForOne) {
             if (delta.amount0() > 0) {
@@ -235,14 +216,6 @@ contract CLPoolManagerRouter {
         DonateCallbackData memory data = abi.decode(rawData, (DonateCallbackData));
 
         BalanceDelta delta = poolManager.donate(data.key, data.amount0, data.amount1, data.hookData);
-
-        if (delta == BalanceDeltaLibrary.MAXIMUM_DELTA) {
-            // check if the hook has permission to no-op, if true, return early
-            if (!data.key.parameters.shouldCall(HOOKS_NO_OP_OFFSET, data.key.hooks)) {
-                revert HookMissingNoOpPermission();
-            }
-            return abi.encode(delta);
-        }
 
         if (delta.amount0() > 0) {
             if (data.key.currency0.isNative()) {

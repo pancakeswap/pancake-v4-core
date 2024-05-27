@@ -24,6 +24,9 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @notice Error thrown when owner set max bin step too small
     error MaxBinStepTooSmall(uint16 maxBinStep);
 
+    /// @notice Error thrown when amountIn is 0
+    error InsufficientAmountIn();
+
     /// @notice Returns the constant representing the max bin step
     /// @return maxBinStep a value of 100 would represent a 1% price jump between bin (limit can be raised by owner)
     function MAX_BIN_STEP() external view returns (uint16);
@@ -70,6 +73,7 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @param id The abi encoded hash of the pool key struct for the pool that was modified
     /// @param sender The address that modified the pool
     /// @param ids List of binId with liquidity added
+    /// @param salt The salt to distinguish different mint from the same owner
     /// @param amounts List of amount added to each bin
     /// @param compositionFee fee occurred
     /// @param pFee Protocol fee from the swap: token0 and token1 amount
@@ -77,6 +81,7 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
         PoolId indexed id,
         address indexed sender,
         uint256[] ids,
+        bytes32 salt,
         bytes32[] amounts,
         bytes32 compositionFee,
         bytes32 pFee
@@ -86,8 +91,9 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @param id The abi encoded hash of the pool key struct for the pool that was modified
     /// @param sender The address that modified the pool
     /// @param ids List of binId with liquidity removed
+    /// @param salt The salt to specify the position to burn if multiple positions are available
     /// @param amounts List of amount removed from each bin
-    event Burn(PoolId indexed id, address indexed sender, uint256[] ids, bytes32[] amounts);
+    event Burn(PoolId indexed id, address indexed sender, uint256[] ids, bytes32 salt, bytes32[] amounts);
 
     /// @notice Emitted when donate happen
     /// @param id The abi encoded hash of the pool key struct for the pool that was modified
@@ -104,6 +110,8 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
         bytes32[] liquidityConfigs;
         /// @dev amountIn intended
         bytes32 amountIn;
+        /// the salt to distinguish different mint from the same owner
+        bytes32 salt;
     }
 
     struct BurnParams {
@@ -111,6 +119,8 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
         uint256[] ids;
         /// @notice amount of share to burn for each bin
         uint256[] amountsToBurn;
+        /// the salt to specify the position to burn if multiple positions are available
+        bytes32 salt;
     }
 
     /// @notice Get the current value in slot0 of the given pool
@@ -126,7 +136,8 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @param id The id of PoolKey
     /// @param owner Address of the owner
     /// @param binId The id of the bin
-    function getPosition(PoolId id, address owner, uint24 binId)
+    /// @param salt The salt to distinguish different positions for the same owner
+    function getPosition(PoolId id, address owner, uint24 binId, bytes32 salt)
         external
         view
         returns (BinPosition.Info memory position);

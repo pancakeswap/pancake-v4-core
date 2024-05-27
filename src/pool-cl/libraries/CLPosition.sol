@@ -27,8 +27,9 @@ library CLPosition {
     /// @param owner The address of the position owner
     /// @param tickLower The lower tick boundary of the position
     /// @param tickUpper The upper tick boundary of the position
+    /// @param salt A unique value to differentiate between multiple positions in the same range
     /// @return position The position info struct of the given owners' position
-    function get(mapping(bytes32 => Info) storage self, address owner, int24 tickLower, int24 tickUpper)
+    function get(mapping(bytes32 => Info) storage self, address owner, int24 tickLower, int24 tickUpper, bytes32 salt)
         internal
         view
         returns (Info storage position)
@@ -37,10 +38,14 @@ library CLPosition {
         // make use of memory scratch space
         // ref: https://github.com/Vectorized/solady/blob/main/src/tokens/ERC20.sol#L95
         assembly {
+            mstore(0x26, salt)
             mstore(0x06, tickUpper)
             mstore(0x03, tickLower)
             mstore(0x00, owner)
-            key := keccak256(0x0c, 0x1a)
+            key := keccak256(0x0c, 0x3a)
+            // 0x00 - 0x3f is scratch space
+            // 0x40 ~ 0x46 should be clear to avoid polluting free pointer
+            mstore(0x26, 0)
         }
         position = self[key];
     }

@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 
 import {CLPosition} from "./CLPosition.sol";
 import {TickMath} from "./TickMath.sol";
-import {BalanceDelta, toBalanceDelta} from "../../types/BalanceDelta.sol";
+import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta} from "../../types/BalanceDelta.sol";
 import {Tick} from "./Tick.sol";
 import {TickBitmap} from "./TickBitmap.sol";
 import {SqrtPriceMath} from "./SqrtPriceMath.sol";
@@ -26,15 +26,13 @@ library CLPool {
     using LiquidityMath for uint128;
     using CLPool for State;
     using ProtocolFeeLibrary for uint24;
+    using LPFeeLibrary for uint24;
 
     /// @notice Thrown when trying to initalize an already initialized pool
     error PoolAlreadyInitialized();
 
     /// @notice Thrown when trying to interact with a non-initialized pool
     error PoolNotInitialized();
-
-    /// @notice Thrown when trying to swap amount of 0
-    error SwapAmountCannotBeZero();
 
     /// @notice Thrown when trying to swap with max lp fee and specifying an output amount
     error InvalidFeeForExactOut();
@@ -94,6 +92,8 @@ library CLPool {
         int128 liquidityDelta;
         // the spacing between ticks
         int24 tickSpacing;
+        // used to distinguish positions of the same owner, at the same tick range
+        bytes32 salt;
     }
 
     /// @dev Effect changes to the liquidity of a position in a pool
@@ -145,7 +145,7 @@ library CLPool {
         }
 
         // Fees earned from LPing are removed from the pool balance.
-        feeDelta = toBalanceDelta(feesOwed0.toInt128(), feesOwed1.toInt128());
+        feeDelta = toBalanceDelta(-feesOwed0.toInt128(), -feesOwed1.toInt128());
     }
 
     // the top level state of the swap, the results of which are recorded in storage at the end
@@ -192,18 +192,19 @@ library CLPool {
         bool zeroForOne;
         int256 amountSpecified;
         uint160 sqrtPriceLimitX96;
+        uint24 lpFeeOverride;
     }
 
     function swap(State storage self, SwapParams memory params)
         internal
         returns (BalanceDelta balanceDelta, SwapState memory state)
     {
-        if (params.amountSpecified == 0) revert SwapAmountCannotBeZero();
-
+        // cache variables for gas optimization
         Slot0 memory slot0Start = self.slot0;
-        // Declare zeroForOne and sqrtPriceLimitX96 upfront for gas optmization
         bool zeroForOne = params.zeroForOne;
         uint160 sqrtPriceLimitX96 = params.sqrtPriceLimitX96;
+
+        // check price limit
         if (
             zeroForOne
                 ? (sqrtPriceLimitX96 >= slot0Start.sqrtPriceX96 || sqrtPriceLimitX96 <= TickMath.MIN_SQRT_RATIO)
@@ -212,20 +213,26 @@ library CLPool {
             revert InvalidSqrtPriceLimit(slot0Start.sqrtPriceX96, sqrtPriceLimitX96);
         }
 
+        // cache variables for gas optimization
         // liquidity at the beginning of the swap
         uint128 liquidityStart = self.liquidity;
         bool exactInput = params.amountSpecified > 0;
 
+        // init swap state
         {
             uint16 protocolFee =
                 zeroForOne ? slot0Start.protocolFee.getZeroForOneFee() : slot0Start.protocolFee.getOneForZeroFee();
+
+            uint24 lpFee = params.lpFeeOverride.isOverride()
+                ? params.lpFeeOverride.removeOverrideAndValidate(LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE)
+                : slot0Start.lpFee;
 
             state = SwapState({
                 amountSpecifiedRemaining: params.amountSpecified,
                 amountCalculated: 0,
                 sqrtPriceX96: slot0Start.sqrtPriceX96,
                 tick: slot0Start.tick,
-                swapFee: protocolFee == 0 ? slot0Start.lpFee : uint24(protocolFee).calculateSwapFee(slot0Start.lpFee),
+                swapFee: protocolFee == 0 ? lpFee : uint24(protocolFee).calculateSwapFee(lpFee),
                 protocolFee: protocolFee,
                 feeGrowthGlobalX128: zeroForOne ? self.feeGrowthGlobal0X128 : self.feeGrowthGlobal1X128,
                 feeForProtocol: 0,
@@ -238,6 +245,9 @@ library CLPool {
         if (!exactInput && (state.swapFee == LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE)) {
             revert InvalidFeeForExactOut();
         }
+
+        /// @notice early return if hook has updated amountSpecified to 0
+        if (params.amountSpecified == 0) return (BalanceDeltaLibrary.ZERO_DELTA, state);
 
         StepComputations memory step;
         // continue swapping as long as we haven't used the entire input/output and haven't reached the price limit
@@ -374,51 +384,52 @@ library CLPool {
         internal
         returns (uint256, uint256)
     {
-        uint256 _feeGrowthGlobal0X128 = self.feeGrowthGlobal0X128; // SLOAD for gas optimization
-        uint256 _feeGrowthGlobal1X128 = self.feeGrowthGlobal1X128; // SLOAD for gas optimization
-
         //@dev avoid stack too deep
         UpdatePositionCache memory cache;
+        {
+            uint256 _feeGrowthGlobal0X128 = self.feeGrowthGlobal0X128; // SLOAD for gas optimization
+            uint256 _feeGrowthGlobal1X128 = self.feeGrowthGlobal1X128; // SLOAD for gas optimization
 
-        ///@dev  update ticks if nencessary
-        if (params.liquidityDelta != 0) {
-            cache.maxLiquidityPerTick = Tick.tickSpacingToMaxLiquidityPerTick(params.tickSpacing);
-            cache.flippedLower = self.ticks.update(
-                params.tickLower,
-                tick,
-                params.liquidityDelta,
-                _feeGrowthGlobal0X128,
-                _feeGrowthGlobal1X128,
-                false,
-                cache.maxLiquidityPerTick
-            );
-            cache.flippedUpper = self.ticks.update(
-                params.tickUpper,
-                tick,
-                params.liquidityDelta,
-                _feeGrowthGlobal0X128,
-                _feeGrowthGlobal1X128,
-                true,
-                cache.maxLiquidityPerTick
-            );
+            ///@dev  update ticks if nencessary
+            if (params.liquidityDelta != 0) {
+                cache.maxLiquidityPerTick = Tick.tickSpacingToMaxLiquidityPerTick(params.tickSpacing);
+                cache.flippedLower = self.ticks.update(
+                    params.tickLower,
+                    tick,
+                    params.liquidityDelta,
+                    _feeGrowthGlobal0X128,
+                    _feeGrowthGlobal1X128,
+                    false,
+                    cache.maxLiquidityPerTick
+                );
+                cache.flippedUpper = self.ticks.update(
+                    params.tickUpper,
+                    tick,
+                    params.liquidityDelta,
+                    _feeGrowthGlobal0X128,
+                    _feeGrowthGlobal1X128,
+                    true,
+                    cache.maxLiquidityPerTick
+                );
 
-            if (cache.flippedLower) {
-                self.tickBitmap.flipTick(params.tickLower, params.tickSpacing);
+                if (cache.flippedLower) {
+                    self.tickBitmap.flipTick(params.tickLower, params.tickSpacing);
+                }
+                if (cache.flippedUpper) {
+                    self.tickBitmap.flipTick(params.tickUpper, params.tickSpacing);
+                }
             }
-            if (cache.flippedUpper) {
-                self.tickBitmap.flipTick(params.tickUpper, params.tickSpacing);
-            }
+
+            (cache.feeGrowthInside0X128, cache.feeGrowthInside1X128) = self.ticks.getFeeGrowthInside(
+                params.tickLower, params.tickUpper, tick, _feeGrowthGlobal0X128, _feeGrowthGlobal1X128
+            );
         }
-
-        (cache.feeGrowthInside0X128, cache.feeGrowthInside1X128) = self.ticks.getFeeGrowthInside(
-            params.tickLower, params.tickUpper, tick, _feeGrowthGlobal0X128, _feeGrowthGlobal1X128
-        );
 
         ///@dev update user position and collect fees
         /// must be done after ticks are updated in case of a 0 -> 1 flip
-        (cache.feesOwed0, cache.feesOwed1) = self.positions.get(params.owner, params.tickLower, params.tickUpper).update(
-            params.liquidityDelta, cache.feeGrowthInside0X128, cache.feeGrowthInside1X128
-        );
+        (cache.feesOwed0, cache.feesOwed1) = self.positions.get(
+            params.owner, params.tickLower, params.tickUpper, params.salt
+        ).update(params.liquidityDelta, cache.feeGrowthInside0X128, cache.feeGrowthInside1X128);
 
         ///@dev clear any tick data that is no longer needed
         /// must be done after fee collection in case of a 1 -> 0 flip

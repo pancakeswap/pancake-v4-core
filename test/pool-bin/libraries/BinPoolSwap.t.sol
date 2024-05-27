@@ -236,10 +236,10 @@ contract BinPoolSwapTest is BinTestHelper {
 
         uint128 amountIn = 0;
 
-        vm.expectRevert(BinPool.BinPool__InsufficientAmountIn.selector);
+        vm.expectRevert(IBinPoolManager.InsufficientAmountIn.selector);
         poolManager.swap(key, true, amountIn, "0x");
 
-        vm.expectRevert(BinPool.BinPool__InsufficientAmountIn.selector);
+        vm.expectRevert(IBinPoolManager.InsufficientAmountIn.selector);
         poolManager.swap(key, false, amountIn, "0x");
     }
 

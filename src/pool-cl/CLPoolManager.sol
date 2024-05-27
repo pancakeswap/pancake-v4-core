@@ -20,6 +20,8 @@ import {BalanceDelta, BalanceDeltaLibrary} from "../types/BalanceDelta.sol";
 import {Extsload} from "../Extsload.sol";
 import {SafeCast} from "../libraries/SafeCast.sol";
 import {CLPoolGetters} from "./libraries/CLPoolGetters.sol";
+import {CLHooks} from "./libraries/CLHooks.sol";
+import {BeforeSwapDelta} from "../types/BeforeSwapDelta.sol";
 
 contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     using SafeCast for int256;
@@ -64,23 +66,23 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     }
 
     /// @inheritdoc ICLPoolManager
-    function getLiquidity(PoolId id, address _owner, int24 tickLower, int24 tickUpper)
+    function getLiquidity(PoolId id, address _owner, int24 tickLower, int24 tickUpper, bytes32 salt)
         external
         view
         override
         returns (uint128 liquidity)
     {
-        return pools[id].positions.get(_owner, tickLower, tickUpper).liquidity;
+        return pools[id].positions.get(_owner, tickLower, tickUpper, salt).liquidity;
     }
 
     /// @inheritdoc ICLPoolManager
-    function getPosition(PoolId id, address owner, int24 tickLower, int24 tickUpper)
+    function getPosition(PoolId id, address owner, int24 tickLower, int24 tickUpper, bytes32 salt)
         external
         view
         override
         returns (CLPosition.Info memory position)
     {
-        return pools[id].positions.get(owner, tickLower, tickUpper);
+        return pools[id].positions.get(owner, tickLower, tickUpper, salt);
     }
 
     /// @inheritdoc ICLPoolManager
@@ -97,7 +99,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
 
         ICLHooks hooks = ICLHooks(address(key.hooks));
         Hooks.validateHookConfig(key);
-        _validateHookNoOp(key);
+        CLHooks.validatePermissionsConflict(key);
 
         /// @notice init value for dynamic lp fee is 0, but hook can still set it in afterInitialize
         uint24 lpFee = key.fee.getInitialLPFee();
@@ -144,22 +146,16 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         _checkPoolInitialized(id);
 
         ICLHooks hooks = ICLHooks(address(key.hooks));
-
         if (params.liquidityDelta > 0 && key.parameters.shouldCall(HOOKS_BEFORE_ADD_LIQUIDITY_OFFSET, hooks)) {
-            bytes4 selector = hooks.beforeAddLiquidity(msg.sender, key, params, hookData);
-            if (key.parameters.isValidNoOpCall(HOOKS_NO_OP_OFFSET, selector)) {
-                // Sentinel return value used to signify that a NoOp occurred.
-                return (BalanceDeltaLibrary.MAXIMUM_DELTA, BalanceDeltaLibrary.ZERO_DELTA);
-            } else if (selector != ICLHooks.beforeAddLiquidity.selector) {
+            if (hooks.beforeAddLiquidity(msg.sender, key, params, hookData) != ICLHooks.beforeAddLiquidity.selector) {
                 revert Hooks.InvalidHookResponse();
             }
         } else if (params.liquidityDelta <= 0 && key.parameters.shouldCall(HOOKS_BEFORE_REMOVE_LIQUIDITY_OFFSET, hooks))
         {
-            bytes4 selector = hooks.beforeRemoveLiquidity(msg.sender, key, params, hookData);
-            if (key.parameters.isValidNoOpCall(HOOKS_NO_OP_OFFSET, selector)) {
-                // Sentinel return value used to signify that a NoOp occurred.
-                return (BalanceDeltaLibrary.MAXIMUM_DELTA, BalanceDeltaLibrary.ZERO_DELTA);
-            } else if (selector != ICLHooks.beforeRemoveLiquidity.selector) {
+            if (
+                hooks.beforeRemoveLiquidity(msg.sender, key, params, hookData)
+                    != ICLHooks.beforeRemoveLiquidity.selector
+            ) {
                 revert Hooks.InvalidHookResponse();
             }
         }
@@ -170,30 +166,21 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
                 tickLower: params.tickLower,
                 tickUpper: params.tickUpper,
                 liquidityDelta: params.liquidityDelta.toInt128(),
-                tickSpacing: key.parameters.getTickSpacing()
+                tickSpacing: key.parameters.getTickSpacing(),
+                salt: params.salt
             })
         );
 
-        vault.accountPoolBalanceDelta(key, delta + feeDelta, msg.sender);
-
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
-        emit ModifyLiquidity(id, msg.sender, params.tickLower, params.tickUpper, params.liquidityDelta);
+        emit ModifyLiquidity(id, msg.sender, params.tickLower, params.tickUpper, params.salt, params.liquidityDelta);
 
-        if (params.liquidityDelta > 0 && key.parameters.shouldCall(HOOKS_AFTER_ADD_LIQUIDITY_OFFSET, hooks)) {
-            if (
-                hooks.afterAddLiquidity(msg.sender, key, params, delta, hookData) != ICLHooks.afterAddLiquidity.selector
-            ) {
-                revert Hooks.InvalidHookResponse();
-            }
-        } else if (params.liquidityDelta <= 0 && key.parameters.shouldCall(HOOKS_AFTER_REMOVE_LIQUIDITY_OFFSET, hooks))
-        {
-            if (
-                hooks.afterRemoveLiquidity(msg.sender, key, params, delta, hookData)
-                    != ICLHooks.afterRemoveLiquidity.selector
-            ) {
-                revert Hooks.InvalidHookResponse();
-            }
+        BalanceDelta hookDelta;
+        (delta, hookDelta) = CLHooks.afterModifyLiquidity(key, params, delta + feeDelta, hookData);
+
+        if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
+            vault.accountPoolBalanceDelta(key, hookDelta, address(key.hooks));
         }
+        vault.accountPoolBalanceDelta(key, delta, msg.sender);
     }
 
     /// @inheritdoc ICLPoolManager
@@ -204,34 +191,23 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         whenNotPaused
         returns (BalanceDelta delta)
     {
+        if (params.amountSpecified == 0) revert SwapAmountCannotBeZero();
+
         PoolId id = key.toId();
         _checkPoolInitialized(id);
 
-        ICLHooks hooks = ICLHooks(address(key.hooks));
-
-        if (key.parameters.shouldCall(HOOKS_BEFORE_SWAP_OFFSET, hooks)) {
-            bytes4 selector = hooks.beforeSwap(msg.sender, key, params, hookData);
-            if (key.parameters.isValidNoOpCall(HOOKS_NO_OP_OFFSET, selector)) {
-                // Sentinel return value used to signify that a NoOp occurred.
-                return BalanceDeltaLibrary.MAXIMUM_DELTA;
-            } else if (selector != ICLHooks.beforeSwap.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
-        }
-
+        (int256 amountToSwap, BeforeSwapDelta beforeSwapDelta, uint24 lpFeeOverride) =
+            CLHooks.beforeSwap(key, params, hookData);
         CLPool.SwapState memory state;
         (delta, state) = pools[id].swap(
             CLPool.SwapParams({
                 tickSpacing: key.parameters.getTickSpacing(),
                 zeroForOne: params.zeroForOne,
-                amountSpecified: params.amountSpecified,
-                sqrtPriceLimitX96: params.sqrtPriceLimitX96
+                amountSpecified: amountToSwap,
+                sqrtPriceLimitX96: params.sqrtPriceLimitX96,
+                lpFeeOverride: lpFeeOverride
             })
         );
-
-        /// @dev delta already includes protocol fee
-        /// all tokens go into the vault
-        vault.accountPoolBalanceDelta(key, delta, msg.sender);
 
         unchecked {
             if (state.feeForProtocol > 0) {
@@ -252,11 +228,16 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
             state.protocolFee
         );
 
-        if (key.parameters.shouldCall(HOOKS_AFTER_SWAP_OFFSET, hooks)) {
-            if (hooks.afterSwap(msg.sender, key, params, delta, hookData) != ICLHooks.afterSwap.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
+        BalanceDelta hookDelta;
+        (delta, hookDelta) = CLHooks.afterSwap(key, params, delta, hookData, beforeSwapDelta);
+
+        if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
+            vault.accountPoolBalanceDelta(key, hookDelta, address(key.hooks));
         }
+
+        /// @dev delta already includes protocol fee
+        /// all tokens go into the vault
+        vault.accountPoolBalanceDelta(key, delta, msg.sender);
     }
 
     /// @inheritdoc ICLPoolManager
@@ -272,11 +253,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
 
         ICLHooks hooks = ICLHooks(address(key.hooks));
         if (key.parameters.shouldCall(HOOKS_BEFORE_DONATE_OFFSET, hooks)) {
-            bytes4 selector = hooks.beforeDonate(msg.sender, key, amount0, amount1, hookData);
-            if (key.parameters.isValidNoOpCall(HOOKS_NO_OP_OFFSET, selector)) {
-                // Sentinel return value used to signify that a NoOp occurred.
-                return BalanceDeltaLibrary.MAXIMUM_DELTA;
-            } else if (selector != ICLHooks.beforeDonate.selector) {
+            if (hooks.beforeDonate(msg.sender, key, amount0, amount1, hookData) != ICLHooks.beforeDonate.selector) {
                 revert Hooks.InvalidHookResponse();
             }
         }
@@ -327,20 +304,6 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
 
     function _checkPoolInitialized(PoolId id) internal view {
         if (pools[id].isNotInitialized()) revert PoolNotInitialized();
-    }
-
-    function _validateHookNoOp(PoolKey memory key) internal pure {
-        // if no-op is active for hook, there must be a before* hook active too
-        if (key.parameters.hasOffsetEnabled(HOOKS_NO_OP_OFFSET)) {
-            if (
-                !key.parameters.hasOffsetEnabled(HOOKS_BEFORE_ADD_LIQUIDITY_OFFSET)
-                    && !key.parameters.hasOffsetEnabled(HOOKS_BEFORE_REMOVE_LIQUIDITY_OFFSET)
-                    && !key.parameters.hasOffsetEnabled(HOOKS_BEFORE_SWAP_OFFSET)
-                    && !key.parameters.hasOffsetEnabled(HOOKS_BEFORE_DONATE_OFFSET)
-            ) {
-                revert Hooks.NoOpHookMissingBeforeCall();
-            }
-        }
     }
 
     /// @notice not accept ether

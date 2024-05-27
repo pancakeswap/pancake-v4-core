@@ -15,38 +15,43 @@ import {LiquidityAmounts} from "../helpers/LiquidityAmounts.sol";
 import {LPFeeLibrary} from "../../../src/libraries/LPFeeLibrary.sol";
 import {FullMath} from "../../../src/pool-cl/libraries/FullMath.sol";
 import {FixedPoint128} from "../../../src/pool-cl/libraries/FixedPoint128.sol";
+import {ICLPoolManager} from "../../../src/pool-cl/interfaces/ICLPoolManager.sol";
+import {LPFeeLibrary} from "../../../src/libraries/LPFeeLibrary.sol";
+import {ProtocolFeeLibrary} from "../../../src/libraries/ProtocolFeeLibrary.sol";
 
 contract PoolTest is Test {
     using CLPool for CLPool.State;
+    using LPFeeLibrary for uint24;
+    using ProtocolFeeLibrary for uint24;
 
     CLPool.State state;
 
-    function testPoolInitialize(uint160 sqrtPriceX96, uint16 protocolFee, uint24 swapFee) public {
+    function testPoolInitialize(uint160 sqrtPriceX96, uint16 protocolFee, uint24 lpFee) public {
         protocolFee = uint16(bound(protocolFee, 0, 2 ** 16 - 1));
-        swapFee = uint24(bound(swapFee, 0, 999999));
+        lpFee = uint24(bound(lpFee, 0, 999999));
 
         if (sqrtPriceX96 < TickMath.MIN_SQRT_RATIO || sqrtPriceX96 >= TickMath.MAX_SQRT_RATIO) {
             vm.expectRevert(TickMath.InvalidSqrtRatio.selector);
-            state.initialize(sqrtPriceX96, protocolFee, swapFee);
+            state.initialize(sqrtPriceX96, protocolFee, lpFee);
         } else {
-            state.initialize(sqrtPriceX96, protocolFee, swapFee);
+            state.initialize(sqrtPriceX96, protocolFee, lpFee);
             assertEq(state.slot0.sqrtPriceX96, sqrtPriceX96);
             assertEq(state.slot0.protocolFee, protocolFee);
             assertEq(state.slot0.tick, TickMath.getTickAtSqrtRatio(sqrtPriceX96));
             assertLt(state.slot0.tick, TickMath.MAX_TICK);
             assertGt(state.slot0.tick, TickMath.MIN_TICK - 1);
-            assertEq(state.slot0.lpFee, swapFee);
+            assertEq(state.slot0.lpFee, lpFee);
         }
     }
 
-    function testModifyPosition(uint160 sqrtPriceX96, CLPool.ModifyLiquidityParams memory params, uint24 swapFee)
+    function testModifyPosition(uint160 sqrtPriceX96, CLPool.ModifyLiquidityParams memory params, uint24 lpFee)
         public
     {
         // Assumptions tested in PoolManager.t.sol
         params.tickSpacing = int24(bound(params.tickSpacing, 1, 32767));
-        swapFee = uint24(bound(swapFee, 0, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE - 1));
+        lpFee = uint24(bound(lpFee, 0, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE - 1));
 
-        testPoolInitialize(sqrtPriceX96, 0, swapFee);
+        testPoolInitialize(sqrtPriceX96, 0, lpFee);
 
         if (params.tickLower >= params.tickUpper) {
             vm.expectRevert(abi.encodeWithSelector(Tick.TicksMisordered.selector, params.tickLower, params.tickUpper));
@@ -91,18 +96,28 @@ contract PoolTest is Test {
         uint160 sqrtPriceX96,
         CLPool.ModifyLiquidityParams memory modifyLiquidityParams,
         CLPool.SwapParams memory swapParams,
-        uint24 swapFee
+        uint24 lpFee
     ) public {
         swapParams.amountSpecified = int256(bound(swapParams.amountSpecified, 0, type(int128).max));
 
-        testModifyPosition(sqrtPriceX96, modifyLiquidityParams, swapFee);
+        testModifyPosition(sqrtPriceX96, modifyLiquidityParams, lpFee);
 
         swapParams.tickSpacing = modifyLiquidityParams.tickSpacing;
         CLPool.Slot0 memory slot0 = state.slot0;
 
-        if (swapParams.amountSpecified == 0) {
-            vm.expectRevert(CLPool.SwapAmountCannotBeZero.selector);
-        } else if (swapParams.zeroForOne) {
+        // avoid lpFee override valid
+        if (
+            swapParams.lpFeeOverride.isOverride()
+                && swapParams.lpFeeOverride.removeOverrideFlag() > LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE
+        ) {
+            return;
+        }
+
+        uint24 swapFee = swapParams.lpFeeOverride.isOverride()
+            ? swapParams.lpFeeOverride.removeOverrideAndValidate(LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE)
+            : lpFee;
+
+        if (swapParams.zeroForOne) {
             if (swapParams.sqrtPriceLimitX96 >= slot0.sqrtPriceX96) {
                 vm.expectRevert(
                     abi.encodeWithSelector(
@@ -130,6 +145,8 @@ contract PoolTest is Test {
                     )
                 );
             }
+        } else if (swapParams.amountSpecified <= 0 && swapFee == LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE) {
+            vm.expectRevert(CLPool.InvalidFeeForExactOut.selector);
         }
 
         state.swap(swapParams);

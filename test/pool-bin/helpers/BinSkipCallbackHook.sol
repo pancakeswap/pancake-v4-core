@@ -6,7 +6,8 @@ import {Currency, CurrencyLibrary} from "../../../src/types/Currency.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {PoolKey} from "../../../src/types/PoolKey.sol";
-import {BalanceDelta} from "../../../src/types/BalanceDelta.sol";
+import {BalanceDelta, BalanceDeltaLibrary} from "../../../src/types/BalanceDelta.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "../../../src/types/BeforeSwapDelta.sol";
 import {IBinHooks} from "../../../src/pool-bin/interfaces/IBinHooks.sol";
 import {IBinPoolManager} from "../../../src/pool-bin/interfaces/IBinPoolManager.sol";
 import {Hooks} from "../../../src/libraries/Hooks.sol";
@@ -51,7 +52,10 @@ contract BinSkipCallbackHook is BaseBinTestHook {
                 afterSwap: true,
                 beforeDonate: true,
                 afterDonate: true,
-                noOp: false
+                beforeSwapReturnsDelta: true,
+                afterSwapReturnsDelta: true,
+                afterMintReturnsDelta: true,
+                afterBurnReturnsDelta: true
             })
         );
     }
@@ -241,10 +245,10 @@ contract BinSkipCallbackHook is BaseBinTestHook {
     function afterMint(address, PoolKey calldata, IBinPoolManager.MintParams calldata, BalanceDelta, bytes calldata)
         external
         override
-        returns (bytes4)
+        returns (bytes4, BalanceDelta)
     {
         hookCounterCallbackCount++;
-        return BinSkipCallbackHook.afterMint.selector;
+        return (BinSkipCallbackHook.afterMint.selector, BalanceDeltaLibrary.ZERO_DELTA);
     }
 
     function beforeBurn(address, PoolKey calldata, IBinPoolManager.BurnParams calldata, bytes calldata)
@@ -259,24 +263,28 @@ contract BinSkipCallbackHook is BaseBinTestHook {
     function afterBurn(address, PoolKey calldata, IBinPoolManager.BurnParams calldata, BalanceDelta, bytes calldata)
         external
         override
-        returns (bytes4)
+        returns (bytes4, BalanceDelta)
     {
         hookCounterCallbackCount++;
-        return BinSkipCallbackHook.afterBurn.selector;
+        return (BinSkipCallbackHook.afterBurn.selector, BalanceDeltaLibrary.ZERO_DELTA);
     }
 
-    function beforeSwap(address, PoolKey calldata, bool, uint128, bytes calldata) external override returns (bytes4) {
+    function beforeSwap(address, PoolKey calldata, bool, uint128, bytes calldata)
+        external
+        override
+        returns (bytes4, BeforeSwapDelta, uint24)
+    {
         hookCounterCallbackCount++;
-        return BinSkipCallbackHook.beforeSwap.selector;
+        return (BinSkipCallbackHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
 
     function afterSwap(address, PoolKey calldata, bool, uint128, BalanceDelta, bytes calldata)
         external
         override
-        returns (bytes4)
+        returns (bytes4, int128)
     {
         hookCounterCallbackCount++;
-        return BinSkipCallbackHook.afterSwap.selector;
+        return (BinSkipCallbackHook.afterSwap.selector, 0);
     }
 
     function beforeDonate(address, PoolKey calldata, uint256, uint256, bytes calldata)

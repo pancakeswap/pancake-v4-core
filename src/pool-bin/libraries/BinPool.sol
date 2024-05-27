@@ -14,6 +14,7 @@ import {SafeCast} from "./math/SafeCast.sol";
 import {Constants} from "./Constants.sol";
 import {FeeHelper} from "./FeeHelper.sol";
 import {ProtocolFeeLibrary} from "../../libraries/ProtocolFeeLibrary.sol";
+import {LPFeeLibrary} from "../../libraries/LPFeeLibrary.sol";
 
 library BinPool {
     using BinHelper for bytes32;
@@ -30,6 +31,7 @@ library BinPool {
     using FeeHelper for uint128;
     using BinPool for State;
     using ProtocolFeeLibrary for uint24;
+    using LPFeeLibrary for uint24;
 
     error PoolNotInitialized();
     error PoolAlreadyInitialized();
@@ -38,7 +40,6 @@ library BinPool {
     error BinPool__InvalidBurnInput();
     error BinPool__BurnZeroAmount(uint24 id);
     error BinPool__ZeroAmountsOut(uint24 id);
-    error BinPool__InsufficientAmountIn();
     error BinPool__OutOfLiquidity();
     error BinPool__InsufficientAmountOut();
     error BinPool__NoLiquidityToReceiveFees();
@@ -109,7 +110,7 @@ library BinPool {
 
         uint24 protocolFee =
             swapForY ? slot0Cache.protocolFee.getOneForZeroFee() : slot0Cache.protocolFee.getZeroForOneFee();
-        uint24 swapFee = protocolFee.calculateSwapFee(params.lpFee);
+        uint24 swapFee = protocolFee == 0 ? params.lpFee : protocolFee.calculateSwapFee(params.lpFee);
 
         while (true) {
             uint128 binReserves = self.reserveOfBin[id].decode(!swapForY);
@@ -156,7 +157,7 @@ library BinPool {
         {
             uint24 protocolFee =
                 swapForY ? slot0Cache.protocolFee.getOneForZeroFee() : slot0Cache.protocolFee.getZeroForOneFee();
-            swapFee = protocolFee.calculateSwapFee(params.lpFee);
+            swapFee = protocolFee == 0 ? params.lpFee : protocolFee.calculateSwapFee(params.lpFee);
         }
 
         while (true) {
@@ -189,6 +190,7 @@ library BinPool {
     struct SwapParams {
         bool swapForY;
         uint16 binStep;
+        uint24 lpFeeOverride;
     }
 
     struct SwapState {
@@ -202,8 +204,6 @@ library BinPool {
         internal
         returns (BalanceDelta result, SwapState memory swapState)
     {
-        if (amountIn == 0) revert BinPool__InsufficientAmountIn();
-
         Slot0 memory slot0Cache = self.slot0;
         swapState.activeId = slot0Cache.activeId;
         bool swapForY = params.swapForY;
@@ -213,8 +213,17 @@ library BinPool {
         bytes32 amountsLeft = swapForY ? amountIn.encodeFirst() : amountIn.encodeSecond();
         bytes32 amountsOut;
 
-        /// @dev swap fee includes protocolFee (charged first) and lpFee
-        swapState.swapFee = swapState.protocolFee.calculateSwapFee(slot0Cache.lpFee);
+        {
+            uint24 lpFee = params.lpFeeOverride.isOverride()
+                ? params.lpFeeOverride.removeOverrideAndValidate(LPFeeLibrary.TEN_PERCENT_FEE)
+                : slot0Cache.lpFee;
+
+            /// @dev swap fee includes protocolFee (charged first) and lpFee
+            swapState.swapFee = swapState.protocolFee == 0 ? lpFee : swapState.protocolFee.calculateSwapFee(lpFee);
+        }
+
+        /// @notice early return if hook has updated amountIn to 0
+        if (amountIn == 0) return (result, swapState);
 
         while (true) {
             bytes32 binReserves = self.reserveOfBin[swapState.activeId];
@@ -264,6 +273,7 @@ library BinPool {
         bytes32[] liquidityConfigs;
         bytes32 amountIn;
         uint16 binStep;
+        bytes32 salt;
     }
 
     struct MintArrays {
@@ -318,6 +328,7 @@ library BinPool {
         address from;
         uint256[] ids;
         uint256[] amountsToBurn;
+        bytes32 salt;
     }
 
     /// @notice Burn user's share and withdraw tokens form the pool.
@@ -342,7 +353,7 @@ library BinPool {
             bytes32 binReserves = self.reserveOfBin[id];
             uint256 supply = self.shareOfBin[id];
 
-            _subShare(self, params.from, id, amountToBurn);
+            _subShare(self, params.from, id, params.salt, amountToBurn);
 
             bytes32 amountsOutFromBin = binReserves.getAmountOutOfBin(amountToBurn, supply);
 
@@ -395,11 +406,21 @@ library BinPool {
     {
         amountsLeft = params.amountIn;
 
+        uint24 id;
+        uint256 shares;
+        bytes32 amountsIn;
+        bytes32 amountsInToBin;
+        bytes32 binFeeAmt;
+        bytes32 binCompositionFee;
         for (uint256 i; i < params.liquidityConfigs.length;) {
-            (bytes32 maxAmountsInToBin, uint24 id) = params.liquidityConfigs[i].getAmountsAndId(params.amountIn);
+            // fix stack too deep
+            {
+                bytes32 maxAmountsInToBin;
+                (maxAmountsInToBin, id) = params.liquidityConfigs[i].getAmountsAndId(params.amountIn);
 
-            (uint256 shares, bytes32 amountsIn, bytes32 amountsInToBin, bytes32 binFeeAmt, bytes32 binCompositionFee) =
-                _updateBin(self, params, id, maxAmountsInToBin);
+                (shares, amountsIn, amountsInToBin, binFeeAmt, binCompositionFee) =
+                    _updateBin(self, params, id, maxAmountsInToBin);
+            }
 
             amountsLeft = amountsLeft.sub(amountsIn);
             feeForProtocol = feeForProtocol.add(binFeeAmt);
@@ -408,7 +429,7 @@ library BinPool {
             arrays.amounts[i] = amountsInToBin;
             arrays.liquidityMinted[i] = shares;
 
-            _addShare(self, params.to, id, shares);
+            _addShare(self, params.to, id, params.salt, shares);
 
             compositionFee = compositionFee.add(binCompositionFee);
 
@@ -475,14 +496,14 @@ library BinPool {
     }
 
     /// @notice Subtract share from user's position and update total share supply of bin
-    function _subShare(State storage self, address owner, uint24 binId, uint256 shares) internal {
-        self.positions.get(owner, binId).subShare(shares);
+    function _subShare(State storage self, address owner, uint24 binId, bytes32 salt, uint256 shares) internal {
+        self.positions.get(owner, binId, salt).subShare(shares);
         self.shareOfBin[binId] -= shares;
     }
 
     /// @notice Add share to user's position and update total share supply of bin
-    function _addShare(State storage self, address owner, uint24 binId, uint256 shares) internal {
-        self.positions.get(owner, binId).addShare(shares);
+    function _addShare(State storage self, address owner, uint24 binId, bytes32 salt, uint256 shares) internal {
+        self.positions.get(owner, binId, salt).addShare(shares);
         self.shareOfBin[binId] += shares;
     }
 

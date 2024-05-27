@@ -9,6 +9,7 @@ import {Currency, CurrencyLibrary} from "../../../src/types/Currency.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../../../src/types/BalanceDelta.sol";
 import {BaseCLTestHook} from "./BaseCLTestHook.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "../../../src/types/BeforeSwapDelta.sol";
 
 /// @notice CL hook which does a callback
 contract CLSkipCallbackHook is BaseCLTestHook {
@@ -41,7 +42,10 @@ contract CLSkipCallbackHook is BaseCLTestHook {
                 afterSwap: true,
                 beforeDonate: true,
                 afterDonate: true,
-                noOp: false
+                befreSwapReturnsDelta: true,
+                afterSwapReturnsDelta: true,
+                afterAddLiquidityReturnsDelta: true,
+                afterRemoveLiquidityReturnsDelta: true
             })
         );
     }
@@ -85,9 +89,6 @@ contract CLSkipCallbackHook is BaseCLTestHook {
         ModifyPositionCallbackData memory data = abi.decode(rawData, (ModifyPositionCallbackData));
 
         (BalanceDelta delta,) = poolManager.modifyLiquidity(data.key, data.params, data.hookData);
-
-        // For now assume to always settle feeDelta in the same way as delta
-        // BalanceDelta totalDelta = delta + feeDelta;
 
         if (delta.amount0() > 0) {
             if (data.key.currency0.isNative()) {
@@ -311,9 +312,9 @@ contract CLSkipCallbackHook is BaseCLTestHook {
         ICLPoolManager.ModifyLiquidityParams calldata,
         BalanceDelta,
         bytes calldata
-    ) external override returns (bytes4) {
+    ) external override returns (bytes4, BalanceDelta) {
         hookCounterCallbackCount++;
-        return CLSkipCallbackHook.afterAddLiquidity.selector;
+        return (CLSkipCallbackHook.afterAddLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
     }
 
     function beforeRemoveLiquidity(
@@ -332,27 +333,27 @@ contract CLSkipCallbackHook is BaseCLTestHook {
         ICLPoolManager.ModifyLiquidityParams calldata,
         BalanceDelta,
         bytes calldata
-    ) external override returns (bytes4) {
+    ) external override returns (bytes4, BalanceDelta) {
         hookCounterCallbackCount++;
-        return CLSkipCallbackHook.afterRemoveLiquidity.selector;
+        return (CLSkipCallbackHook.afterRemoveLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
     }
 
     function beforeSwap(address, PoolKey calldata, ICLPoolManager.SwapParams calldata, bytes calldata)
         external
         override
-        returns (bytes4)
+        returns (bytes4, BeforeSwapDelta, uint24)
     {
         hookCounterCallbackCount++;
-        return CLSkipCallbackHook.beforeSwap.selector;
+        return (CLSkipCallbackHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
 
     function afterSwap(address, PoolKey calldata, ICLPoolManager.SwapParams calldata, BalanceDelta, bytes calldata)
         external
         override
-        returns (bytes4)
+        returns (bytes4, int128)
     {
         hookCounterCallbackCount++;
-        return CLSkipCallbackHook.afterSwap.selector;
+        return (CLSkipCallbackHook.afterSwap.selector, 0);
     }
 
     function beforeDonate(address, PoolKey calldata, uint256, uint256, bytes calldata)

@@ -40,11 +40,12 @@ contract BinPoolFeeTest is BinTestHelper {
         PoolId indexed id,
         address indexed sender,
         uint256[] ids,
+        bytes32 salt,
         bytes32[] amounts,
         bytes32 compositionFee,
         bytes32 pFee
     );
-    event Burn(PoolId indexed id, address indexed sender, uint256[] ids, bytes32[] amounts);
+    event Burn(PoolId indexed id, address indexed sender, uint256[] ids, bytes32 salt, bytes32[] amounts);
     event Swap(
         PoolId indexed id,
         address indexed sender,
@@ -121,7 +122,7 @@ contract BinPoolFeeTest is BinTestHelper {
         ids[0] = binId;
         amounts[0] = expectedAmtInBin;
         vm.expectEmit();
-        emit Mint(key.toId(), bob, ids, amounts, expectedFee, protocolFee);
+        emit Mint(key.toId(), bob, ids, 0, amounts, expectedFee, protocolFee);
         addLiquidityToBin(key, poolManager, bob, binId, amountX, amountY, 4e17, 5e17, "");
     }
 
@@ -187,7 +188,7 @@ contract BinPoolFeeTest is BinTestHelper {
         ids[0] = binId;
         amounts[0] = expectedAmtInBin;
         vm.expectEmit();
-        emit Mint(key.toId(), bob, ids, amounts, expectedFee, protocolFee);
+        emit Mint(key.toId(), bob, ids, 0, amounts, expectedFee, protocolFee);
         addLiquidityToBin(key, poolManager, bob, binId, amountX, amountY, 4e17, 5e17, "");
     }
 
@@ -216,7 +217,7 @@ contract BinPoolFeeTest is BinTestHelper {
         ids[0] = binId;
         amounts[0] = expectedAmtInBin;
         vm.expectEmit();
-        emit Mint(key.toId(), bob, ids, amounts, expectedFee, protocolFee);
+        emit Mint(key.toId(), bob, ids, 0, amounts, expectedFee, protocolFee);
 
         addLiquidityToBin(key, poolManager, bob, binId, amountX, amountY, 4e17, 5e17, "");
 
@@ -240,7 +241,7 @@ contract BinPoolFeeTest is BinTestHelper {
         // then remove liquidity
         uint256[] memory balances = new uint256[](1);
         uint256[] memory ids = new uint256[](1);
-        balances[0] = poolManager.getPosition(poolId, bob, activeId).share;
+        balances[0] = poolManager.getPosition(poolId, bob, activeId, 0).share;
         ids[0] = activeId;
         removeLiquidity(key, poolManager, bob, ids, balances);
 

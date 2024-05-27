@@ -74,10 +74,14 @@ contract CLHookSkipCallbackTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         // Add and remove liquidity
         clSkipCallbackHook.modifyPosition(
-            key, ICLPoolManager.ModifyLiquidityParams({tickLower: -100, tickUpper: 100, liquidityDelta: 1e18}), ""
+            key,
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -100, tickUpper: 100, liquidityDelta: 1e18, salt: 0}),
+            ""
         );
         clSkipCallbackHook.modifyPosition(
-            key, ICLPoolManager.ModifyLiquidityParams({tickLower: -100, tickUpper: 100, liquidityDelta: -1e18}), ""
+            key,
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -100, tickUpper: 100, liquidityDelta: -1e18, salt: 0}),
+            ""
         );
         assertEq(clSkipCallbackHook.hookCounterCallbackCount(), 0);
     }
@@ -87,10 +91,14 @@ contract CLHookSkipCallbackTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         // Add and remove liquidity
         router.modifyPosition(
-            key, ICLPoolManager.ModifyLiquidityParams({tickLower: -100, tickUpper: 100, liquidityDelta: 1e18}), ""
+            key,
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -100, tickUpper: 100, liquidityDelta: 1e18, salt: 0}),
+            ""
         );
         router.modifyPosition(
-            key, ICLPoolManager.ModifyLiquidityParams({tickLower: -100, tickUpper: 100, liquidityDelta: -1e18}), ""
+            key,
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -100, tickUpper: 100, liquidityDelta: -1e18, salt: 0}),
+            ""
         );
         assertEq(clSkipCallbackHook.hookCounterCallbackCount(), 4);
     }
@@ -100,7 +108,9 @@ contract CLHookSkipCallbackTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         // Pre-req add some liqudiity
         clSkipCallbackHook.modifyPosition(
-            key, ICLPoolManager.ModifyLiquidityParams({tickLower: -100, tickUpper: 100, liquidityDelta: 1e18}), ""
+            key,
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -100, tickUpper: 100, liquidityDelta: 1e18, salt: 0}),
+            ""
         );
 
         clSkipCallbackHook.swap(
@@ -118,7 +128,9 @@ contract CLHookSkipCallbackTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         // Pre-req add some liqudiity
         clSkipCallbackHook.modifyPosition(
-            key, ICLPoolManager.ModifyLiquidityParams({tickLower: -100, tickUpper: 100, liquidityDelta: 1e18}), ""
+            key,
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -100, tickUpper: 100, liquidityDelta: 1e18, salt: 0}),
+            ""
         );
 
         router.swap(
@@ -136,7 +148,9 @@ contract CLHookSkipCallbackTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         // Pre-req add some liqudiity
         clSkipCallbackHook.modifyPosition(
-            key, ICLPoolManager.ModifyLiquidityParams({tickLower: -100, tickUpper: 100, liquidityDelta: 1e18}), ""
+            key,
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -100, tickUpper: 100, liquidityDelta: 1e18, salt: 0}),
+            ""
         );
 
         clSkipCallbackHook.donate(key, 100, 200, ZERO_BYTES);
@@ -149,7 +163,9 @@ contract CLHookSkipCallbackTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         // Pre-req add some liqudiity
         clSkipCallbackHook.modifyPosition(
-            key, ICLPoolManager.ModifyLiquidityParams({tickLower: -100, tickUpper: 100, liquidityDelta: 1e18}), ""
+            key,
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -100, tickUpper: 100, liquidityDelta: 1e18, salt: 0}),
+            ""
         );
 
         router.donate(key, 100, 200, ZERO_BYTES);

@@ -5,6 +5,7 @@ import {PoolKey} from "../../types/PoolKey.sol";
 import {BalanceDelta} from "../../types/BalanceDelta.sol";
 import {ICLPoolManager} from "./ICLPoolManager.sol";
 import {IHooks} from "../../interfaces/IHooks.sol";
+import {BeforeSwapDelta} from "../../types/BeforeSwapDelta.sol";
 
 /// @dev Update PoolManager#_validateHookNoOp if theres a new offset with no-op
 uint8 constant HOOKS_BEFORE_INITIALIZE_OFFSET = 0;
@@ -17,7 +18,10 @@ uint8 constant HOOKS_BEFORE_SWAP_OFFSET = 6;
 uint8 constant HOOKS_AFTER_SWAP_OFFSET = 7;
 uint8 constant HOOKS_BEFORE_DONATE_OFFSET = 8;
 uint8 constant HOOKS_AFTER_DONATE_OFFSET = 9;
-uint8 constant HOOKS_NO_OP_OFFSET = 10;
+uint8 constant HOOKS_BEFORE_SWAP_RETURNS_DELTA_OFFSET = 10;
+uint8 constant HOOKS_AFTER_SWAP_RETURNS_DELTA_OFFSET = 11;
+uint8 constant HOOKS_AFTER_ADD_LIQUIDIY_RETURNS_DELTA_OFFSET = 12;
+uint8 constant HOOKS_AFTER_REMOVE_LIQUIDIY_RETURNS_DELTA_OFFSET = 13;
 
 /// @notice The PoolManager contract decides whether to invoke specific hooks by inspecting the leading bits
 /// of the hooks contract address. For example, a 1 bit in the first bit of the address will
@@ -69,13 +73,14 @@ interface ICLHooks is IHooks {
     /// @param params The parameters for adding liquidity
     /// @param hookData Arbitrary data handed into the PoolManager by the liquidty provider to be be passed on to the hook
     /// @return bytes4 The function selector for the hook
+    /// @return BalanceDelta The hook's delta in token0 and token1.
     function afterAddLiquidity(
         address sender,
         PoolKey calldata key,
         ICLPoolManager.ModifyLiquidityParams calldata params,
         BalanceDelta delta,
         bytes calldata hookData
-    ) external returns (bytes4);
+    ) external returns (bytes4, BalanceDelta);
 
     /// @notice The hook called before liquidity is removed
     /// @param sender The initial msg.sender for the remove liquidity call
@@ -96,13 +101,14 @@ interface ICLHooks is IHooks {
     /// @param params The parameters for removing liquidity
     /// @param hookData Arbitrary data handed into the PoolManager by the liquidty provider to be be passed on to the hook
     /// @return bytes4 The function selector for the hook
+    /// @return BalanceDelta The hook's delta in token0 and token1.
     function afterRemoveLiquidity(
         address sender,
         PoolKey calldata key,
         ICLPoolManager.ModifyLiquidityParams calldata params,
         BalanceDelta delta,
         bytes calldata hookData
-    ) external returns (bytes4);
+    ) external returns (bytes4, BalanceDelta);
 
     /// @notice The hook called before a swap
     /// @param sender The initial msg.sender for the swap call
@@ -110,12 +116,17 @@ interface ICLHooks is IHooks {
     /// @param params The parameters for the swap
     /// @param hookData Arbitrary data handed into the PoolManager by the swapper to be be passed on to the hook
     /// @return bytes4 The function selector for the hook
+    /// @return BeforeSwapDelta The hook's delta in specified and unspecified currencies.
+    /// @return uint24 Optionally override the lp fee, only used if three conditions are met:
+    ///     1) the Pool has a dynamic fee,
+    ///     2) the value's override flag is set to 1 i.e. vaule & OVERRIDE_FEE_FLAG = 0x400000 != 0
+    ///     3) the value is less than or equal to the maximum fee (1 million)
     function beforeSwap(
         address sender,
         PoolKey calldata key,
         ICLPoolManager.SwapParams calldata params,
         bytes calldata hookData
-    ) external returns (bytes4);
+    ) external returns (bytes4, BeforeSwapDelta, uint24);
 
     /// @notice The hook called after a swap
     /// @param sender The initial msg.sender for the swap call
@@ -124,13 +135,14 @@ interface ICLHooks is IHooks {
     /// @param delta The amount owed to the locker (positive) or owed to the pool (negative)
     /// @param hookData Arbitrary data handed into the PoolManager by the swapper to be be passed on to the hook
     /// @return bytes4 The function selector for the hook
+    /// @return int128 The hook's delta in unspecified currency
     function afterSwap(
         address sender,
         PoolKey calldata key,
         ICLPoolManager.SwapParams calldata params,
         BalanceDelta delta,
         bytes calldata hookData
-    ) external returns (bytes4);
+    ) external returns (bytes4, int128);
 
     /// @notice The hook called before donate
     /// @param sender The initial msg.sender for the donate call

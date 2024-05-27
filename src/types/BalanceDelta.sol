@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 type BalanceDelta is int256;
 
-using {add as +, sub as -, eq as ==} for BalanceDelta global;
+using {add as +, sub as -, eq as ==, neq as !=} for BalanceDelta global;
 using BalanceDeltaLibrary for BalanceDelta global;
 
 function toBalanceDelta(int128 _amount0, int128 _amount1) pure returns (BalanceDelta balanceDelta) {
@@ -26,10 +26,11 @@ function eq(BalanceDelta a, BalanceDelta b) pure returns (bool) {
     return a.amount0() == b.amount0() && a.amount1() == b.amount1();
 }
 
-library BalanceDeltaLibrary {
-    // Sentinel return value used to signify that a NoOp occurred.
-    BalanceDelta public constant MAXIMUM_DELTA = BalanceDelta.wrap(int256(type(uint256).max));
+function neq(BalanceDelta a, BalanceDelta b) pure returns (bool) {
+    return a.amount0() != b.amount0() || a.amount1() != b.amount1();
+}
 
+library BalanceDeltaLibrary {
     // Sentinel return value used for feeDelta to signify that a NoOp occurred.
     BalanceDelta public constant ZERO_DELTA = BalanceDelta.wrap(0);
 
