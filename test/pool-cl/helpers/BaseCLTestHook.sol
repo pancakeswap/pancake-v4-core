@@ -6,6 +6,7 @@ import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {BalanceDelta} from "../../../src/types/BalanceDelta.sol";
 import {ICLHooks} from "../../../src/pool-cl/interfaces/ICLHooks.sol";
 import {ICLPoolManager} from "../../../src/pool-cl/interfaces/ICLPoolManager.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "../../../src/types/BeforeSwapDelta.sol";
 
 contract BaseCLTestHook is ICLHooks {
     error HookNotImplemented();
@@ -84,7 +85,7 @@ contract BaseCLTestHook is ICLHooks {
     function beforeSwap(address, PoolKey calldata, ICLPoolManager.SwapParams calldata, bytes calldata)
         external
         virtual
-        returns (bytes4, int128)
+        returns (bytes4, BeforeSwapDelta, uint24)
     {
         revert HookNotImplemented();
     }

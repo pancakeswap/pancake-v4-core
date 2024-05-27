@@ -19,6 +19,7 @@ import {LPFeeLibrary} from "../libraries/LPFeeLibrary.sol";
 import {PackedUint128Math} from "./libraries/math/PackedUint128Math.sol";
 import {Extsload} from "../Extsload.sol";
 import {BinHooks} from "./libraries/BinHooks.sol";
+import {BeforeSwapDelta} from "../types/BeforeSwapDelta.sol";
 import "./interfaces/IBinHooks.sol";
 
 /// @notice Holds the state for all bin pools
@@ -141,13 +142,19 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         PoolId id = key.toId();
         _checkPoolInitialized(id);
 
-        (uint128 amountToSwap, int128 hookDeltaSpecified) = BinHooks.beforeSwap(key, swapForY, amountIn, hookData);
+        (uint128 amountToSwap, BeforeSwapDelta beforeSwapDelta, uint24 lpFeeOverride) =
+            BinHooks.beforeSwap(key, swapForY, amountIn, hookData);
 
         /// @dev fix stack too deep
         {
             BinPool.SwapState memory state;
             (delta, state) = pools[id].swap(
-                BinPool.SwapParams({swapForY: swapForY, binStep: key.parameters.getBinStep()}), amountToSwap
+                BinPool.SwapParams({
+                    swapForY: swapForY,
+                    binStep: key.parameters.getBinStep(),
+                    lpFeeOverride: lpFeeOverride
+                }),
+                amountToSwap
             );
 
             unchecked {
@@ -164,7 +171,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         }
 
         BalanceDelta hookDelta;
-        (delta, hookDelta) = BinHooks.afterSwap(key, swapForY, amountIn, delta, hookData, hookDeltaSpecified);
+        (delta, hookDelta) = BinHooks.afterSwap(key, swapForY, amountIn, delta, hookData, beforeSwapDelta);
 
         if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
             vault.accountPoolBalanceDelta(key, hookDelta, address(key.hooks));

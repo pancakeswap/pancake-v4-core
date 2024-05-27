@@ -7,9 +7,13 @@ import {PoolKey} from "../../types/PoolKey.sol";
 import {ICLPoolManager} from "../interfaces/ICLPoolManager.sol";
 import {Hooks} from "../../libraries/Hooks.sol";
 import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta} from "../../types/BalanceDelta.sol";
+import {LPFeeLibrary} from "../../libraries/LPFeeLibrary.sol";
+import {BeforeSwapDeltaLibrary, BeforeSwapDelta} from "../../types/BeforeSwapDelta.sol";
 
 library CLHooks {
     using Hooks for bytes32;
+    using LPFeeLibrary for uint24;
+    using BeforeSwapDeltaLibrary for BeforeSwapDelta;
 
     function validatePermissionsConflict(PoolKey memory key) internal pure {
         if (
@@ -83,28 +87,37 @@ library CLHooks {
 
     function beforeSwap(PoolKey memory key, ICLPoolManager.SwapParams memory params, bytes calldata hookData)
         internal
-        returns (int256 amountToSwap, int128 hookDeltaSpecified)
+        returns (int256 amountToSwap, BeforeSwapDelta beforeSwapDelta, uint24 lpFeeOverride)
     {
         ICLHooks hooks = ICLHooks(address(key.hooks));
         amountToSwap = params.amountSpecified;
 
         /// @notice If the hook is not registered, return the original amount to swap
         if (!key.parameters.shouldCall(HOOKS_BEFORE_SWAP_OFFSET, hooks)) {
-            return (amountToSwap, hookDeltaSpecified);
+            return (amountToSwap, beforeSwapDelta, lpFeeOverride);
         }
 
         bytes4 selector;
         // TODO: Potentially optimization: skip decoding the second return value when afterSwapReturnDelta not set
-        (selector, hookDeltaSpecified) = hooks.beforeSwap(msg.sender, key, params, hookData);
+        (selector, beforeSwapDelta, lpFeeOverride) = hooks.beforeSwap(msg.sender, key, params, hookData);
         if (selector != ICLHooks.beforeSwap.selector) {
             revert Hooks.InvalidHookResponse();
         }
 
+        if (!key.fee.isDynamicLPFee()) {
+            lpFeeOverride = 0;
+        }
+
         // Update the swap amount according to the hook's return, and check that the swap type doesnt change (exact input/output)
-        if (key.parameters.hasOffsetEnabled(HOOKS_BEFORE_SWAP_RETURNS_DELTA_OFFSET) && hookDeltaSpecified != 0) {
-            bool exactInput = amountToSwap > 0;
-            amountToSwap += hookDeltaSpecified;
-            if (exactInput ? amountToSwap < 0 : amountToSwap > 0) revert Hooks.HookDeltaExceedsSwapAmount();
+        if (key.parameters.hasOffsetEnabled(HOOKS_BEFORE_SWAP_RETURNS_DELTA_OFFSET)) {
+            // any return in unspecified is passed to the afterSwap hook for handling
+            int128 hookDeltaSpecified = beforeSwapDelta.getSpecifiedDelta();
+
+            if (hookDeltaSpecified != 0) {
+                bool exactInput = amountToSwap > 0;
+                amountToSwap += hookDeltaSpecified;
+                if (exactInput ? amountToSwap < 0 : amountToSwap > 0) revert Hooks.HookDeltaExceedsSwapAmount();
+            }
         }
     }
 
@@ -113,11 +126,12 @@ library CLHooks {
         ICLPoolManager.SwapParams memory params,
         BalanceDelta delta,
         bytes calldata hookData,
-        int128 hookDeltaSpecified
+        BeforeSwapDelta beforeSwapDelta
     ) internal returns (BalanceDelta swapperDelta, BalanceDelta hookDelta) {
         ICLHooks hooks = ICLHooks(address(key.hooks));
         swapperDelta = delta;
 
+        int128 hookDeltaSpecified = beforeSwapDelta.getSpecifiedDelta();
         int128 hookDeltaUnspecified;
         if (key.parameters.shouldCall(HOOKS_AFTER_SWAP_OFFSET, hooks)) {
             bytes4 selector;
@@ -130,6 +144,7 @@ library CLHooks {
                 hookDeltaUnspecified = 0;
             }
         }
+        hookDeltaUnspecified += beforeSwapDelta.getUnspecifiedDelta();
 
         if (hookDeltaUnspecified != 0 || hookDeltaSpecified != 0) {
             hookDelta = (params.amountSpecified > 0 == params.zeroForOne)

@@ -359,7 +359,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         } else if (!_validateHookPermissionsConflict(key)) {
             vm.expectRevert(abi.encodeWithSelector(Hooks.HookPermissionsValidationError.selector));
             poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
-        } else if (key.fee & LPFeeLibrary.STATIC_FEE_MASK > LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE) {
+        } else if (key.fee & LPFeeLibrary.FEE_MASK > LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE) {
             vm.expectRevert(abi.encodeWithSelector(IProtocolFees.FeeTooLarge.selector));
             poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
         } else {

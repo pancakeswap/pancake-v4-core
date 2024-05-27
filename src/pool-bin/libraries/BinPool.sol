@@ -14,6 +14,7 @@ import {SafeCast} from "./math/SafeCast.sol";
 import {Constants} from "./Constants.sol";
 import {FeeHelper} from "./FeeHelper.sol";
 import {ProtocolFeeLibrary} from "../../libraries/ProtocolFeeLibrary.sol";
+import {LPFeeLibrary} from "../../libraries/LPFeeLibrary.sol";
 
 library BinPool {
     using BinHelper for bytes32;
@@ -30,6 +31,7 @@ library BinPool {
     using FeeHelper for uint128;
     using BinPool for State;
     using ProtocolFeeLibrary for uint24;
+    using LPFeeLibrary for uint24;
 
     error PoolNotInitialized();
     error PoolAlreadyInitialized();
@@ -108,7 +110,7 @@ library BinPool {
 
         uint24 protocolFee =
             swapForY ? slot0Cache.protocolFee.getOneForZeroFee() : slot0Cache.protocolFee.getZeroForOneFee();
-        uint24 swapFee = protocolFee.calculateSwapFee(params.lpFee);
+        uint24 swapFee = protocolFee == 0 ? params.lpFee : protocolFee.calculateSwapFee(params.lpFee);
 
         while (true) {
             uint128 binReserves = self.reserveOfBin[id].decode(!swapForY);
@@ -155,7 +157,7 @@ library BinPool {
         {
             uint24 protocolFee =
                 swapForY ? slot0Cache.protocolFee.getOneForZeroFee() : slot0Cache.protocolFee.getZeroForOneFee();
-            swapFee = protocolFee.calculateSwapFee(params.lpFee);
+            swapFee = protocolFee == 0 ? params.lpFee : protocolFee.calculateSwapFee(params.lpFee);
         }
 
         while (true) {
@@ -188,6 +190,7 @@ library BinPool {
     struct SwapParams {
         bool swapForY;
         uint16 binStep;
+        uint24 lpFeeOverride;
     }
 
     struct SwapState {
@@ -210,8 +213,14 @@ library BinPool {
         bytes32 amountsLeft = swapForY ? amountIn.encodeFirst() : amountIn.encodeSecond();
         bytes32 amountsOut;
 
-        /// @dev swap fee includes protocolFee (charged first) and lpFee
-        swapState.swapFee = swapState.protocolFee.calculateSwapFee(slot0Cache.lpFee);
+        {
+            uint24 lpFee = params.lpFeeOverride.isOverride()
+                ? params.lpFeeOverride.removeOverrideAndValidate(LPFeeLibrary.TEN_PERCENT_FEE)
+                : slot0Cache.lpFee;
+
+            /// @dev swap fee includes protocolFee (charged first) and lpFee
+            swapState.swapFee = swapState.protocolFee == 0 ? lpFee : swapState.protocolFee.calculateSwapFee(lpFee);
+        }
 
         /// @notice early return if hook has updated amountIn to 0
         if (amountIn == 0) return (result, swapState);

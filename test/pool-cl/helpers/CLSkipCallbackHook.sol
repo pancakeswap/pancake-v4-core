@@ -9,6 +9,7 @@ import {Currency, CurrencyLibrary} from "../../../src/types/Currency.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../../../src/types/BalanceDelta.sol";
 import {BaseCLTestHook} from "./BaseCLTestHook.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "../../../src/types/BeforeSwapDelta.sol";
 
 /// @notice CL hook which does a callback
 contract CLSkipCallbackHook is BaseCLTestHook {
@@ -340,10 +341,10 @@ contract CLSkipCallbackHook is BaseCLTestHook {
     function beforeSwap(address, PoolKey calldata, ICLPoolManager.SwapParams calldata, bytes calldata)
         external
         override
-        returns (bytes4, int128)
+        returns (bytes4, BeforeSwapDelta, uint24)
     {
         hookCounterCallbackCount++;
-        return (CLSkipCallbackHook.beforeSwap.selector, 0);
+        return (CLSkipCallbackHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
 
     function afterSwap(address, PoolKey calldata, ICLPoolManager.SwapParams calldata, BalanceDelta, bytes calldata)
