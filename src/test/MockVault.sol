@@ -9,8 +9,6 @@ import {BalanceDelta} from "../types/BalanceDelta.sol";
 import {Currency, CurrencyLibrary} from "../types/Currency.sol";
 import {SafeCast} from "../libraries/SafeCast.sol";
 
-import {console2} from "forge-std/Console2.sol";
-
 contract MockVault {
     using SafeCast for *;
     using PoolIdLibrary for PoolKey;
@@ -24,9 +22,6 @@ contract MockVault {
     function accountPoolBalanceDelta(PoolKey memory key, BalanceDelta delta, address) external {
         PoolId poolId = key.toId();
         balanceDeltaOfPool[poolId] = delta;
-
-        console2.log("accountPoolBalanceDelta", delta.amount0());
-        console2.log("accountPoolBalanceDelta", delta.amount1());
 
         _accountDeltaOfPoolManager(key.poolManager, key.currency0, delta.amount0());
         _accountDeltaOfPoolManager(key.poolManager, key.currency1, delta.amount1());
