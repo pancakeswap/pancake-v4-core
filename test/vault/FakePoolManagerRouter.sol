@@ -30,17 +30,17 @@ contract FakePoolManagerRouter is Test {
         emit LockAcquired();
 
         if (data[0] == 0x01) {
-            poolManager.mockAccounting(poolKey, 10 ether, 10 ether);
+            poolManager.mockAccounting(poolKey, -10 ether, -10 ether);
         } else if (data[0] == 0x02) {
-            poolManager.mockAccounting(poolKey, 10 ether, 10 ether);
+            poolManager.mockAccounting(poolKey, -10 ether, -10 ether);
             vault.settle(poolKey.currency0);
             vault.settle(poolKey.currency1);
         } else if (data[0] == 0x03) {
-            poolManager.mockAccounting(poolKey, 3 ether, -3 ether);
+            poolManager.mockAccounting(poolKey, -3 ether, 3 ether);
             vault.settle(poolKey.currency0);
             vault.take(poolKey.currency1, address(this), 3 ether);
         } else if (data[0] == 0x04) {
-            poolManager.mockAccounting(poolKey, 15 ether, -15 ether);
+            poolManager.mockAccounting(poolKey, -15 ether, 15 ether);
             vault.settle(poolKey.currency0);
             vault.take(poolKey.currency1, address(this), 15 ether);
         } else if (data[0] == 0x05) {
@@ -58,7 +58,7 @@ contract FakePoolManagerRouter is Test {
             // poolKey.poolManager was hacked hence not equal to msg.sender
             PoolKey memory maliciousPoolKey = poolKey;
             maliciousPoolKey.poolManager = IPoolManager(address(0));
-            poolManager.mockAccounting(maliciousPoolKey, 3 ether, -3 ether);
+            poolManager.mockAccounting(maliciousPoolKey, -3 ether, 3 ether);
         } else if (data[0] == 0x07) {
             // generate nested lock call
             vault.take(poolKey.currency0, address(this), 5 ether);
@@ -77,7 +77,7 @@ contract FakePoolManagerRouter is Test {
             vault.take(poolKey.currency1, address(this), 5 ether);
         } else if (data[0] == 0x10) {
             // call accountPoolBalanceDelta from arbitrary addr
-            vault.accountPoolBalanceDelta(poolKey, toBalanceDelta(int128(1), int128(0)), address(0));
+            vault.accountPoolBalanceDelta(poolKey, toBalanceDelta(int128(-1), int128(0)), address(0));
         } else if (data[0] == 0x11) {
             // settleFor
             Payer payer = new Payer();
@@ -179,7 +179,7 @@ contract FakePoolManagerRouter is Test {
             vault.take(poolKey.currency0, address(this), amt);
         } else if (data[0] == 0x21) {
             // currency0 is native and currency1 is erc20
-            poolManager.mockAccounting(poolKey, 10 ether, 10 ether);
+            poolManager.mockAccounting(poolKey, -10 ether, -10 ether);
             vault.settle{value: 10 ether}(poolKey.currency0);
             vault.settle(poolKey.currency1);
         } else if (data[0] == 0x22) {

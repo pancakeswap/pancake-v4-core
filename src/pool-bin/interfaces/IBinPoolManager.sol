@@ -171,7 +171,7 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
         returns (BalanceDelta delta);
 
     /// @notice Donate the given currency amounts to the pool with the given pool key.
-    /// @return delta Positive amt means the caller owes the vault, while negative amt means the vault owes the caller
+    /// @return delta Negative amt means the caller owes the vault, while positive amt means the vault owes the caller
     /// @return binId The donated bin id, which is the current active bin id. if no-op happen, binId will be 0
     function donate(PoolKey memory key, uint128 amount0, uint128 amount1, bytes calldata hookData)
         external

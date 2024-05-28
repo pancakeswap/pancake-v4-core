@@ -114,9 +114,9 @@ library CLHooks {
             int128 hookDeltaSpecified = beforeSwapDelta.getSpecifiedDelta();
 
             if (hookDeltaSpecified != 0) {
-                bool exactInput = amountToSwap > 0;
+                bool exactInput = amountToSwap < 0;
                 amountToSwap += hookDeltaSpecified;
-                if (exactInput ? amountToSwap < 0 : amountToSwap > 0) revert Hooks.HookDeltaExceedsSwapAmount();
+                if (exactInput ? amountToSwap > 0 : amountToSwap < 0) revert Hooks.HookDeltaExceedsSwapAmount();
             }
         }
     }
@@ -147,7 +147,7 @@ library CLHooks {
         hookDeltaUnspecified += beforeSwapDelta.getUnspecifiedDelta();
 
         if (hookDeltaUnspecified != 0 || hookDeltaSpecified != 0) {
-            hookDelta = (params.amountSpecified > 0 == params.zeroForOne)
+            hookDelta = (params.amountSpecified < 0 == params.zeroForOne)
                 ? toBalanceDelta(hookDeltaSpecified, hookDeltaUnspecified)
                 : toBalanceDelta(hookDeltaUnspecified, hookDeltaSpecified);
 

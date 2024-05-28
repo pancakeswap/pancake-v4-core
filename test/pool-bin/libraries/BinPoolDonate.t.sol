@@ -88,12 +88,12 @@ contract BinPoolDonateTest is BinTestHelper {
 
         // Verify bob remove liquidity and get the donated reserve
         BalanceDelta removeDelta1 = removeLiquidityFromBin(key, poolManager, bob, activeId, bobShare, "");
-        assertEq(removeDelta1.amount0(), -2e18);
-        assertEq(removeDelta1.amount1(), -2e18);
+        assertEq(removeDelta1.amount0(), 2e18);
+        assertEq(removeDelta1.amount1(), 2e18);
 
         BalanceDelta removeDelta2 = removeLiquidityFromBin(key, poolManager, alice, activeId, aliceShare, "");
-        assertEq(removeDelta2.amount0(), -2e18);
-        assertEq(removeDelta2.amount1(), -2e18);
+        assertEq(removeDelta2.amount0(), 2e18);
+        assertEq(removeDelta2.amount1(), 2e18);
 
         // Verify no reserve remaining
         (reserveX, reserveY) = poolManager.getBin(poolId, activeId);

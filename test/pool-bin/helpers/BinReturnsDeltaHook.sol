@@ -73,13 +73,13 @@ contract BinReturnsDeltaHook is BaseBinTestHook {
         // charge 10% fee
         int128 hookDelta0;
         int128 hookDelta1;
-        if (delta.amount0() < 0) {
+        if (delta.amount0() > 0) {
             hookDelta0 = delta.amount0() / 10;
-            vault.take(key.currency0, address(this), uint128(-hookDelta0));
+            vault.take(key.currency0, address(this), uint128(hookDelta0));
         }
-        if (delta.amount1() < 0) {
+        if (delta.amount1() > 0) {
             hookDelta1 = delta.amount1() / 10;
-            vault.take(key.currency1, address(this), uint128(-hookDelta1));
+            vault.take(key.currency1, address(this), uint128(hookDelta1));
         }
 
         return (this.afterBurn.selector, toBalanceDelta(hookDelta0, hookDelta1));

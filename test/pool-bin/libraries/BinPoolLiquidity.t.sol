@@ -67,11 +67,11 @@ contract BinPoolLiquidityTest is BinTestHelper {
 
         {
             // verify X and Y amount
-            uint256 amtXBalanceDelta = uint256(int256(vault.balanceDeltaOfPool(poolId).amount0()));
+            uint256 amtXBalanceDelta = uint256(-int256(vault.balanceDeltaOfPool(poolId).amount0()));
             uint256 amountXLeft = amountX - ((amountX * (Constants.PRECISION / nbBinX)) / 1e18) * nbBinX;
             assertEq(amountX, amtXBalanceDelta + amountXLeft, "test_SimpleMint::1");
 
-            uint256 amtYBalanceDelta = uint256(int256(vault.balanceDeltaOfPool(poolId).amount1()));
+            uint256 amtYBalanceDelta = uint256(-int256(vault.balanceDeltaOfPool(poolId).amount1()));
             uint256 amountYLeft = amountY - ((amountY * (Constants.PRECISION / nbBinY)) / 1e18) * nbBinY;
             assertEq(amountY, amtYBalanceDelta + amountYLeft, "test_SimpleMint::1");
         }
@@ -290,10 +290,10 @@ contract BinPoolLiquidityTest is BinTestHelper {
         removeLiquidity(key, poolManager, bob, ids, balances);
 
         {
-            // balanceDelta negative (so user need to call take/mint)
-            uint256 balanceDelta0 = uint128(-vault.balanceDeltaOfPool(poolId).amount0());
+            // balanceDelta positive (so user need to call take/mint)
+            uint256 balanceDelta0 = uint128(vault.balanceDeltaOfPool(poolId).amount0());
             assertEq(uint256(balanceDelta0), reserveX, "test_SimpleBurn::1");
-            uint256 balanceDelta1 = uint128(-vault.balanceDeltaOfPool(poolId).amount1());
+            uint256 balanceDelta1 = uint128(vault.balanceDeltaOfPool(poolId).amount1());
             assertEq(uint256(balanceDelta1), reserveY, "test_SimpleBurn::1");
         }
 
@@ -335,10 +335,10 @@ contract BinPoolLiquidityTest is BinTestHelper {
         removeLiquidity(key, poolManager, bob, ids, halfbalances);
 
         {
-            // balanceDelta negative (so user need to call take/mint)
-            uint256 balanceDelta0 = uint128(-vault.balanceDeltaOfPool(poolId).amount0());
+            // balanceDelta positive (so user need to call take/mint)
+            uint256 balanceDelta0 = uint128(vault.balanceDeltaOfPool(poolId).amount0());
             assertApproxEqRel(uint256(balanceDelta0), reserveX / 2, 1e10, "test_BurnPartial::1");
-            uint256 balanceDelta1 = uint128(-vault.balanceDeltaOfPool(poolId).amount1());
+            uint256 balanceDelta1 = uint128(vault.balanceDeltaOfPool(poolId).amount1());
             assertApproxEqRel(uint256(balanceDelta1), reserveY / 2, 1e10, "test_BurnPartial::2");
         }
 

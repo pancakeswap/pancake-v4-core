@@ -264,15 +264,15 @@ contract BinPoolFeeTest is BinTestHelper {
 
         vm.startPrank(bob);
         vm.expectEmit();
-        emit Swap(key.toId(), bob, 1e18, -((1e18 * 997) / 1000), activeId, 3000, 0);
+        emit Swap(key.toId(), bob, -1e18, (1e18 * 997) / 1000, activeId, 3000, 0);
 
         // swap: 1e18 X for Y. pool is 0.3% fee
         BalanceDelta delta = poolManager.swap(key, true, 1e18, "0x");
-        assertEq(delta.amount0(), 1e18, "test_Swap_NoFee::1");
-        assertEq(delta.amount1(), -((1e18 * 997) / 1000), "test_Swap_NoFee::2");
+        assertEq(delta.amount0(), -1e18, "test_Swap_NoFee::1");
+        assertEq(delta.amount1(), (1e18 * 997) / 1000, "test_Swap_NoFee::2");
 
         // Verify swap result is similar to getSwapOut
-        assertEq(getSwapOutAmtOut, uint128(-delta.amount1()));
+        assertEq(getSwapOutAmtOut, uint128(delta.amount1()));
 
         // check fee. no hook for pool, so can skip check
         assertEq(poolManager.protocolFeesAccrued(currency0), 0, "test_Swap_NoFee::3");
@@ -313,11 +313,11 @@ contract BinPoolFeeTest is BinTestHelper {
 
         // verify 2% fee instead of whatever fee set on the pool
         BalanceDelta delta = poolManager.swap(key, true, 1e18, "");
-        assertEq(delta.amount0(), 1e18, "test_Swap_WithDynamicFee::1");
-        assertEq(delta.amount1(), -((1e18 * 98) / 100), "test_Swap_WithDynamicFee::2");
+        assertEq(delta.amount0(), -1e18, "test_Swap_WithDynamicFee::1");
+        assertEq(delta.amount1(), (1e18 * 98) / 100, "test_Swap_WithDynamicFee::2");
 
         // Verify swap result is similar to getSwapOut
-        assertEq(getSwapOutAmtOut, uint128(-delta.amount1()));
+        assertEq(getSwapOutAmtOut, uint128(delta.amount1()));
     }
 
     function testFuzz_Swap_WithDynamicFeeTooLarge(uint24 swapFee) external {

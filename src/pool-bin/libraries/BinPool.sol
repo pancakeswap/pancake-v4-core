@@ -261,10 +261,10 @@ library BinPool {
 
         if (swapForY) {
             uint128 consumed = amountIn - amountsLeft.decodeX();
-            result = toBalanceDelta(consumed.safeInt128(), -(amountsOut.decodeY().safeInt128()));
+            result = toBalanceDelta(-consumed.safeInt128(), amountsOut.decodeY().safeInt128());
         } else {
             uint128 consumed = amountIn - amountsLeft.decodeY();
-            result = toBalanceDelta(-(amountsOut.decodeX().safeInt128()), consumed.safeInt128());
+            result = toBalanceDelta(amountsOut.decodeX().safeInt128(), -(consumed.safeInt128()));
         }
     }
 
@@ -303,7 +303,9 @@ library BinPool {
         compositionFee = compoFee;
 
         (uint128 x1, uint128 x2) = params.amountIn.sub(amountsLeft).decode();
-        result = toBalanceDelta(x1.safeInt128(), x2.safeInt128());
+
+        // set balanceDelta to negative (so user must settle()) from the vault
+        result = toBalanceDelta(-(x1.safeInt128()), -(x2.safeInt128()));
     }
 
     /// @notice Returns the reserves of a bin
@@ -372,8 +374,7 @@ library BinPool {
             }
         }
 
-        // set amoutsOut to negative (so user can take/mint()) from the vault
-        result = toBalanceDelta(-(amountsOut.decodeX().safeInt128()), -(amountsOut.decodeY().safeInt128()));
+        result = toBalanceDelta(amountsOut.decodeX().safeInt128(), amountsOut.decodeY().safeInt128());
     }
 
     function donate(State storage self, uint16 binStep, uint128 amount0, uint128 amount1)
@@ -391,7 +392,7 @@ library BinPool {
         binReserves.add(amountIn).getLiquidity(price);
 
         self.reserveOfBin[activeId] = binReserves.add(amountIn);
-        result = toBalanceDelta(amount0.safeInt128(), amount1.safeInt128());
+        result = toBalanceDelta(-(amount0.safeInt128()), -(amount1.safeInt128()));
     }
 
     /// @dev Helper function to mint liquidity in each bin in the liquidity configurations
