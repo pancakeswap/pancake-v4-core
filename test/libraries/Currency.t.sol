@@ -7,7 +7,6 @@ import {Currency, CurrencyLibrary} from "../../src/types/Currency.sol";
 import {TokenRejecter} from "../helpers/TokenRejecter.sol";
 
 contract TestCurrency is Test {
-    using CurrencyLibrary for Currency;
     using CurrencyLibrary for uint256;
 
     uint256 constant initialERC20Balance = 1000 ether;

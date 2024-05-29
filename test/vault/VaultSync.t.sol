@@ -16,8 +16,6 @@ import {PoolKey} from "../../src/types/PoolKey.sol";
 import {IHooks} from "../../src/interfaces/IHooks.sol";
 
 contract VaultSyncTest is Test, TokenFixture, GasSnapshot, NoIsolate {
-    using CurrencyLibrary for Currency;
-
     Vault public vault;
     FakePoolManager public fakePoolManager;
     FakePoolManagerRouter public router;

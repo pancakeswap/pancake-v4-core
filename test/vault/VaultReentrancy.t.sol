@@ -44,7 +44,6 @@ contract TokenLocker is ILockCallback {
 }
 
 contract VaultReentrancyTest is Test, TokenFixture {
-    using CurrencyLibrary for Currency;
     using SafeCast for *;
 
     Vault vault;

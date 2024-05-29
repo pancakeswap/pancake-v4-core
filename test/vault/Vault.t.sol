@@ -24,7 +24,6 @@ import {NoIsolate} from "../helpers/NoIsolate.sol";
  * More tests in terms of security and edge cases will be covered by VaultReentracy.t.sol & VaultInvariant.t.sol
  */
 contract VaultTest is Test, NoIsolate, GasSnapshot {
-    using CurrencyLibrary for Currency;
     using PoolIdLibrary for PoolKey;
 
     event PoolManagerRegistered(address indexed poolManager);
