@@ -193,7 +193,7 @@ contract BinSkipCallbackHook is BaseBinTestHook {
         if (delta.amount0() < 0) key.currency0.settle(vault, sender, uint128(-delta.amount0()), false);
         if (delta.amount0() > 0) key.currency0.take(vault, sender, uint128(delta.amount0()), false);
         if (delta.amount1() < 0) key.currency1.settle(vault, sender, uint128(-delta.amount1()), false);
-        if (delta.amount1() > 0) key.currency1.take(vault, sender, uint128(delta.amount0()), false);
+        if (delta.amount1() > 0) key.currency1.take(vault, sender, uint128(delta.amount1()), false);
 
         return abi.encode(delta);
     }
