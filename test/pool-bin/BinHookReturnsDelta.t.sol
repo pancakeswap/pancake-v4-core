@@ -144,7 +144,7 @@ contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
         uint256 amt1Before = token1.balanceOf(address(vault));
 
         BalanceDelta delta =
-            binSwapHelper.swap(key, true, 1 ether, BinSwapHelper.TestSettings(true, true), abi.encode(-1 ether, 0, 0));
+            binSwapHelper.swap(key, true, 1 ether, BinSwapHelper.TestSettings(true, true), abi.encode(1 ether, 0, 0));
 
         uint256 amt0After = token0.balanceOf(address(vault));
         uint256 amt1After = token1.balanceOf(address(vault));
@@ -172,7 +172,7 @@ contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
         uint256 amt1Before = token1.balanceOf(address(vault));
 
         BalanceDelta delta = binSwapHelper.swap(
-            key, true, 1 ether, BinSwapHelper.TestSettings(true, true), abi.encode(-1 ether, 1 ether, 0)
+            key, true, 1 ether, BinSwapHelper.TestSettings(true, true), abi.encode(1 ether, -1 ether, 0)
         );
 
         uint256 amt0After = token0.balanceOf(address(vault));
@@ -202,7 +202,7 @@ contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
         uint256 amt1Before = token1.balanceOf(address(vault));
 
         BalanceDelta delta = binSwapHelper.swap(
-            key, true, 1 ether, BinSwapHelper.TestSettings(true, true), abi.encode(-1 ether, 0.5 ether, 0.5 ether)
+            key, true, 1 ether, BinSwapHelper.TestSettings(true, true), abi.encode(1 ether, -0.5 ether, -0.5 ether)
         );
 
         uint256 amt0After = token0.balanceOf(address(vault));
@@ -232,7 +232,7 @@ contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
         token0.transfer(address(binReturnsDeltaHook), 1 ether);
 
         BalanceDelta delta =
-            binSwapHelper.swap(key, true, 1 ether, BinSwapHelper.TestSettings(true, true), abi.encode(1 ether, 0, 0));
+            binSwapHelper.swap(key, true, 1 ether, BinSwapHelper.TestSettings(true, true), abi.encode(-1 ether, 0, 0));
 
         uint256 amt0After = token0.balanceOf(address(vault));
         uint256 amt1After = token1.balanceOf(address(vault));
@@ -258,7 +258,7 @@ contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
         uint256 amt1Before = token1.balanceOf(address(vault));
 
         BalanceDelta delta =
-            binSwapHelper.swap(key, true, 1 ether, BinSwapHelper.TestSettings(true, true), abi.encode(-0.5 ether, 0, 0));
+            binSwapHelper.swap(key, true, 1 ether, BinSwapHelper.TestSettings(true, true), abi.encode(0.5 ether, 0, 0));
 
         uint256 amt0After = token0.balanceOf(address(vault));
         uint256 amt1After = token1.balanceOf(address(vault));
