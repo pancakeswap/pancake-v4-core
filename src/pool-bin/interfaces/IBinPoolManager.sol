@@ -154,13 +154,14 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     function initialize(PoolKey memory key, uint24 activeId, bytes calldata hookData) external;
 
     /// @notice Add liquidity to a pool
-    /// @return delta BalanceDelta, will be positive indicating how much total amt0 and amt1 liquidity added
+    /// @return delta BalanceDelta, will be negative indicating how much total amt0 and amt1 liquidity added
     /// @return mintArray Liquidity added in which ids, how much amt0, amt1 and how much liquidity added
     function mint(PoolKey memory key, IBinPoolManager.MintParams calldata params, bytes calldata hookData)
         external
         returns (BalanceDelta delta, BinPool.MintArrays memory mintArray);
 
     /// @notice Remove liquidity from a pool
+    /// @return delta BalanceDelta, will be positive indicating how much total amt0 and amt1 liquidity removed
     function burn(PoolKey memory key, IBinPoolManager.BurnParams memory params, bytes calldata hookData)
         external
         returns (BalanceDelta delta);
@@ -171,7 +172,7 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
         returns (BalanceDelta delta);
 
     /// @notice Donate the given currency amounts to the pool with the given pool key.
-    /// @return delta Positive amt means the caller owes the vault, while negative amt means the vault owes the caller
+    /// @return delta Negative amt means the caller owes the vault, while positive amt means the vault owes the caller
     /// @return binId The donated bin id, which is the current active bin id. if no-op happen, binId will be 0
     function donate(PoolKey memory key, uint128 amount0, uint128 amount1, bytes calldata hookData)
         external

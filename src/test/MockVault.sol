@@ -31,19 +31,14 @@ contract MockVault {
         if (delta == 0) return;
 
         if (delta >= 0) {
-            reservesOfPoolManager[poolManager][currency] += uint128(delta);
+            reservesOfPoolManager[poolManager][currency] -= uint128(delta);
         } else {
-            /// @dev arithmetic underflow is possible in following two cases:
-            /// 1. delta == type(int128).min
-            /// This occurs when withdrawing amount is too large
-            /// 2. reservesOfPoolManager[poolManager][currency] < delta0
-            /// This occurs when insufficient balance in pool
-            reservesOfPoolManager[poolManager][currency] -= uint128(-delta);
+            reservesOfPoolManager[poolManager][currency] += uint128(-delta);
         }
     }
 
     function collectFee(Currency currency, uint256 amount, address recipient) external {
-        _accountDeltaOfPoolManager(IPoolManager(msg.sender), currency, amount.toInt128());
+        _accountDeltaOfPoolManager(IPoolManager(msg.sender), currency, -amount.toInt128());
         currency.transfer(recipient, amount);
     }
 }

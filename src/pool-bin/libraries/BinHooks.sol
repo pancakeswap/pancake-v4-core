@@ -126,10 +126,10 @@ library BinHooks {
 
             if (hookDeltaSpecified != 0) {
                 /// @dev default overflow check make sure the swap amount is always valid
-                if (hookDeltaSpecified > 0) {
-                    amountToSwap += uint128(hookDeltaSpecified);
-                } else {
+                if (hookDeltaSpecified < 0) {
                     amountToSwap -= uint128(-hookDeltaSpecified);
+                } else {
+                    amountToSwap += uint128(hookDeltaSpecified);
                 }
             }
         }
@@ -163,9 +163,11 @@ library BinHooks {
         hookDeltaUnspecified += beforeSwapDelta.getUnspecifiedDelta();
 
         if (hookDeltaUnspecified != 0 || hookDeltaSpecified != 0) {
+            // the hookDelta is the delta added into amountIn which is in the opposite direction of the balanceDelta
+            // i.e. in a reasonable case, amountIn will basiaclly equal to "-BalanceDelta.amount0()/amount1()"
             hookDelta = swapForY
-                ? toBalanceDelta(hookDeltaSpecified, hookDeltaUnspecified)
-                : toBalanceDelta(hookDeltaUnspecified, hookDeltaSpecified);
+                ? toBalanceDelta(-hookDeltaSpecified, -hookDeltaUnspecified)
+                : toBalanceDelta(-hookDeltaUnspecified, -hookDeltaSpecified);
 
             // the caller has to pay for (or receive) the hook's delta
             swapperDelta = delta - hookDelta;

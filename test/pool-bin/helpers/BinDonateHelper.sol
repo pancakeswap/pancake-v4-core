@@ -50,22 +50,22 @@ contract BinDonateHelper {
 
         (BalanceDelta delta,) = binManager.donate(data.key, data.amount0, data.amount1, data.hookData);
 
-        if (delta.amount0() > 0) {
+        if (delta.amount0() < 0) {
             if (key.currency0.isNative()) {
-                vault.settle{value: uint128(delta.amount0())}(key.currency0);
+                vault.settle{value: uint128(-delta.amount0())}(key.currency0);
             } else {
                 vault.sync(key.currency0);
-                IERC20(Currency.unwrap(key.currency0)).transferFrom(sender, address(vault), uint128(delta.amount0()));
+                IERC20(Currency.unwrap(key.currency0)).transferFrom(sender, address(vault), uint128(-delta.amount0()));
                 vault.settle(key.currency0);
             }
         }
 
-        if (delta.amount1() > 0) {
+        if (delta.amount1() < 0) {
             if (key.currency1.isNative()) {
-                vault.settle{value: uint128(delta.amount1())}(key.currency1);
+                vault.settle{value: uint128(-delta.amount1())}(key.currency1);
             } else {
                 vault.sync(key.currency1);
-                IERC20(Currency.unwrap(key.currency1)).transferFrom(sender, address(vault), uint128(delta.amount1()));
+                IERC20(Currency.unwrap(key.currency1)).transferFrom(sender, address(vault), uint128(-delta.amount1()));
                 vault.settle(key.currency1);
             }
         }

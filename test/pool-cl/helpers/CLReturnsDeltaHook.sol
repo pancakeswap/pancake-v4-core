@@ -85,39 +85,39 @@ contract CLReturnsDeltaHook is BaseCLTestHook {
     {
         (int128 hookDeltaSpecified, int128 hookDeltaUnspecified,) = abi.decode(data, (int128, int128, int128));
 
-        if (params.zeroForOne == params.amountSpecified > 0) {
+        if (params.zeroForOne == params.amountSpecified < 0) {
             // the specified token is token0
-            if (hookDeltaSpecified > 0) {
+            if (hookDeltaSpecified < 0) {
                 vault.sync(key.currency0);
-                key.currency0.transfer(address(vault), uint128(hookDeltaSpecified));
+                key.currency0.transfer(address(vault), uint128(-hookDeltaSpecified));
                 vault.settle(key.currency0);
             } else {
-                vault.take(key.currency0, address(this), uint128(-hookDeltaSpecified));
+                vault.take(key.currency0, address(this), uint128(hookDeltaSpecified));
             }
 
-            if (hookDeltaUnspecified > 0) {
+            if (hookDeltaUnspecified < 0) {
                 vault.sync(key.currency1);
-                key.currency1.transfer(address(vault), uint128(hookDeltaUnspecified));
+                key.currency1.transfer(address(vault), uint128(-hookDeltaUnspecified));
                 vault.settle(key.currency1);
             } else {
-                vault.take(key.currency1, address(this), uint128(-hookDeltaUnspecified));
+                vault.take(key.currency1, address(this), uint128(hookDeltaUnspecified));
             }
         } else {
             // the specified token is token1
-            if (hookDeltaSpecified > 0) {
+            if (hookDeltaSpecified < 0) {
                 vault.sync(key.currency1);
-                key.currency1.transfer(address(vault), uint128(hookDeltaSpecified));
+                key.currency1.transfer(address(vault), uint128(-hookDeltaSpecified));
                 vault.settle(key.currency1);
             } else {
-                vault.take(key.currency1, address(this), uint128(-hookDeltaSpecified));
+                vault.take(key.currency1, address(this), uint128(hookDeltaSpecified));
             }
 
-            if (hookDeltaUnspecified > 0) {
+            if (hookDeltaUnspecified < 0) {
                 vault.sync(key.currency0);
-                key.currency0.transfer(address(vault), uint128(hookDeltaUnspecified));
+                key.currency0.transfer(address(vault), uint128(-hookDeltaUnspecified));
                 vault.settle(key.currency0);
             } else {
-                vault.take(key.currency0, address(this), uint128(-hookDeltaUnspecified));
+                vault.take(key.currency0, address(this), uint128(hookDeltaUnspecified));
             }
         }
         return (this.beforeSwap.selector, toBeforeSwapDelta(hookDeltaSpecified, hookDeltaUnspecified), 0);
@@ -136,23 +136,23 @@ contract CLReturnsDeltaHook is BaseCLTestHook {
             return (this.afterSwap.selector, 0);
         }
 
-        if (params.zeroForOne == params.amountSpecified > 0) {
+        if (params.zeroForOne == params.amountSpecified < 0) {
             // the unspecified token is token1
-            if (hookDeltaUnspecified > 0) {
+            if (hookDeltaUnspecified < 0) {
                 vault.sync(key.currency1);
-                key.currency1.transfer(address(vault), uint128(hookDeltaUnspecified));
+                key.currency1.transfer(address(vault), uint128(-hookDeltaUnspecified));
                 vault.settle(key.currency1);
             } else {
-                vault.take(key.currency1, address(this), uint128(-hookDeltaUnspecified));
+                vault.take(key.currency1, address(this), uint128(hookDeltaUnspecified));
             }
         } else {
             // the unspecified token is token0
-            if (hookDeltaUnspecified > 0) {
+            if (hookDeltaUnspecified < 0) {
                 vault.sync(key.currency0);
-                key.currency0.transfer(address(vault), uint128(hookDeltaUnspecified));
+                key.currency0.transfer(address(vault), uint128(-hookDeltaUnspecified));
                 vault.settle(key.currency0);
             } else {
-                vault.take(key.currency0, address(this), uint128(-hookDeltaUnspecified));
+                vault.take(key.currency0, address(this), uint128(hookDeltaUnspecified));
             }
         }
 

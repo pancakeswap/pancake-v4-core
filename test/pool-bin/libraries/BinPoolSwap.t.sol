@@ -70,8 +70,8 @@ contract BinPoolSwapTest is BinTestHelper {
 
         // verify swap return same result
         BalanceDelta delta = poolManager.swap(key, true, amountIn, "");
-        assertEq(delta.amount0(), int128(amountIn));
-        assertEq(delta.amount1(), -(1e18));
+        assertEq(delta.amount0(), -int128(amountIn));
+        assertEq(delta.amount1(), 1e18);
     }
 
     function test_GetSwapInAndSwapOutMultipleBin() public {
@@ -91,8 +91,8 @@ contract BinPoolSwapTest is BinTestHelper {
 
         // verify swap return same result
         BalanceDelta delta = poolManager.swap(key, true, amountIn, "");
-        assertEq(delta.amount0(), int128(amountIn));
-        assertEq(delta.amount1(), -(1e18));
+        assertEq(delta.amount0(), -int128(amountIn));
+        assertEq(delta.amount1(), 1e18);
     }
 
     function test_SwapSingleBinWithProtocolFee() public {
@@ -164,8 +164,8 @@ contract BinPoolSwapTest is BinTestHelper {
         poolManager.swap(key, true, amountIn, "0x");
 
         // verify .getSwapIn match with swap result
-        assertEq(vault.balanceDeltaOfPool(poolId).amount0(), int128(amountIn), "TestFuzz_SwapInForY::2");
-        assertEq(vault.balanceDeltaOfPool(poolId).amount1(), -int128(amountOut), "TestFuzz_SwapInForY::3");
+        assertEq(vault.balanceDeltaOfPool(poolId).amount0(), -int128(amountIn), "TestFuzz_SwapInForY::2");
+        assertEq(vault.balanceDeltaOfPool(poolId).amount1(), int128(amountOut), "TestFuzz_SwapInForY::3");
     }
 
     function testFuzz_SwapInForX(uint128 amountOut) public {
@@ -183,8 +183,8 @@ contract BinPoolSwapTest is BinTestHelper {
         poolManager.swap(key, false, amountIn, "0x");
 
         // verify .getSwapIn match with swap result
-        assertEq(vault.balanceDeltaOfPool(poolId).amount0(), -int128(amountOut), "TestFuzz_SwapInForX::2");
-        assertEq(vault.balanceDeltaOfPool(poolId).amount1(), int128(amountIn), "TestFuzz_SwapInForX::3");
+        assertEq(vault.balanceDeltaOfPool(poolId).amount0(), int128(amountOut), "TestFuzz_SwapInForX::2");
+        assertEq(vault.balanceDeltaOfPool(poolId).amount1(), -int128(amountIn), "TestFuzz_SwapInForX::3");
     }
 
     function testFuzz_SwapOutForY(uint128 amountIn) public {
@@ -204,8 +204,8 @@ contract BinPoolSwapTest is BinTestHelper {
         poolManager.swap(key, true, amountIn, "0x");
 
         // verify .getSwapIn match with swap result
-        assertEq(vault.balanceDeltaOfPool(poolId).amount0(), int128(amountIn), "TestFuzz_SwapOutForY::2");
-        assertEq(vault.balanceDeltaOfPool(poolId).amount1(), -int128(amountOut), "TestFuzz_SwapOutForY::3");
+        assertEq(vault.balanceDeltaOfPool(poolId).amount0(), -int128(amountIn), "TestFuzz_SwapOutForY::2");
+        assertEq(vault.balanceDeltaOfPool(poolId).amount1(), int128(amountOut), "TestFuzz_SwapOutForY::3");
     }
 
     function testFuzz_SwapOutForX(uint128 amountIn) public {
@@ -225,8 +225,8 @@ contract BinPoolSwapTest is BinTestHelper {
         poolManager.swap(key, false, amountIn, "0x");
 
         // verify .getSwapIn match with swap result
-        assertEq(vault.balanceDeltaOfPool(poolId).amount0(), -int128(amountOut), "TestFuzz_SwapOutForY::2");
-        assertEq(vault.balanceDeltaOfPool(poolId).amount1(), int128(amountIn), "TestFuzz_SwapOutForY::3");
+        assertEq(vault.balanceDeltaOfPool(poolId).amount0(), int128(amountOut), "TestFuzz_SwapOutForY::2");
+        assertEq(vault.balanceDeltaOfPool(poolId).amount1(), -int128(amountIn), "TestFuzz_SwapOutForY::3");
     }
 
     function test_revert_SwapInsufficientAmountIn() external {

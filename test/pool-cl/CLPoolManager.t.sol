@@ -856,7 +856,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             key,
             ICLPoolManager.SwapParams({
                 zeroForOne: true,
-                amountSpecified: 0.1 ether,
+                amountSpecified: -0.1 ether,
                 sqrtPriceLimitX96: TickMath.MIN_SQRT_RATIO + 1
             }),
             CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true}),
@@ -873,8 +873,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             ""
         );
 
-        // amt0 & amt1 are non positive i.e. the pool owes us tokens
-        assertApproxEqRel(uint256(-int256(feeDelta.amount0())), 0.003 * 0.1 ether, 1e16); // around 0.3% fee
+        // amt0 & amt1 are positive i.e. the pool owes us tokens
+        assertApproxEqRel(uint256(int256(feeDelta.amount0())), 0.003 * 0.1 ether, 1e16); // around 0.3% fee
 
         // step 5: Add liquidity, verify feeDelta == 0
         (, feeDelta) = router.modifyPosition(
@@ -894,7 +894,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             key,
             ICLPoolManager.SwapParams({
                 zeroForOne: true,
-                amountSpecified: 0.1 ether,
+                amountSpecified: -0.1 ether,
                 sqrtPriceLimitX96: TickMath.MIN_SQRT_RATIO + 1
             }),
             CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true}),
@@ -912,7 +912,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         );
 
         // amt0 & amt1 are non positive i.e. the pool owes us tokens
-        assertApproxEqRel(uint256(-int256(feeDelta.amount0())), 0.003 * 0.1 ether, 1e16); // around 0.3% fee
+        assertApproxEqRel(uint256(int256(feeDelta.amount0())), 0.003 * 0.1 ether, 1e16); // around 0.3% fee
     }
 
     function testModifyPosition_Liquidity_aboveCurrentTick() external {
@@ -1724,12 +1724,12 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         vm.expectEmit(true, true, true, true);
         emit Swap(
-            key.toId(), address(router), 100, -98, 79228162514264329749955861424, 1000000000000000000, -1, 3000, 0
+            key.toId(), address(router), -100, 98, 79228162514264329749955861424, 1000000000000000000, -1, 3000, 0
         );
 
         // sell base token(x) for quote token(y), pricea(y / x) decreases
         ICLPoolManager.SwapParams memory params =
-            ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: 100, sqrtPriceLimitX96: SQRT_RATIO_1_2});
+            ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: -100, sqrtPriceLimitX96: SQRT_RATIO_1_2});
 
         CLPoolManagerRouter.SwapTestSettings memory testSettings =
             CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true});
@@ -1760,11 +1760,11 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         // similar result to testSwap_succeedsIfInitialized above, except swapFee is twice due to dynamic fee
         vm.expectEmit(true, true, true, true);
         emit Swap(
-            key.toId(), address(router), 100, -97, 79228162514264329829184023939, 1000000000000000000, -1, 12000, 0
+            key.toId(), address(router), -100, 97, 79228162514264329829184023939, 1000000000000000000, -1, 12000, 0
         );
 
         ICLPoolManager.SwapParams memory params =
-            ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: 100, sqrtPriceLimitX96: SQRT_RATIO_1_2});
+            ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: -100, sqrtPriceLimitX96: SQRT_RATIO_1_2});
 
         CLPoolManagerRouter.SwapTestSettings memory testSettings =
             CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true});
@@ -1803,9 +1803,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         emit Swap(
             key.toId(),
             address(router),
-            // amt0 = 3013394245478362 and amt1 = -2995354955910780 if it goes without protocol fee
-            3016410656134496,
-            -2995354955910780,
+            // amt0 = -3013394245478362 and amt1 = 2995354955910780 if it goes without protocol fee
+            -3016410656134496,
+            2995354955910780,
             56022770974786139918731938227,
             0,
             -6932,
@@ -1814,8 +1814,11 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         );
 
         // sell base token(x) for quote token(y), pricea(y / x) decreases
-        ICLPoolManager.SwapParams memory params =
-            ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: 0.1 ether, sqrtPriceLimitX96: SQRT_RATIO_1_2});
+        ICLPoolManager.SwapParams memory params = ICLPoolManager.SwapParams({
+            zeroForOne: true,
+            amountSpecified: -0.1 ether,
+            sqrtPriceLimitX96: SQRT_RATIO_1_2
+        });
 
         CLPoolManagerRouter.SwapTestSettings memory testSettings =
             CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true});
@@ -1970,7 +1973,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         ICLPoolManager.SwapParams memory params =
-            ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: 100, sqrtPriceLimitX96: SQRT_RATIO_1_2});
+            ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: -100, sqrtPriceLimitX96: SQRT_RATIO_1_2});
 
         CLPoolManagerRouter.SwapTestSettings memory testSettings =
             CLPoolManagerRouter.SwapTestSettings({withdrawTokens: false, settleUsingTransfer: true});
@@ -2006,7 +2009,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         ICLPoolManager.SwapParams memory params =
-            ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: 100, sqrtPriceLimitX96: SQRT_RATIO_1_2});
+            ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: -100, sqrtPriceLimitX96: SQRT_RATIO_1_2});
 
         CLPoolManagerRouter.SwapTestSettings memory testSettings =
             CLPoolManagerRouter.SwapTestSettings({withdrawTokens: false, settleUsingTransfer: true});
@@ -2034,7 +2037,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         vault.approve(address(router), currency1, type(uint256).max);
 
         // swap from currency1 to currency0 again, using surplus tokne as input
-        params = ICLPoolManager.SwapParams({zeroForOne: false, amountSpecified: -25, sqrtPriceLimitX96: SQRT_RATIO_4_1});
+        params = ICLPoolManager.SwapParams({zeroForOne: false, amountSpecified: 25, sqrtPriceLimitX96: SQRT_RATIO_4_1});
 
         testSettings = CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: false});
 
@@ -2173,7 +2176,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         ICLPoolManager.SwapParams memory params =
-            ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: 100, sqrtPriceLimitX96: SQRT_RATIO_1_2});
+            ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: -100, sqrtPriceLimitX96: SQRT_RATIO_1_2});
 
         CLPoolManagerRouter.SwapTestSettings memory testSettings =
             CLPoolManagerRouter.SwapTestSettings({withdrawTokens: false, settleUsingTransfer: true});
@@ -2199,7 +2202,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         vault.approve(address(router), currency1, type(uint256).max);
 
         // swap from currency1 to currency0 again, using surplus tokne as input
-        params = ICLPoolManager.SwapParams({zeroForOne: false, amountSpecified: -25, sqrtPriceLimitX96: SQRT_RATIO_4_1});
+        params = ICLPoolManager.SwapParams({zeroForOne: false, amountSpecified: 25, sqrtPriceLimitX96: SQRT_RATIO_4_1});
 
         testSettings = CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: false});
 
@@ -2665,7 +2668,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         router.modifyPosition{value: 10 ether}(key, params, ZERO_BYTES);
         router.swap{value: 10000}(
             key,
-            ICLPoolManager.SwapParams(true, 10000, SQRT_RATIO_1_2),
+            ICLPoolManager.SwapParams(true, -10000, SQRT_RATIO_1_2),
             CLPoolManagerRouter.SwapTestSettings(true, true),
             ZERO_BYTES
         );
@@ -2705,7 +2708,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         router.modifyPosition{value: 10 ether}(key, params, ZERO_BYTES);
         router.swap{value: 10000}(
             key,
-            ICLPoolManager.SwapParams(true, 10000, SQRT_RATIO_1_2),
+            ICLPoolManager.SwapParams(true, -10000, SQRT_RATIO_1_2),
             CLPoolManagerRouter.SwapTestSettings(true, true),
             ZERO_BYTES
         );

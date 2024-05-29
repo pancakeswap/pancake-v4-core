@@ -155,7 +155,7 @@ contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
         // user pays 1 ether of currency0 to hook and no swap happens
 
         // trader's payment & return
-        assertEq(delta.amount0(), 1 ether);
+        assertEq(delta.amount0(), -1 ether);
         assertEq(delta.amount1(), 0);
 
         // hook's payment & return
@@ -184,8 +184,8 @@ contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
         // user pays 1 ether of currency0 to hook and no swap happens
 
         // trader's payment & return
-        assertEq(delta.amount0(), 1 ether);
-        assertEq(delta.amount1(), -1 ether);
+        assertEq(delta.amount0(), -1 ether);
+        assertEq(delta.amount1(), 1 ether);
 
         // hook's payment & return
         assertEq(token0.balanceOf(address(binReturnsDeltaHook)), 1 ether);
@@ -214,8 +214,8 @@ contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
         // user pays 1 ether of currency0 to hook and no swap happens
 
         // trader's payment & return
-        assertEq(delta.amount0(), 1 ether);
-        assertEq(delta.amount1(), -1 ether);
+        assertEq(delta.amount0(), -1 ether);
+        assertEq(delta.amount1(), 1 ether);
 
         // hook's payment & return
         assertEq(token0.balanceOf(address(binReturnsDeltaHook)), 1 ether);
@@ -243,8 +243,8 @@ contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
         // user pays 1 ether of currency0 to hook and no swap happens
 
         // trader's payment & return
-        assertEq(delta.amount0(), 1 ether);
-        assertEq(delta.amount1(), -2 ether * 997 / 1000);
+        assertEq(delta.amount0(), -1 ether);
+        assertEq(delta.amount1(), 2 ether * 997 / 1000);
 
         // hook's payment & return
         assertEq(token0.balanceOf(address(binReturnsDeltaHook)), 0 ether);
@@ -269,8 +269,8 @@ contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
         // user pays 1 ether of currency0 to hook and no swap happens
 
         // trader's payment & return
-        assertEq(delta.amount0(), 1 ether);
-        assertEq(delta.amount1(), -0.5 ether * 997 / 1000);
+        assertEq(delta.amount0(), -1 ether);
+        assertEq(delta.amount1(), 0.5 ether * 997 / 1000);
 
         // hook's payment & return
         assertEq(token0.balanceOf(address(binReturnsDeltaHook)), 0.5 ether);

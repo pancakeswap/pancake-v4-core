@@ -128,7 +128,7 @@ contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
         MockERC20(Currency.unwrap(currency1)).approve(address(router), type(uint256).max);
         router.swap(
             key,
-            ICLPoolManager.SwapParams(false, 10000, TickMath.MAX_SQRT_RATIO - 1),
+            ICLPoolManager.SwapParams(false, -10000, TickMath.MAX_SQRT_RATIO - 1),
             CLPoolManagerRouter.SwapTestSettings(true, true),
             ZERO_BYTES
         );
@@ -153,7 +153,7 @@ contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
         MockERC20(Currency.unwrap(currency1)).approve(address(router), type(uint256).max);
         router.swap(
             key,
-            ICLPoolManager.SwapParams(false, 1000000, TickMath.MAX_SQRT_RATIO - 1),
+            ICLPoolManager.SwapParams(false, -1000000, TickMath.MAX_SQRT_RATIO - 1),
             CLPoolManagerRouter.SwapTestSettings(true, true),
             ZERO_BYTES
         );

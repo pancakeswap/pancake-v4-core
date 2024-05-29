@@ -145,7 +145,7 @@ library CLPool {
         }
 
         // Fees earned from LPing are removed from the pool balance.
-        feeDelta = toBalanceDelta(-feesOwed0.toInt128(), -feesOwed1.toInt128());
+        feeDelta = toBalanceDelta(feesOwed0.toInt128(), feesOwed1.toInt128());
     }
 
     // the top level state of the swap, the results of which are recorded in storage at the end
@@ -216,7 +216,7 @@ library CLPool {
         // cache variables for gas optimization
         // liquidity at the beginning of the swap
         uint128 liquidityStart = self.liquidity;
-        bool exactInput = params.amountSpecified > 0;
+        bool exactInput = params.amountSpecified < 0;
 
         // init swap state
         {
@@ -281,16 +281,16 @@ library CLPool {
             if (exactInput) {
                 /// @dev SwapMath will always ensure that amountSpecified > amountIn + feeAmount
                 unchecked {
-                    state.amountSpecifiedRemaining -= (step.amountIn + step.feeAmount).toInt256();
+                    state.amountSpecifiedRemaining += (step.amountIn + step.feeAmount).toInt256();
                 }
 
                 /// @dev amountCalculated is the amount of output token, hence neg in this case
-                state.amountCalculated = state.amountCalculated - step.amountOut.toInt256();
+                state.amountCalculated = state.amountCalculated + step.amountOut.toInt256();
             } else {
                 unchecked {
-                    state.amountSpecifiedRemaining += step.amountOut.toInt256();
+                    state.amountSpecifiedRemaining -= step.amountOut.toInt256();
                 }
-                state.amountCalculated = state.amountCalculated + (step.amountIn + step.feeAmount).toInt256();
+                state.amountCalculated = state.amountCalculated - (step.amountIn + step.feeAmount).toInt256();
             }
 
             /// @dev if the protocol fee is on, calculate how much is owed, decrement feeAmount, and increment protocolFee
@@ -451,7 +451,7 @@ library CLPool {
         returns (BalanceDelta delta, int24 tick)
     {
         if (state.liquidity == 0) revert NoLiquidityToReceiveFees();
-        delta = toBalanceDelta(amount0.toInt128(), amount1.toInt128());
+        delta = toBalanceDelta(-(amount0.toInt128()), -(amount1.toInt128()));
         unchecked {
             if (amount0 > 0) {
                 state.feeGrowthGlobal0X128 += FullMath.mulDiv(amount0, FixedPoint128.Q128, state.liquidity);

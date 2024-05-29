@@ -72,7 +72,7 @@ contract SwapMathTest is Test, GasSnapshot {
         uint160 targetPriceX96 = uint160(FixedPointMathLib.sqrt(1000 * FixedPoint96.Q96 ** 2 / 100));
         uint128 liquidity = 2 ether;
         // expecting to get exactly 1 ether out
-        int256 actualAmountIn = 1 ether;
+        int256 actualAmountIn = -1 ether;
         uint24 feePips = 600;
 
         (uint160 sqrtRatioNextX96, uint256 amountIn, uint256 amountOut, uint256 feeAmount) =
@@ -81,10 +81,10 @@ contract SwapMathTest is Test, GasSnapshot {
         assertEq(amountIn, 999400000000000000);
         assertEq(feeAmount, 600000000000000);
         assertEq(amountOut, 666399946655997866);
-        assertEq(amountIn + feeAmount, uint256(actualAmountIn));
+        assertEq(amountIn + feeAmount, uint256(-actualAmountIn));
 
         uint160 priceX96IfAllAmountIn =
-            SqrtPriceMath.getNextSqrtPriceFromInput(priceX96, liquidity, uint256(actualAmountIn) - feeAmount, false);
+            SqrtPriceMath.getNextSqrtPriceFromInput(priceX96, liquidity, uint256(-actualAmountIn) - feeAmount, false);
 
         assertLt(sqrtRatioNextX96, targetPriceX96);
         assertEq(sqrtRatioNextX96, priceX96IfAllAmountIn);
@@ -98,7 +98,7 @@ contract SwapMathTest is Test, GasSnapshot {
         uint160 targetPriceX96 = uint160(FixedPointMathLib.sqrt(1000 * FixedPoint96.Q96 ** 2 / 100));
         uint128 liquidity = 2 ether;
         // expecting to get exactly 1 ether out
-        int256 amountWantedOut = -1 ether;
+        int256 amountWantedOut = 1 ether;
         uint24 feePips = 600;
 
         (uint160 sqrtRatioNextX96, uint256 amountIn, uint256 amountOut, uint256 feeAmount) =
@@ -106,10 +106,10 @@ contract SwapMathTest is Test, GasSnapshot {
 
         assertEq(amountIn, 2000000000000000000);
         assertEq(feeAmount, 1200720432259356);
-        assertEq(amountOut, uint256(-amountWantedOut));
+        assertEq(amountOut, uint256(amountWantedOut));
 
         uint160 priceX96IfwantedAmountOut =
-            SqrtPriceMath.getNextSqrtPriceFromOutput(priceX96, liquidity, uint256(-amountWantedOut), false);
+            SqrtPriceMath.getNextSqrtPriceFromOutput(priceX96, liquidity, uint256(amountWantedOut), false);
 
         assertLt(sqrtRatioNextX96, targetPriceX96);
         assertEq(sqrtRatioNextX96, priceX96IfwantedAmountOut);
@@ -119,7 +119,7 @@ contract SwapMathTest is Test, GasSnapshot {
         uint160 priceX96 = 417332158212080721273783715441582;
         uint160 targetPriceX96 = 1452870262520218020823638996;
         uint128 liquidity = 159344665391607089467575320103;
-        int256 amountWantedOut = -1;
+        int256 amountWantedOut = 1;
         uint24 feePips = 1;
 
         (uint160 sqrtRatioNextX96, uint256 amountIn, uint256 amountOut, uint256 feeAmount) =
@@ -135,7 +135,7 @@ contract SwapMathTest is Test, GasSnapshot {
         uint160 priceX96 = 2;
         uint160 targetPriceX96 = 1;
         uint128 liquidity = 1;
-        int256 actualAmountIn = 3915081100057732413702495386755767;
+        int256 actualAmountIn = -3915081100057732413702495386755767;
         uint24 feePips = 1;
 
         (uint160 sqrtRatioNextX96, uint256 amountIn, uint256 amountOut, uint256 feeAmount) =
@@ -152,7 +152,7 @@ contract SwapMathTest is Test, GasSnapshot {
         uint160 priceX96 = 2413;
         uint160 targetPriceX96 = 79887613182836312;
         uint128 liquidity = 1985041575832132834610021537970;
-        int256 actualAmountIn = 10;
+        int256 actualAmountIn = -10;
         uint24 feePips = 1872;
 
         (uint160 sqrtRatioNextX96, uint256 amountIn, uint256 amountOut, uint256 feeAmount) =
@@ -170,7 +170,7 @@ contract SwapMathTest is Test, GasSnapshot {
         uint128 liquidity = 1024;
         // virtual reserves of one are only 4
         // https://www.wolframalpha.com/input/?i=1024+%2F+%2820282409603651670423947251286016+%2F+2**96%29
-        int256 wantedOutputAmount = -4;
+        int256 wantedOutputAmount = 4;
         uint24 feePips = 3000;
 
         (uint160 sqrtRatioNextX96, uint256 amountIn, uint256 amountOut, uint256 feeAmount) =
@@ -188,7 +188,7 @@ contract SwapMathTest is Test, GasSnapshot {
         uint128 liquidity = 1024;
         // virtual reserves of zero are only 262144
         // https://www.wolframalpha.com/input/?i=1024+*+%2820282409603651670423947251286016+%2F+2**96%29
-        int256 wantedOutputAmount = -263000;
+        int256 wantedOutputAmount = 263000;
         uint24 feePips = 3000;
 
         (uint160 sqrtRatioNextX96, uint256 amountIn, uint256 amountOut, uint256 feeAmount) =
@@ -207,7 +207,7 @@ contract SwapMathTest is Test, GasSnapshot {
         uint160 priceX96 = uint160(FixedPointMathLib.sqrt(1 * FixedPoint96.Q96 ** 2));
         uint160 targetPriceX96 = uint160(FixedPointMathLib.sqrt(101 * FixedPoint96.Q96 ** 2 / 100));
         uint128 liquidity = 2 ether;
-        int256 actualAmountIn = 1 ether;
+        int256 actualAmountIn = -1 ether;
         uint24 feePips = 600;
 
         snapStart("SwapMathTest#SwapOneForZeroExactInCapped");
@@ -222,7 +222,7 @@ contract SwapMathTest is Test, GasSnapshot {
         uint160 priceX96 = uint160(FixedPointMathLib.sqrt(1 * FixedPoint96.Q96 ** 2));
         uint160 targetPriceX96 = uint160(FixedPointMathLib.sqrt(99 * FixedPoint96.Q96 ** 2 / 100));
         uint128 liquidity = 2 ether;
-        int256 actualAmountIn = 1 ether;
+        int256 actualAmountIn = -1 ether;
         uint24 feePips = 600;
 
         snapStart("SwapMathTest#SwapZeroForOneExactInCapped");
@@ -237,7 +237,7 @@ contract SwapMathTest is Test, GasSnapshot {
         uint160 priceX96 = uint160(FixedPointMathLib.sqrt(1 * FixedPoint96.Q96 ** 2));
         uint160 targetPriceX96 = uint160(FixedPointMathLib.sqrt(101 * FixedPoint96.Q96 ** 2 / 100));
         uint128 liquidity = 2 ether;
-        int256 wantedOutputAmount = -1 ether;
+        int256 wantedOutputAmount = 1 ether;
         uint24 feePips = 600;
 
         snapStart("SwapMathTest#SwapOneForZeroExactOutCapped");
@@ -252,7 +252,7 @@ contract SwapMathTest is Test, GasSnapshot {
         uint160 priceX96 = uint160(FixedPointMathLib.sqrt(1 * FixedPoint96.Q96 ** 2));
         uint160 targetPriceX96 = uint160(FixedPointMathLib.sqrt(99 * FixedPoint96.Q96 ** 2 / 100));
         uint128 liquidity = 2 ether;
-        int256 wantedOutputAmount = -1 ether;
+        int256 wantedOutputAmount = 1 ether;
         uint24 feePips = 600;
 
         snapStart("SwapMathTest#SwapZeroForOneExactOutCapped");
@@ -267,7 +267,7 @@ contract SwapMathTest is Test, GasSnapshot {
         uint160 priceX96 = uint160(FixedPointMathLib.sqrt(1 * FixedPoint96.Q96 ** 2));
         uint160 targetPriceX96 = uint160(FixedPointMathLib.sqrt(1010 * FixedPoint96.Q96 ** 2 / 100));
         uint128 liquidity = 2 ether;
-        int256 actualInputAmount = 1000;
+        int256 actualInputAmount = -1000;
         uint24 feePips = 600;
 
         snapStart("SwapMathTest#SwapOneForZeroExactInPartial");
@@ -282,7 +282,7 @@ contract SwapMathTest is Test, GasSnapshot {
         uint160 priceX96 = uint160(FixedPointMathLib.sqrt(1 * FixedPoint96.Q96 ** 2));
         uint160 targetPriceX96 = uint160(FixedPointMathLib.sqrt(99 * FixedPoint96.Q96 ** 2 / 1000));
         uint128 liquidity = 2 ether;
-        int256 actualInputAmount = 1000;
+        int256 actualInputAmount = -1000;
         uint24 feePips = 600;
 
         snapStart("SwapMathTest#SwapZeroForOneExactInPartial");
@@ -297,7 +297,7 @@ contract SwapMathTest is Test, GasSnapshot {
         uint160 priceX96 = uint160(FixedPointMathLib.sqrt(1 * FixedPoint96.Q96 ** 2));
         uint160 targetPriceX96 = uint160(FixedPointMathLib.sqrt(1010 * FixedPoint96.Q96 ** 2 / 100));
         uint128 liquidity = 2 ether;
-        int256 actualInputAmount = 1000;
+        int256 actualInputAmount = -1000;
         uint24 feePips = 600;
 
         snapStart("SwapMathTest#SwapOneForZeroExactOutPartial");
@@ -312,7 +312,7 @@ contract SwapMathTest is Test, GasSnapshot {
         uint160 priceX96 = uint160(FixedPointMathLib.sqrt(1 * FixedPoint96.Q96 ** 2));
         uint160 targetPriceX96 = uint160(FixedPointMathLib.sqrt(99 * FixedPoint96.Q96 ** 2 / 1000));
         uint128 liquidity = 2 ether;
-        int256 actualInputAmount = 1000;
+        int256 actualInputAmount = -1000;
         uint24 feePips = 600;
 
         snapStart("SwapMathTest#SwapZeroForOneExactOutPartial");

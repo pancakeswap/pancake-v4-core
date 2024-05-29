@@ -643,7 +643,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         BinSwapHelper.TestSettings memory testSettings =
             BinSwapHelper.TestSettings({withdrawTokens: true, settleUsingTransfer: true});
         vm.expectEmit();
-        emit Swap(key.toId(), address(binSwapHelper), 1 ether, -((1 ether * 997) / 1000), activeId, key.fee, 0);
+        emit Swap(key.toId(), address(binSwapHelper), -1 ether, (1 ether * 997) / 1000, activeId, key.fee, 0);
 
         snapStart("BinPoolManagerTest#testGasSwapSingleBin");
         binSwapHelper.swap(key, true, 1 ether, testSettings, "");
@@ -707,7 +707,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         binLiquidityHelper.mint(key, mintParams, "");
 
         vm.expectEmit();
-        emit Donate(key.toId(), address(binDonateHelper), 10 ether, 10 ether, activeId);
+        emit Donate(key.toId(), address(binDonateHelper), -10 ether, -10 ether, activeId);
 
         snapStart("BinPoolManagerTest#testGasDonate");
         binDonateHelper.donate(key, 10 ether, 10 ether, "");

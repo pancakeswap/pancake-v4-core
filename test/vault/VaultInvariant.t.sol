@@ -138,8 +138,8 @@ contract VaultPoolManager is Test {
         totalFeeCollected1 += feeToCollect1;
     }
 
-    /// @dev positive balanceDelta: VaultPoolManager owes to vault
-    ///      negative balanceDelta: vault owes to VaultPoolManager
+    /// @dev negative balanceDelta: VaultPoolManager owes to vault
+    ///      positive balanceDelta: vault owes to VaultPoolManager
     function lockAcquired(bytes calldata data) external returns (bytes memory) {
         Action memory action = abi.decode(data, (Action));
 

@@ -61,53 +61,53 @@ contract BinSwapHelper {
         BalanceDelta delta = binManager.swap(data.key, data.swapForY, data.amountIn, data.hookData);
 
         if (data.swapForY) {
-            if (delta.amount0() > 0) {
+            if (delta.amount0() < 0) {
                 if (data.testSettings.settleUsingTransfer) {
                     if (data.key.currency0.isNative()) {
-                        vault.settle{value: uint128(delta.amount0())}(data.key.currency0);
+                        vault.settle{value: uint128(-delta.amount0())}(data.key.currency0);
                     } else {
                         vault.sync(data.key.currency0);
                         IERC20(Currency.unwrap(data.key.currency0)).transferFrom(
-                            data.sender, address(vault), uint128(delta.amount0())
+                            data.sender, address(vault), uint128(-delta.amount0())
                         );
                         vault.settle(data.key.currency0);
                     }
                 } else {
                     // the received hook on this transfer will burn the tokens
-                    vault.transferFrom(data.sender, address(this), data.key.currency0, uint128(delta.amount0()));
-                    vault.burn(address(this), data.key.currency0, uint128(delta.amount0()));
+                    vault.transferFrom(data.sender, address(this), data.key.currency0, uint128(-delta.amount0()));
+                    vault.burn(address(this), data.key.currency0, uint128(-delta.amount0()));
                 }
             }
-            if (delta.amount1() < 0) {
+            if (delta.amount1() > 0) {
                 if (data.testSettings.withdrawTokens) {
-                    vault.take(data.key.currency1, data.sender, uint128(-delta.amount1()));
+                    vault.take(data.key.currency1, data.sender, uint128(delta.amount1()));
                 } else {
-                    vault.mint(data.sender, data.key.currency1, uint128(-delta.amount1()));
+                    vault.mint(data.sender, data.key.currency1, uint128(delta.amount1()));
                 }
             }
         } else {
-            if (delta.amount1() > 0) {
+            if (delta.amount1() < 0) {
                 if (data.testSettings.settleUsingTransfer) {
                     if (data.key.currency1.isNative()) {
-                        vault.settle{value: uint128(delta.amount1())}(data.key.currency1);
+                        vault.settle{value: uint128(-delta.amount1())}(data.key.currency1);
                     } else {
                         vault.sync(data.key.currency1);
                         IERC20(Currency.unwrap(data.key.currency1)).transferFrom(
-                            data.sender, address(vault), uint128(delta.amount1())
+                            data.sender, address(vault), uint128(-delta.amount1())
                         );
                         vault.settle(data.key.currency1);
                     }
                 } else {
                     // the received hook on this transfer will burn the tokens
-                    vault.transferFrom(data.sender, address(this), data.key.currency1, uint128(delta.amount1()));
-                    vault.burn(address(this), data.key.currency1, uint128(delta.amount1()));
+                    vault.transferFrom(data.sender, address(this), data.key.currency1, uint128(-delta.amount1()));
+                    vault.burn(address(this), data.key.currency1, uint128(-delta.amount1()));
                 }
             }
-            if (delta.amount0() < 0) {
+            if (delta.amount0() > 0) {
                 if (data.testSettings.withdrawTokens) {
-                    vault.take(data.key.currency0, data.sender, uint128(-delta.amount0()));
+                    vault.take(data.key.currency0, data.sender, uint128(delta.amount0()));
                 } else {
-                    vault.mint(data.sender, data.key.currency0, uint128(-delta.amount0()));
+                    vault.mint(data.sender, data.key.currency0, uint128(delta.amount0()));
                 }
             }
         }

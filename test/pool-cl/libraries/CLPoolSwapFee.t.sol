@@ -110,8 +110,8 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
         emit Swap(
             dynamicFeeKey.toId(),
             address(router),
-            100,
-            -49,
+            -100,
+            49,
             79228162514264333632135824623,
             1000000000000000000,
             -1,
@@ -120,7 +120,7 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
         );
 
         ICLPoolManager.SwapParams memory params =
-            ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: 100, sqrtPriceLimitX96: SQRT_RATIO_1_2});
+            ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: -100, sqrtPriceLimitX96: SQRT_RATIO_1_2});
 
         CLPoolManagerRouter.SwapTestSettings memory testSettings =
             CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true});
@@ -140,8 +140,8 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
         emit Swap(
             staticFeeKey.toId(),
             address(router),
-            100,
-            -49,
+            -100,
+            49,
             79228162514264333632135824623,
             1000000000000000000,
             -1,
@@ -150,7 +150,7 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
         );
 
         ICLPoolManager.SwapParams memory params =
-            ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: 100, sqrtPriceLimitX96: SQRT_RATIO_1_2});
+            ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: -100, sqrtPriceLimitX96: SQRT_RATIO_1_2});
 
         CLPoolManagerRouter.SwapTestSettings memory testSettings =
             CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true});
@@ -171,10 +171,10 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
 
         vm.expectEmit(true, true, true, true);
         // price does not move but tick decreased by 1 because of it hits exactly the lower bound
-        emit Swap(dynamicFeeKey.toId(), address(router), 100, 0, SQRT_RATIO_1_1, 1000000000000000000, -1, 999999, 0);
+        emit Swap(dynamicFeeKey.toId(), address(router), -100, 0, SQRT_RATIO_1_1, 1000000000000000000, -1, 999999, 0);
 
         ICLPoolManager.SwapParams memory params =
-            ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: 100, sqrtPriceLimitX96: SQRT_RATIO_1_2});
+            ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: -100, sqrtPriceLimitX96: SQRT_RATIO_1_2});
 
         CLPoolManagerRouter.SwapTestSettings memory testSettings =
             CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true});
