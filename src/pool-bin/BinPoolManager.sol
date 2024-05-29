@@ -196,7 +196,6 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
                 msg.sender, key, swapForY, 0, amountOut
             );
         } else {
-            // clear the top 4 bits since they may be flagged
             lpFee = key.fee.getInitialLPFee();
         }
         lpFee.validate(LPFeeLibrary.TEN_PERCENT_FEE);
