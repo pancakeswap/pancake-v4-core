@@ -10,8 +10,6 @@ import {IPoolManager} from "../../src/interfaces/IPoolManager.sol";
 import {toBalanceDelta} from "../../src/types/BalanceDelta.sol";
 
 contract FakePoolManagerRouter is Test {
-    using CurrencyLibrary for Currency;
-
     event LockAcquired();
 
     IVault vault;

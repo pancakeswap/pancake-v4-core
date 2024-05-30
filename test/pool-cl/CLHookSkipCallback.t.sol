@@ -25,7 +25,6 @@ import {CLSkipCallbackHook} from "./helpers/CLSkipCallbackHook.sol";
 
 contract CLHookSkipCallbackTest is Test, Deployers, TokenFixture, GasSnapshot {
     using PoolIdLibrary for PoolKey;
-    using CurrencyLibrary for Currency;
     using CLPoolParametersHelper for bytes32;
     using ParametersHelper for bytes32;
     using LPFeeLibrary for uint24;

@@ -7,9 +7,10 @@ import {IBinPoolManager} from "../../../src/pool-bin/interfaces/IBinPoolManager.
 import {BalanceDelta} from "../../../src/types/BalanceDelta.sol";
 import {CurrencyLibrary, Currency} from "../../../src/types/Currency.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
+import {CurrencySettlement} from "../../helpers/CurrencySettlement.sol";
 
 contract BinDonateHelper {
-    using CurrencyLibrary for Currency;
+    using CurrencySettlement for Currency;
 
     IBinPoolManager public immutable binManager;
     IVault public immutable vault;
@@ -50,25 +51,8 @@ contract BinDonateHelper {
 
         (BalanceDelta delta,) = binManager.donate(data.key, data.amount0, data.amount1, data.hookData);
 
-        if (delta.amount0() < 0) {
-            if (key.currency0.isNative()) {
-                vault.settle{value: uint128(-delta.amount0())}(key.currency0);
-            } else {
-                vault.sync(key.currency0);
-                IERC20(Currency.unwrap(key.currency0)).transferFrom(sender, address(vault), uint128(-delta.amount0()));
-                vault.settle(key.currency0);
-            }
-        }
-
-        if (delta.amount1() < 0) {
-            if (key.currency1.isNative()) {
-                vault.settle{value: uint128(-delta.amount1())}(key.currency1);
-            } else {
-                vault.sync(key.currency1);
-                IERC20(Currency.unwrap(key.currency1)).transferFrom(sender, address(vault), uint128(-delta.amount1()));
-                vault.settle(key.currency1);
-            }
-        }
+        if (delta.amount0() < 0) key.currency0.settle(vault, sender, uint128(-delta.amount0()), false);
+        if (delta.amount1() < 0) key.currency1.settle(vault, sender, uint128(-delta.amount1()), false);
 
         return abi.encode(delta);
     }

@@ -5,16 +5,17 @@ import {IVault} from "../../../src/interfaces/IVault.sol";
 import {Hooks} from "../../../src/libraries/Hooks.sol";
 import {IBinPoolManager} from "../../../src/pool-bin/interfaces/IBinPoolManager.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
-import {Currency, CurrencyLibrary} from "../../../src/types/Currency.sol";
+import {Currency} from "../../../src/types/Currency.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {toBalanceDelta, BalanceDelta, BalanceDeltaLibrary} from "../../../src/types/BalanceDelta.sol";
 import {BeforeSwapDelta, toBeforeSwapDelta} from "../../../src/types/BeforeSwapDelta.sol";
 import {BaseBinTestHook} from "./BaseBinTestHook.sol";
+import {CurrencySettlement} from "../../helpers/CurrencySettlement.sol";
 
 contract BinReturnsDeltaHook is BaseBinTestHook {
     error InvalidAction();
 
-    using CurrencyLibrary for Currency;
+    using CurrencySettlement for Currency;
     using Hooks for bytes32;
 
     IVault public immutable vault;
@@ -94,37 +95,25 @@ contract BinReturnsDeltaHook is BaseBinTestHook {
 
         if (swapForY) {
             // the specified token is token0
-            if (hookDeltaSpecified < 0) {
-                vault.sync(key.currency0);
-                key.currency0.transfer(address(vault), uint128(-hookDeltaSpecified));
-                vault.settle(key.currency0);
-            } else {
-                vault.take(key.currency0, address(this), uint128(hookDeltaSpecified));
-            }
+            if (hookDeltaSpecified < 0) key.currency0.settle(vault, address(this), uint128(-hookDeltaSpecified), false);
+            if (hookDeltaSpecified > 0) key.currency0.take(vault, address(this), uint128(hookDeltaSpecified), false);
 
             if (hookDeltaUnspecified < 0) {
-                vault.sync(key.currency1);
-                key.currency1.transfer(address(vault), uint128(-hookDeltaUnspecified));
-                vault.settle(key.currency1);
-            } else {
-                vault.take(key.currency1, address(this), uint128(hookDeltaUnspecified));
+                key.currency1.settle(vault, address(this), uint128(-hookDeltaUnspecified), false);
+            }
+            if (hookDeltaUnspecified > 0) {
+                key.currency1.take(vault, address(this), uint128(hookDeltaUnspecified), false);
             }
         } else {
             // the specified token is token1
-            if (hookDeltaSpecified < 0) {
-                vault.sync(key.currency1);
-                key.currency1.transfer(address(vault), uint128(-hookDeltaSpecified));
-                vault.settle(key.currency1);
-            } else {
-                vault.take(key.currency1, address(this), uint128(hookDeltaSpecified));
-            }
+            if (hookDeltaSpecified < 0) key.currency1.settle(vault, address(this), uint128(-hookDeltaSpecified), false);
+            if (hookDeltaSpecified > 0) key.currency1.take(vault, address(this), uint128(hookDeltaSpecified), false);
 
             if (hookDeltaUnspecified < 0) {
-                vault.sync(key.currency0);
-                key.currency0.transfer(address(vault), uint128(-hookDeltaUnspecified));
-                vault.settle(key.currency0);
-            } else {
-                vault.take(key.currency0, address(this), uint128(hookDeltaUnspecified));
+                key.currency0.settle(vault, address(this), uint128(-hookDeltaUnspecified), false);
+            }
+            if (hookDeltaUnspecified > 0) {
+                key.currency0.take(vault, address(this), uint128(hookDeltaUnspecified), false);
             }
         }
 
@@ -145,20 +134,18 @@ contract BinReturnsDeltaHook is BaseBinTestHook {
         if (swapForY) {
             // the unspecified token is token1
             if (hookDeltaUnspecified < 0) {
-                vault.sync(key.currency1);
-                key.currency1.transfer(address(vault), uint128(-hookDeltaUnspecified));
-                vault.settle(key.currency1);
-            } else {
-                vault.take(key.currency1, address(this), uint128(hookDeltaUnspecified));
+                key.currency1.settle(vault, address(this), uint128(-hookDeltaUnspecified), false);
+            }
+            if (hookDeltaUnspecified > 0) {
+                key.currency1.take(vault, address(this), uint128(hookDeltaUnspecified), false);
             }
         } else {
             // the unspecified token is token0
             if (hookDeltaUnspecified < 0) {
-                vault.sync(key.currency0);
-                key.currency0.transfer(address(vault), uint128(-hookDeltaUnspecified));
-                vault.settle(key.currency0);
-            } else {
-                vault.take(key.currency0, address(this), uint128(hookDeltaUnspecified));
+                key.currency0.settle(vault, address(this), uint128(-hookDeltaUnspecified), false);
+            }
+            if (hookDeltaUnspecified > 0) {
+                key.currency0.take(vault, address(this), uint128(hookDeltaUnspecified), false);
             }
         }
 
