@@ -15,6 +15,7 @@ library BinHooks {
     using LPFeeLibrary for uint24;
     using BeforeSwapDeltaLibrary for BeforeSwapDelta;
 
+    /// @notice Validate hook permission, eg. if before_swap_return_delta is set, before_swap_delta must be set
     function validatePermissionsConflict(PoolKey memory key) internal pure {
         if (
             key.parameters.hasOffsetEnabled(HOOKS_BEFORE_SWAP_RETURNS_DELTA_OFFSET)
@@ -45,6 +46,38 @@ library BinHooks {
         }
     }
 
+    function beforeInitialize(PoolKey memory key, uint24 activeId, bytes calldata hookData) internal {
+        IBinHooks hooks = IBinHooks(address(key.hooks));
+
+        if (key.parameters.shouldCall(HOOKS_BEFORE_INITIALIZE_OFFSET, hooks)) {
+            if (hooks.beforeInitialize(msg.sender, key, activeId, hookData) != IBinHooks.beforeInitialize.selector) {
+                revert Hooks.InvalidHookResponse();
+            }
+        }
+    }
+
+    function afterInitialize(PoolKey memory key, uint24 activeId, bytes calldata hookData) internal {
+        IBinHooks hooks = IBinHooks(address(key.hooks));
+
+        if (key.parameters.shouldCall(HOOKS_AFTER_INITIALIZE_OFFSET, hooks)) {
+            if (hooks.afterInitialize(msg.sender, key, activeId, hookData) != IBinHooks.afterInitialize.selector) {
+                revert Hooks.InvalidHookResponse();
+            }
+        }
+    }
+
+    function beforeMint(PoolKey memory key, IBinPoolManager.MintParams calldata params, bytes calldata hookData)
+        internal
+    {
+        IBinHooks hooks = IBinHooks(address(key.hooks));
+
+        if (key.parameters.shouldCall(HOOKS_BEFORE_MINT_OFFSET, hooks)) {
+            if (hooks.beforeMint(msg.sender, key, params, hookData) != IBinHooks.beforeMint.selector) {
+                revert Hooks.InvalidHookResponse();
+            }
+        }
+    }
+
     function afterMint(
         PoolKey memory key,
         IBinPoolManager.MintParams memory params,
@@ -67,6 +100,17 @@ library BinHooks {
                     && hookDelta != BalanceDeltaLibrary.ZERO_DELTA
             ) {
                 callerDelta = callerDelta - hookDelta;
+            }
+        }
+    }
+
+    function beforeBurn(PoolKey memory key, IBinPoolManager.BurnParams memory params, bytes calldata hookData)
+        internal
+    {
+        IBinHooks hooks = IBinHooks(address(key.hooks));
+        if (key.parameters.shouldCall(HOOKS_BEFORE_BURN_OFFSET, hooks)) {
+            if (hooks.beforeBurn(msg.sender, key, params, hookData) != IBinHooks.beforeBurn.selector) {
+                revert Hooks.InvalidHookResponse();
             }
         }
     }
@@ -170,6 +214,24 @@ library BinHooks {
 
             // the caller has to pay for (or receive) the hook's delta
             swapperDelta = delta - hookDelta;
+        }
+    }
+
+    function beforeDonate(PoolKey memory key, uint128 amount0, uint128 amount1, bytes calldata hookData) internal {
+        IBinHooks hooks = IBinHooks(address(key.hooks));
+        if (key.parameters.shouldCall(HOOKS_BEFORE_DONATE_OFFSET, hooks)) {
+            if (hooks.beforeDonate(msg.sender, key, amount0, amount1, hookData) != IBinHooks.beforeDonate.selector) {
+                revert Hooks.InvalidHookResponse();
+            }
+        }
+    }
+
+    function afterDonate(PoolKey memory key, uint128 amount0, uint128 amount1, bytes calldata hookData) internal {
+        IBinHooks hooks = IBinHooks(address(key.hooks));
+        if (key.parameters.shouldCall(HOOKS_AFTER_DONATE_OFFSET, hooks)) {
+            if (hooks.afterDonate(msg.sender, key, amount0, amount1, hookData) != IBinHooks.afterDonate.selector) {
+                revert Hooks.InvalidHookResponse();
+            }
         }
     }
 }

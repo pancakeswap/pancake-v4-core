@@ -15,6 +15,7 @@ library CLHooks {
     using LPFeeLibrary for uint24;
     using BeforeSwapDeltaLibrary for BeforeSwapDelta;
 
+    /// @notice Validate hook permission, eg. if before_swap_return_delta is set, before_swap_delta must be set
     function validatePermissionsConflict(PoolKey memory key) internal pure {
         if (
             key.parameters.hasOffsetEnabled(HOOKS_BEFORE_SWAP_RETURNS_DELTA_OFFSET)
@@ -42,6 +43,51 @@ library CLHooks {
                 && !key.parameters.hasOffsetEnabled(HOOKS_AFTER_REMOVE_LIQUIDITY_OFFSET)
         ) {
             revert Hooks.HookPermissionsValidationError();
+        }
+    }
+
+    function beforeInitialize(PoolKey memory key, uint160 sqrtPriceX96, bytes calldata hookData) internal {
+        ICLHooks hooks = ICLHooks(address(key.hooks));
+
+        if (key.parameters.shouldCall(HOOKS_BEFORE_INITIALIZE_OFFSET, hooks)) {
+            if (hooks.beforeInitialize(msg.sender, key, sqrtPriceX96, hookData) != ICLHooks.beforeInitialize.selector) {
+                revert Hooks.InvalidHookResponse();
+            }
+        }
+    }
+
+    function afterInitialize(PoolKey memory key, uint160 sqrtPriceX96, int24 tick, bytes calldata hookData) internal {
+        ICLHooks hooks = ICLHooks(address(key.hooks));
+
+        if (key.parameters.shouldCall(HOOKS_AFTER_INITIALIZE_OFFSET, hooks)) {
+            if (
+                hooks.afterInitialize(msg.sender, key, sqrtPriceX96, tick, hookData)
+                    != ICLHooks.afterInitialize.selector
+            ) {
+                revert Hooks.InvalidHookResponse();
+            }
+        }
+    }
+
+    function beforeModifyLiquidity(
+        PoolKey memory key,
+        ICLPoolManager.ModifyLiquidityParams memory params,
+        bytes calldata hookData
+    ) internal {
+        ICLHooks hooks = ICLHooks(address(key.hooks));
+
+        if (params.liquidityDelta > 0 && key.parameters.shouldCall(HOOKS_BEFORE_ADD_LIQUIDITY_OFFSET, hooks)) {
+            if (hooks.beforeAddLiquidity(msg.sender, key, params, hookData) != ICLHooks.beforeAddLiquidity.selector) {
+                revert Hooks.InvalidHookResponse();
+            }
+        } else if (params.liquidityDelta <= 0 && key.parameters.shouldCall(HOOKS_BEFORE_REMOVE_LIQUIDITY_OFFSET, hooks))
+        {
+            if (
+                hooks.beforeRemoveLiquidity(msg.sender, key, params, hookData)
+                    != ICLHooks.beforeRemoveLiquidity.selector
+            ) {
+                revert Hooks.InvalidHookResponse();
+            }
         }
     }
 
@@ -153,6 +199,25 @@ library CLHooks {
 
             // the caller has to pay for (or receive) the hook's delta
             swapperDelta = delta - hookDelta;
+        }
+    }
+
+    function beforeDonate(PoolKey memory key, uint256 amount0, uint256 amount1, bytes calldata hookData) internal {
+        ICLHooks hooks = ICLHooks(address(key.hooks));
+
+        if (key.parameters.shouldCall(HOOKS_BEFORE_DONATE_OFFSET, hooks)) {
+            if (hooks.beforeDonate(msg.sender, key, amount0, amount1, hookData) != ICLHooks.beforeDonate.selector) {
+                revert Hooks.InvalidHookResponse();
+            }
+        }
+    }
+
+    function afterDonate(PoolKey memory key, uint256 amount0, uint256 amount1, bytes calldata hookData) internal {
+        ICLHooks hooks = ICLHooks(address(key.hooks));
+        if (key.parameters.shouldCall(HOOKS_AFTER_DONATE_OFFSET, hooks)) {
+            if (hooks.afterDonate(msg.sender, key, amount0, amount1, hookData) != ICLHooks.afterDonate.selector) {
+                revert Hooks.InvalidHookResponse();
+            }
         }
     }
 }
