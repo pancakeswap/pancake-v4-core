@@ -8,7 +8,7 @@ import {PoolKey} from "../../types/PoolKey.sol";
 import {BalanceDelta} from "../../types/BalanceDelta.sol";
 import {IPoolManager} from "../../interfaces/IPoolManager.sol";
 import {IExtsload} from "../../interfaces/IExtsload.sol";
-import {IBinHooks} from "./IBinHooks.sol";
+import {IHooks} from "../../interfaces/IHooks.sol";
 import {BinPosition, BinPool} from "../libraries/BinPool.sol";
 
 interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
@@ -48,7 +48,7 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
         Currency indexed currency1,
         uint24 fee,
         uint16 binStep,
-        IBinHooks hooks
+        IHooks hooks
     );
 
     /// @notice Emitted for swaps between currency0 and currency1

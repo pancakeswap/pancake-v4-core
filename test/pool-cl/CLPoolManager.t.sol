@@ -50,7 +50,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         Currency indexed currency1,
         uint24 fee,
         int24 tickSpacing,
-        ICLHooks hooks
+        IHooks hooks
     );
     event ModifyLiquidity(
         PoolId indexed poolId,
@@ -364,12 +364,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         } else {
             vm.expectEmit(true, true, true, true);
             emit Initialize(
-                key.toId(),
-                key.currency0,
-                key.currency1,
-                key.fee,
-                key.parameters.getTickSpacing(),
-                ICLHooks(address(key.hooks))
+                key.toId(), key.currency0, key.currency1, key.fee, key.parameters.getTickSpacing(), key.hooks
             );
             poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
 
@@ -393,14 +388,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         vm.expectEmit(true, true, true, true);
-        emit Initialize(
-            key.toId(),
-            key.currency0,
-            key.currency1,
-            key.fee,
-            key.parameters.getTickSpacing(),
-            ICLHooks(address(key.hooks))
-        );
+        emit Initialize(key.toId(), key.currency0, key.currency1, key.fee, key.parameters.getTickSpacing(), key.hooks);
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
 
         (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
@@ -454,14 +442,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         vm.expectEmit(true, true, true, true);
-        emit Initialize(
-            key.toId(),
-            key.currency0,
-            key.currency1,
-            key.fee,
-            key.parameters.getTickSpacing(),
-            ICLHooks(address(key.hooks))
-        );
+        emit Initialize(key.toId(), key.currency0, key.currency1, key.fee, key.parameters.getTickSpacing(), key.hooks);
 
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
     }
@@ -590,14 +571,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         mockHooks.setReturnValue(mockHooks.afterInitialize.selector, mockHooks.afterInitialize.selector);
 
         vm.expectEmit(true, true, true, true);
-        emit Initialize(
-            key.toId(),
-            key.currency0,
-            key.currency1,
-            key.fee,
-            key.parameters.getTickSpacing(),
-            ICLHooks(address(key.hooks))
-        );
+        emit Initialize(key.toId(), key.currency0, key.currency1, key.fee, key.parameters.getTickSpacing(), key.hooks);
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
     }
