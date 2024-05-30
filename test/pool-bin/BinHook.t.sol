@@ -17,6 +17,7 @@ import {IHooks} from "../../src/interfaces/IHooks.sol";
 import {Hooks} from "../../src/libraries/Hooks.sol";
 import {BinTestHelper} from "./helpers/BinTestHelper.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
+import {BinPoolParametersHelper} from "../../src/pool-bin/libraries/BinPoolParametersHelper.sol";
 
 contract BinHookTest is BinTestHelper, GasSnapshot {
     using PoolIdLibrary for PoolKey;
@@ -266,8 +267,8 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
             currency1: Currency.wrap(makeAddr("token1")),
             hooks: IHooks(address(mockHooks)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: uint24(3000),
-            parameters: bytes32(uint256(_bitMap)).setBinStep(1)
+            // fee: uint24(3000),
+            parameters: bytes32(uint256(_bitMap)).setBinStep(1).setFee(3000)
         });
     }
 }

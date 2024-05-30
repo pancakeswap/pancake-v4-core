@@ -22,10 +22,12 @@ import {TokenFixture} from "../helpers/TokenFixture.sol";
 import {CLPoolManagerRouter} from "./helpers/CLPoolManagerRouter.sol";
 import {CLPoolParametersHelper} from "../../src/pool-cl/libraries/CLPoolParametersHelper.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {CLPoolParametersHelper} from "../../src/pool-cl/libraries/CLPoolParametersHelper.sol";
 
 contract CLHookReturnsFeeTest is Test, Deployers, TokenFixture, GasSnapshot {
     using PoolIdLibrary for PoolKey;
     using LPFeeLibrary for uint24;
+    using CLPoolParametersHelper for bytes32;
 
     IVault vault;
     ICLPoolManager poolManager;
@@ -58,10 +60,10 @@ contract CLHookReturnsFeeTest is Test, Deployers, TokenFixture, GasSnapshot {
             currency1: currency1,
             hooks: dynamicReturnsFeesHook,
             poolManager: poolManager,
-            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
+            // fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             parameters: CLPoolParametersHelper.setTickSpacing(
                 bytes32(uint256(dynamicReturnsFeesHook.getHooksRegistrationBitmap())), 1
-            )
+            ).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG)
         });
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
@@ -124,7 +126,8 @@ contract CLHookReturnsFeeTest is Test, Deployers, TokenFixture, GasSnapshot {
     }
 
     function test_dynamicReturnSwapFee_notUsedIfPoolIsStaticFee() public {
-        key.fee = 3000; // static fee
+        // key.fee = 3000; // static fee
+        key.parameters = key.parameters.setFee(3000);
         dynamicReturnsFeesHook.setFee(1000); // 0.10% fee is NOT used because the pool has a static fee
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
@@ -165,7 +168,7 @@ contract CLHookReturnsFeeTest is Test, Deployers, TokenFixture, GasSnapshot {
         // create a new pool with an initial fee of 123
         key.parameters = CLPoolParametersHelper.setTickSpacing(
             bytes32(uint256(dynamicReturnsFeesHook.getHooksRegistrationBitmap())), 10
-        );
+        ).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG);
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
         IERC20(Currency.unwrap(currency0)).approve(address(router), type(uint256).max);

@@ -14,10 +14,12 @@ import {Constants} from "./Constants.sol";
 import {SortTokens} from "../../helpers/SortTokens.sol";
 import {Vault} from "../../../src/Vault.sol";
 import {IVault} from "../../../src/interfaces/IVault.sol";
+import {CLPoolParametersHelper} from "../../../src/pool-cl/libraries/CLPoolParametersHelper.sol";
 
 contract Deployers {
     using LPFeeLibrary for uint24;
     using PoolIdLibrary for PoolKey;
+    using CLPoolParametersHelper for bytes32;
 
     bytes constant ZERO_BYTES = new bytes(0);
 
@@ -57,10 +59,10 @@ contract Deployers {
             currency1,
             hooks,
             manager,
-            fee,
+            // fee,
             fee.isDynamicLPFee()
-                ? bytes32(uint256((60 << 16) | 0x00ff))
-                : bytes32(uint256(((fee / 100 * 2) << 16) | 0x00ff))
+                ? bytes32(uint256((60 << 16) | 0x00ff)).setFee(fee)
+                : bytes32(uint256(((fee / 100 * 2) << 16) | 0x00ff)).setFee(fee)
         );
         id = key.toId();
         manager.initialize(key, sqrtPriceX96, initData);

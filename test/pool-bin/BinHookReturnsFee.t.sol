@@ -88,8 +88,10 @@ contract BinHookReturnsFeeTest is Test, BinTestHelper {
             currency1: currency1,
             hooks: dynamicReturnsFeesHook,
             poolManager: poolManager,
-            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
-            parameters: bytes32(uint256(dynamicReturnsFeesHook.getHooksRegistrationBitmap())).setBinStep(10)
+            // fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
+            parameters: bytes32(uint256(dynamicReturnsFeesHook.getHooksRegistrationBitmap())).setBinStep(10).setFee(
+                LPFeeLibrary.DYNAMIC_FEE_FLAG
+            )
         });
 
         poolManager.initialize(key, activeId, new bytes(0));
@@ -130,7 +132,8 @@ contract BinHookReturnsFeeTest is Test, BinTestHelper {
     }
 
     function test_dynamicReturnSwapFee_notUsedIfPoolIsStaticFee() public {
-        key.fee = 3000; // static fee
+        // key.fee = 3000; // static fee
+        key.parameters = key.parameters.setFee(3000);
         dynamicReturnsFeesHook.setFee(1000); // 0.10% fee is NOT used because the pool has a static fee
 
         poolManager.initialize(key, activeId, new bytes(0));
@@ -154,8 +157,9 @@ contract BinHookReturnsFeeTest is Test, BinTestHelper {
         // fees returned by beforeSwap are not written to storage
 
         // create a new pool with an initial fee of 123
-        key.parameters =
-            BinPoolParametersHelper.setBinStep(bytes32(uint256(dynamicReturnsFeesHook.getHooksRegistrationBitmap())), 1);
+        key.parameters = BinPoolParametersHelper.setBinStep(
+            bytes32(uint256(dynamicReturnsFeesHook.getHooksRegistrationBitmap())), 1
+        ).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG);
         poolManager.initialize(key, activeId, new bytes(0));
         IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
         binLiquidityHelper.mint(key, mintParams, abi.encode(0));

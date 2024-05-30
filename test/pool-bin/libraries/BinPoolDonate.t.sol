@@ -45,8 +45,8 @@ contract BinPoolDonateTest is BinTestHelper {
             currency1: Currency.wrap(makeAddr("token1")),
             hooks: IHooks(address(0)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: uint24(3000),
-            parameters: poolParam // binStep
+            // fee: uint24(3000),
+            parameters: poolParam.setFee(3000) // binStep
         });
         poolId = key.toId();
     }

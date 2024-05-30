@@ -8,6 +8,7 @@ library ParametersHelper {
     using Encoded for bytes32;
 
     uint256 internal constant OFFSET_HOOK = 0;
+    uint256 internal constant OFFSET_FEE = 40;
 
     /**
      * @dev Get the hooks registration bitmap from the encoded parameters
@@ -18,5 +19,9 @@ library ParametersHelper {
      */
     function getHooksRegistrationBitmap(bytes32 params) internal pure returns (uint16 bitmap) {
         bitmap = params.decodeUint16(OFFSET_HOOK);
+    }
+
+    function getFeeFromParameters(bytes32 params) internal pure returns (uint24 fee) {
+        fee = params.decodeUint24(OFFSET_FEE);
     }
 }

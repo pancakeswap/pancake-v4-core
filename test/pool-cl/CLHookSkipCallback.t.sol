@@ -53,8 +53,8 @@ contract CLHookSkipCallbackTest is Test, Deployers, TokenFixture, GasSnapshot {
             currency1: currency1,
             hooks: clSkipCallbackHook,
             poolManager: poolManager,
-            fee: uint24(3000),
-            parameters: bytes32(uint256(clSkipCallbackHook.getHooksRegistrationBitmap())).setTickSpacing(10)
+            // fee: uint24(3000),
+            parameters: bytes32(uint256(clSkipCallbackHook.getHooksRegistrationBitmap())).setTickSpacing(10).setFee(3000)
         });
     }
 

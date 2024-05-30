@@ -8,9 +8,11 @@ import {PoolKey} from "../../src/types/PoolKey.sol";
 import {PoolId, PoolIdLibrary} from "../../src/types/PoolId.sol";
 import {IHooks} from "../../src/interfaces/IHooks.sol";
 import {IPoolManager} from "../../src/interfaces/IPoolManager.sol";
+import {CLPoolParametersHelper} from "../../src/pool-cl/libraries/CLPoolParametersHelper.sol";
 
 contract PoolIdLibraryTest is Test {
     using PoolIdLibrary for PoolKey;
+    using CLPoolParametersHelper for bytes32;
 
     function test_toId() public {
         PoolKey memory key = PoolKey({
@@ -18,8 +20,8 @@ contract PoolIdLibraryTest is Test {
             currency1: Currency.wrap(makeAddr("currency1")),
             hooks: IHooks(makeAddr("hook")),
             poolManager: IPoolManager(makeAddr("pm")),
-            fee: 100,
-            parameters: hex"1022"
+            // fee: 100,
+            parameters: bytes32(hex"1022").setFee(100)
         });
 
         bytes32 id = PoolId.unwrap(key.toId());

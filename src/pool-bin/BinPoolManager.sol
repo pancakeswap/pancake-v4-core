@@ -104,7 +104,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         BinHooks.validatePermissionsConflict(key);
 
         /// @notice init value for dynamic lp fee is 0, but hook can still set it in afterInitialize
-        uint24 lpFee = key.fee.getInitialLPFee();
+        uint24 lpFee = key.parameters.getFee().getInitialLPFee();
         lpFee.validate(LPFeeLibrary.TEN_PERCENT_FEE);
 
         BinHooks.beforeInitialize(key, activeId, hookData);
@@ -115,7 +115,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         pools[id].initialize(activeId, protocolFee, lpFee);
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
-        emit Initialize(id, key.currency0, key.currency1, key.fee, binStep, key.hooks);
+        emit Initialize(id, key.currency0, key.currency1, key.parameters.getFee(), binStep, key.hooks);
 
         BinHooks.afterInitialize(key, activeId, hookData);
     }
@@ -182,12 +182,12 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         _checkPoolInitialized(id);
 
         uint24 lpFee;
-        if (key.fee.isDynamicLPFee()) {
+        if (key.parameters.getFee().isDynamicLPFee()) {
             lpFee = IBinDynamicFeeManager(address(key.hooks)).getFeeForSwapInSwapOut(
                 msg.sender, key, swapForY, 0, amountOut
             );
         } else {
-            lpFee = key.fee.getInitialLPFee();
+            lpFee = key.parameters.getFee().getInitialLPFee();
         }
         lpFee.validate(LPFeeLibrary.TEN_PERCENT_FEE);
 
@@ -207,11 +207,11 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         _checkPoolInitialized(id);
 
         uint24 lpFee;
-        if (key.fee.isDynamicLPFee()) {
+        if (key.parameters.getFee().isDynamicLPFee()) {
             lpFee =
                 IBinDynamicFeeManager(address(key.hooks)).getFeeForSwapInSwapOut(msg.sender, key, swapForY, amountIn, 0);
         } else {
-            lpFee = key.fee.getInitialLPFee();
+            lpFee = key.parameters.getFee().getInitialLPFee();
         }
         lpFee.validate(LPFeeLibrary.TEN_PERCENT_FEE);
 
@@ -331,7 +331,9 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
 
     /// @inheritdoc IPoolManager
     function updateDynamicLPFee(PoolKey memory key, uint24 newDynamicLPFee) external override {
-        if (!key.fee.isDynamicLPFee() || msg.sender != address(key.hooks)) revert UnauthorizedDynamicLPFeeUpdate();
+        if (!key.parameters.getFee().isDynamicLPFee() || msg.sender != address(key.hooks)) {
+            revert UnauthorizedDynamicLPFeeUpdate();
+        }
         newDynamicLPFee.validate(LPFeeLibrary.TEN_PERCENT_FEE);
 
         PoolId id = key.toId();

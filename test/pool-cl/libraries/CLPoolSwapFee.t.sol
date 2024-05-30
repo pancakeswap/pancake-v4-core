@@ -21,9 +21,11 @@ import {FixedPoint96} from "../../../src/pool-cl/libraries/FixedPoint96.sol";
 import {HOOKS_AFTER_INITIALIZE_OFFSET, HOOKS_BEFORE_SWAP_OFFSET} from "../../../src/pool-cl/interfaces/ICLHooks.sol";
 import {IHooks} from "../../../src/interfaces/IHooks.sol";
 import {Hooks} from "../../../src/libraries/Hooks.sol";
+import {CLPoolParametersHelper} from "../../../src/pool-cl/libraries/CLPoolParametersHelper.sol";
 
 contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
     using PoolIdLibrary for PoolKey;
+    using CLPoolParametersHelper for bytes32;
 
     Vault vault;
     CLPoolManager poolManager;
@@ -62,8 +64,10 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
             currency1: currency1,
             hooks: hook,
             poolManager: poolManager,
-            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
-            parameters: CLPoolParametersHelper.setTickSpacing(bytes32(uint256(hook.getHooksRegistrationBitmap())), 1)
+            // fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
+            parameters: CLPoolParametersHelper.setTickSpacing(bytes32(uint256(hook.getHooksRegistrationBitmap())), 1).setFee(
+                LPFeeLibrary.DYNAMIC_FEE_FLAG
+            )
         });
 
         hook.setHooksRegistrationBitmap(uint16(1 << HOOKS_BEFORE_SWAP_OFFSET));
@@ -73,14 +77,17 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
             hooks: hook,
             poolManager: poolManager,
             // 50%
-            fee: LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE / 2,
-            parameters: CLPoolParametersHelper.setTickSpacing(bytes32(uint256(hook.getHooksRegistrationBitmap())), 1)
+            // fee: LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE / 2,
+            parameters: CLPoolParametersHelper.setTickSpacing(bytes32(uint256(hook.getHooksRegistrationBitmap())), 1).setFee(
+                LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE / 2
+            )
         });
     }
 
     function testPoolInitializeFailsWithTooLargeFee() public {
         vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
-        staticFeeKey.fee = LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1;
+        // staticFeeKey.fee = LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1;
+        staticFeeKey.parameters = staticFeeKey.parameters.setFee(LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1);
         poolManager.initialize(staticFeeKey, SQRT_RATIO_1_1, ZERO_BYTES);
     }
 
@@ -189,8 +196,10 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
             currency1: currency1,
             hooks: IHooks(address(0)),
             poolManager: poolManager,
-            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
-            parameters: CLPoolParametersHelper.setTickSpacing(bytes32(uint256(hook.getHooksRegistrationBitmap())), 1)
+            // fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
+            parameters: CLPoolParametersHelper.setTickSpacing(bytes32(uint256(hook.getHooksRegistrationBitmap())), 1).setFee(
+                LPFeeLibrary.DYNAMIC_FEE_FLAG
+            )
         });
 
         vm.expectRevert(Hooks.HookConfigValidationError.selector);

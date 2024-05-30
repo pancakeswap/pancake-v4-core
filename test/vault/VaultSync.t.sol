@@ -32,7 +32,7 @@ contract VaultSyncTest is Test, TokenFixture, GasSnapshot, NoIsolate {
             currency1: currency1,
             hooks: IHooks(address(0)),
             poolManager: fakePoolManager,
-            fee: 0,
+            // fee: 0,
             parameters: 0x00
         });
 

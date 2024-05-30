@@ -128,8 +128,8 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             currency1: currency1,
             hooks: IHooks(address(0)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: uint24(3000), // 3000 = 0.3%
-            parameters: poolParam.setBinStep(10) // binStep
+            // fee: uint24(3000), // 3000 = 0.3%
+            parameters: poolParam.setBinStep(10).setFee(3000) // binStep
         });
     }
 
@@ -146,12 +146,14 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             // hooks: hook,
             hooks: IHooks(address(mockHooks)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: uint24(3000), // 3000 = 0.3%
-            parameters: bytes32(uint256(bitMap)).setBinStep(binStep)
+            // fee: uint24(3000), // 3000 = 0.3%
+            parameters: bytes32(uint256(bitMap)).setBinStep(binStep).setFee(3000)
         });
 
         vm.expectEmit();
-        emit Initialize(key.toId(), key.currency0, key.currency1, key.fee, binStep, IHooks(address(mockHooks)));
+        emit Initialize(
+            key.toId(), key.currency0, key.currency1, key.parameters.getFee(), binStep, IHooks(address(mockHooks))
+        );
 
         poolManager.initialize(key, activeId, new bytes(0));
     }
@@ -169,8 +171,8 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
                 // hooks: hook,
                 hooks: IHooks(address(mockHooks)),
                 poolManager: IPoolManager(address(poolManager)),
-                fee: uint24(3000), // 3000 = 0.3%
-                parameters: bytes32(uint256(bitMap - 1)).setBinStep(10)
+                // fee: uint24(3000), // 3000 = 0.3%
+                parameters: bytes32(uint256(bitMap - 1)).setBinStep(10).setFee(3000)
             });
             vm.expectRevert(abi.encodeWithSelector(Hooks.HookConfigValidationError.selector));
             poolManager.initialize(key, activeId, new bytes(0));
@@ -186,8 +188,8 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
                 // hooks: hook,
                 hooks: IHooks(address(mockHooks)),
                 poolManager: IPoolManager(address(poolManager)),
-                fee: uint24(3000), // 3000 = 0.3%
-                parameters: bytes32(uint256(bitMap)).setBinStep(10)
+                // fee: uint24(3000), // 3000 = 0.3%
+                parameters: bytes32(uint256(bitMap)).setBinStep(10).setFee(3000)
             });
             vm.expectRevert(abi.encodeWithSelector(Hooks.HookPermissionsValidationError.selector));
             poolManager.initialize(key, activeId, new bytes(0));
@@ -213,8 +215,8 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             currency1: currency1,
             hooks: IHooks(address(binFeeManagerHook)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
-            parameters: bytes32(uint256(bitMap)).setBinStep(10)
+            // fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
+            parameters: bytes32(uint256(bitMap)).setBinStep(10).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG)
         });
 
         binFeeManagerHook.setFee(dynamicSwapFee);
@@ -234,8 +236,8 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             currency1: currency1,
             hooks: IHooks(address(binFeeManagerHook)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG + 1,
-            parameters: bytes32(uint256(bitMap)).setBinStep(10)
+            // fee: LPFeeLibrary.DYNAMIC_FEE_FLAG + 1,
+            parameters: bytes32(uint256(bitMap)).setBinStep(10).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG + 1)
         });
 
         vm.expectRevert(LPFeeLibrary.FeeTooLarge.selector);
@@ -250,8 +252,8 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             currency1: currency1,
             hooks: IHooks(address(0)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: swapFee,
-            parameters: poolParam.setBinStep(1) // binStep
+            // fee: swapFee,
+            parameters: poolParam.setBinStep(1).setFee(swapFee) // binStep
         });
 
         vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
@@ -264,8 +266,8 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             currency1: currency1,
             hooks: IHooks(address(0)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: uint24(3000), // 3000 = 0.3%
-            parameters: poolParam.setBinStep(poolManager.MIN_BIN_STEP() - 1) // binStep
+            // fee: uint24(3000), // 3000 = 0.3%
+            parameters: poolParam.setBinStep(poolManager.MIN_BIN_STEP() - 1).setFee(3000) // binStep
         });
 
         vm.expectRevert(BinStepTooSmall.selector);
@@ -276,8 +278,8 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             currency1: currency1,
             hooks: IHooks(address(0)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: uint24(3000), // 3000 = 0.3%
-            parameters: poolParam.setBinStep(poolManager.MAX_BIN_STEP() + 1) // binStep
+            // fee: uint24(3000), // 3000 = 0.3%
+            parameters: poolParam.setBinStep(poolManager.MAX_BIN_STEP() + 1).setFee(3000) // binStep
         });
 
         vm.expectRevert(BinStepTooLarge.selector);
@@ -332,8 +334,8 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             currency1: currency1,
             hooks: IHooks(address(0)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: uint24(3000), // 3000 = 0.3%
-            parameters: poolParam.setBinStep(10) // binStep
+            // fee: uint24(3000), // 3000 = 0.3%
+            parameters: poolParam.setBinStep(10).setFee(3000) // binStep
         });
         poolManager.initialize(key, activeId, new bytes(0));
 
@@ -620,8 +622,8 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             currency1: currency1,
             hooks: IHooks(address(0)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: uint24(3000), // 3000 = 0.3%
-            parameters: poolParam.setBinStep(10) // binStep
+            // fee: uint24(3000), // 3000 = 0.3%
+            parameters: poolParam.setBinStep(10).setFee(3000) // binStep
         });
         poolManager.initialize(key, activeId, new bytes(0));
 
@@ -661,7 +663,9 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         BinSwapHelper.TestSettings memory testSettings =
             BinSwapHelper.TestSettings({withdrawTokens: true, settleUsingTransfer: true});
         vm.expectEmit();
-        emit Swap(key.toId(), address(binSwapHelper), -1 ether, (1 ether * 997) / 1000, activeId, key.fee, 0);
+        emit Swap(
+            key.toId(), address(binSwapHelper), -1 ether, (1 ether * 997) / 1000, activeId, key.parameters.getFee(), 0
+        );
 
         snapStart("BinPoolManagerTest#testGasSwapSingleBin");
         binSwapHelper.swap(key, true, 1 ether, testSettings, "");
@@ -906,8 +910,8 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             currency1: currency1,
             hooks: IHooks(address(binFeeManagerHook)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
-            parameters: bytes32(uint256(bitMap)).setBinStep(10)
+            // fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
+            parameters: bytes32(uint256(bitMap)).setBinStep(10).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG)
         });
 
         binFeeManagerHook.setFee(LPFeeLibrary.TEN_PERCENT_FEE + 1);
@@ -923,8 +927,8 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             currency1: currency1,
             hooks: IHooks(address(0)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: uint24(3000), // 3000 = 0.3%
-            parameters: poolParam
+            // fee: uint24(3000), // 3000 = 0.3%
+            parameters: poolParam.setFee(3000)
         });
 
         vm.expectRevert(IPoolManager.UnauthorizedDynamicLPFeeUpdate.selector);
@@ -943,8 +947,8 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             currency1: currency1,
             hooks: IHooks(address(binFeeManagerHook)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
-            parameters: bytes32(uint256(bitMap)).setBinStep(10)
+            // fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
+            parameters: bytes32(uint256(bitMap)).setBinStep(10).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG)
         });
         poolManager.initialize(key, activeId, new bytes(0));
 

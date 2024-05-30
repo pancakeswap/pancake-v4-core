@@ -18,6 +18,7 @@ import {FakePoolManager} from "./FakePoolManager.sol";
 
 import {IHooks} from "../../src/interfaces/IHooks.sol";
 import {NoIsolate} from "../helpers/NoIsolate.sol";
+import {CLPoolParametersHelper} from "../../src/pool-cl/libraries/CLPoolParametersHelper.sol";
 
 /**
  * @notice Basic functionality test for Vault
@@ -25,6 +26,7 @@ import {NoIsolate} from "../helpers/NoIsolate.sol";
  */
 contract VaultTest is Test, NoIsolate, GasSnapshot {
     using PoolIdLibrary for PoolKey;
+    using CLPoolParametersHelper for bytes32;
 
     event PoolManagerRegistered(address indexed poolManager);
     event LockAcquired();
@@ -61,7 +63,7 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
             currency1: currency1,
             hooks: IHooks(address(0)),
             poolManager: fakePoolManager,
-            fee: 0,
+            // fee: 0,
             parameters: 0x00
         });
 
@@ -73,8 +75,8 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
             currency1: currency1,
             hooks: IHooks(address(0)),
             poolManager: fakePoolManager2,
-            fee: 1,
-            parameters: 0x00
+            // fee: 1,
+            parameters: bytes32(0x00).setFee(1)
         });
 
         poolKey2 = key2;
@@ -96,7 +98,14 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
     }
 
     function testAccountPoolBalanceDeltaFromUnregistedPoolManager() public {
-        PoolKey memory key = PoolKey(currency0, currency1, IHooks(address(0)), unRegPoolManager, 0x0, 0x0);
+        // PoolKey memory key = PoolKey(currency0, currency1, IHooks(address(0)), unRegPoolManager, 0x0, 0x0);
+        PoolKey memory key = PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            hooks: IHooks(address(0)),
+            poolManager: unRegPoolManager,
+            parameters: 0x00
+        });
         FakePoolManagerRouter unRegPoolManagerRouter = new FakePoolManagerRouter(vault, key);
         vm.expectRevert(IVault.PoolManagerUnregistered.selector);
         vm.prank(address(unRegPoolManagerRouter));
@@ -115,8 +124,8 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
             currency1: currency1,
             hooks: IHooks(address(0)),
             poolManager: fakePoolManager,
-            fee: uint24(3000),
-            parameters: 0x00
+            // fee: uint24(3000),
+            parameters: bytes32(0x00).setFee(3000)
         });
         BalanceDelta delta = toBalanceDelta(0x7, 0x8);
 
@@ -586,7 +595,7 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
                 currency1: currency1,
                 hooks: IHooks(address(0)),
                 poolManager: fakePoolManager,
-                fee: 0,
+                // fee: 0,
                 parameters: 0x00
             })
         );
@@ -616,7 +625,7 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
                 currency1: CurrencyLibrary.NATIVE,
                 hooks: IHooks(address(0)),
                 poolManager: fakePoolManager,
-                fee: 0,
+                // fee: 0,
                 parameters: 0x00
             })
         );
@@ -641,7 +650,7 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
                 currency1: currency1,
                 hooks: IHooks(address(0)),
                 poolManager: fakePoolManager,
-                fee: 0,
+                // fee: 0,
                 parameters: 0x00
             })
         );
@@ -666,7 +675,7 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
                 currency1: currency1,
                 hooks: IHooks(address(0)),
                 poolManager: fakePoolManager,
-                fee: 0,
+                // fee: 0,
                 parameters: 0x00
             })
         );

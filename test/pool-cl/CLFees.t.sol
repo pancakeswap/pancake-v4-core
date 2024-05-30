@@ -27,11 +27,13 @@ import {BalanceDelta} from "../../src/types/BalanceDelta.sol";
 import {PoolKey} from "../../src/types/PoolKey.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
 import {ProtocolFeeLibrary} from "../../src/libraries/ProtocolFeeLibrary.sol";
+import {CLPoolParametersHelper} from "../../src/pool-cl/libraries/CLPoolParametersHelper.sol";
 
 contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
     using Hooks for IHooks;
     using CLPool for CLPool.State;
     using PoolIdLibrary for PoolKey;
+    using CLPoolParametersHelper for bytes32;
 
     IVault vault;
     CLPool.State state;
@@ -65,8 +67,8 @@ contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
             currency1: currency1,
             hooks: hook,
             poolManager: manager,
-            fee: uint24(3000),
-            parameters: bytes32(uint256((60 << 16) | hook.getHooksRegistrationBitmap()))
+            // fee: uint24(3000),
+            parameters: bytes32(uint256((60 << 16) | hook.getHooksRegistrationBitmap())).setFee(3000)
         });
 
         manager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);

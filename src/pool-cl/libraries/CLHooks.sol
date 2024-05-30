@@ -9,11 +9,13 @@ import {Hooks} from "../../libraries/Hooks.sol";
 import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta} from "../../types/BalanceDelta.sol";
 import {LPFeeLibrary} from "../../libraries/LPFeeLibrary.sol";
 import {BeforeSwapDeltaLibrary, BeforeSwapDelta} from "../../types/BeforeSwapDelta.sol";
+import {CLPoolParametersHelper} from "./CLPoolParametersHelper.sol";
 
 library CLHooks {
     using Hooks for bytes32;
     using LPFeeLibrary for uint24;
     using BeforeSwapDeltaLibrary for BeforeSwapDelta;
+    using CLPoolParametersHelper for bytes32;
 
     /// @notice Validate hook permission, eg. if before_swap_return_delta is set, before_swap_delta must be set
     function validatePermissionsConflict(PoolKey memory key) internal pure {
@@ -150,7 +152,7 @@ library CLHooks {
             revert Hooks.InvalidHookResponse();
         }
 
-        if (!key.fee.isDynamicLPFee()) {
+        if (!key.parameters.getFee().isDynamicLPFee()) {
             lpFeeOverride = 0;
         }
 

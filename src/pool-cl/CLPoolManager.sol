@@ -22,6 +22,7 @@ import {SafeCast} from "../libraries/SafeCast.sol";
 import {CLPoolGetters} from "./libraries/CLPoolGetters.sol";
 import {CLHooks} from "./libraries/CLHooks.sol";
 import {BeforeSwapDelta} from "../types/BeforeSwapDelta.sol";
+import "forge-std/console2.sol";
 
 contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     using SafeCast for int256;
@@ -101,7 +102,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         CLHooks.validatePermissionsConflict(key);
 
         /// @notice init value for dynamic lp fee is 0, but hook can still set it in afterInitialize
-        uint24 lpFee = key.fee.getInitialLPFee();
+        uint24 lpFee = key.parameters.getFee().getInitialLPFee();
         lpFee.validate(LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE);
 
         CLHooks.beforeInitialize(key, sqrtPriceX96, hookData);
@@ -111,7 +112,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         tick = pools[id].initialize(sqrtPriceX96, protocolFee, lpFee);
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
-        emit Initialize(id, key.currency0, key.currency1, key.fee, tickSpacing, key.hooks);
+        emit Initialize(id, key.currency0, key.currency1, key.parameters.getFee(), tickSpacing, key.hooks);
 
         CLHooks.afterInitialize(key, sqrtPriceX96, tick, hookData);
     }
@@ -256,7 +257,9 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
 
     /// @inheritdoc IPoolManager
     function updateDynamicLPFee(PoolKey memory key, uint24 newDynamicLPFee) external override {
-        if (!key.fee.isDynamicLPFee() || msg.sender != address(key.hooks)) revert UnauthorizedDynamicLPFeeUpdate();
+        if (!key.parameters.getFee().isDynamicLPFee() || msg.sender != address(key.hooks)) {
+            revert UnauthorizedDynamicLPFeeUpdate();
+        }
         newDynamicLPFee.validate(LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE);
 
         PoolId id = key.toId();

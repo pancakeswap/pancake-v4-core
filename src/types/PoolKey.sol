@@ -16,7 +16,7 @@ struct PoolKey {
     /// @notice The pool manager of the pool
     IPoolManager poolManager;
     /// @notice The pool lp fee, capped at 1_000_000. If the pool has a dynamic fee then it must be exactly equal to 0x800000
-    uint24 fee;
+    /// uint24 fee; put this into parameters
     /// @notice Hooks callback and pool specific parameters, i.e. tickSpacing for CL, binStep for bin
     bytes32 parameters;
 }

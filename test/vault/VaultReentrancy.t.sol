@@ -229,7 +229,7 @@ contract VaultReentrancyTest is Test, TokenFixture {
                         currency1: currency1,
                         hooks: IHooks(address(0)),
                         poolManager: IPoolManager(makeAddr("poolManager")),
-                        fee: 0,
+                        // fee: 0,
                         parameters: bytes32(0)
                     }),
                     toBalanceDelta(-(paidAmount.toInt128()), int128(0)),

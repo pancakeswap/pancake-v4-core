@@ -13,9 +13,11 @@ import {IVault} from "../../src/interfaces/IVault.sol";
 import {SafeCast} from "../../src/pool-bin/libraries/math/SafeCast.sol";
 import {IHooks} from "../../src/interfaces/IHooks.sol";
 import {NoIsolate} from "../helpers/NoIsolate.sol";
+import {CLPoolParametersHelper} from "../../src/pool-cl/libraries/CLPoolParametersHelper.sol";
 
 contract VaultPoolManager is Test {
     using SafeCast for uint128;
+    using CLPoolParametersHelper for bytes32;
 
     uint256 MAX_TOKEN_BALANCE = uint128(type(int128).max);
     MockERC20 public token0;
@@ -58,7 +60,7 @@ contract VaultPoolManager is Test {
             currency1: currency1,
             hooks: IHooks(address(0)),
             poolManager: IPoolManager(address(this)),
-            fee: 0,
+            // fee: 0,
             parameters: 0x00
         });
     }

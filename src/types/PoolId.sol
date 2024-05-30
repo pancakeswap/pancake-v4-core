@@ -10,7 +10,7 @@ library PoolIdLibrary {
     function toId(PoolKey memory poolKey) internal pure returns (PoolId poolId) {
         // @solidity memory-safe-assembly
         assembly {
-            poolId := keccak256(poolKey, mul(32, 6))
+            poolId := keccak256(poolKey, mul(32, 5))
         }
     }
 }

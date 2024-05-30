@@ -90,8 +90,8 @@ contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
             currency1: currency1,
             hooks: binReturnsDeltaHook,
             poolManager: IPoolManager(address(poolManager)),
-            fee: uint24(3000), // 3000 = 0.3%
-            parameters: bytes32(uint256(binReturnsDeltaHook.getHooksRegistrationBitmap())).setBinStep(10)
+            // fee: uint24(3000), // 3000 = 0.3%
+            parameters: bytes32(uint256(binReturnsDeltaHook.getHooksRegistrationBitmap())).setBinStep(10).setFee(3000)
         });
 
         poolManager.initialize(key, activeId, new bytes(0));

@@ -9,9 +9,12 @@ import {Currency} from "../../../src/types/Currency.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {HooksContract} from "./HooksContract.sol";
 import {LPFeeLibrary} from "../../../src/libraries/LPFeeLibrary.sol";
+import {CLPoolParametersHelper} from "../../../src/pool-cl/libraries/CLPoolParametersHelper.sol";
 
 contract HooksTest is Test {
+    using CLPoolParametersHelper for bytes32;
     /// @dev trick to convert poolKey to calldata
+
     function toCallAsCalldata(PoolKey calldata poolKey) external view {
         Hooks.validateHookConfig(poolKey);
     }
@@ -25,7 +28,7 @@ contract HooksTest is Test {
             currency1: Currency.wrap(address(0)),
             hooks: hooksContract,
             poolManager: IPoolManager(address(0)),
-            fee: 0,
+            // fee: 0,
             parameters: bytes32(uint256(bitmap))
         });
         this.toCallAsCalldata(poolKey);
@@ -36,7 +39,7 @@ contract HooksTest is Test {
             currency1: Currency.wrap(address(0)),
             hooks: hooksContract,
             poolManager: IPoolManager(address(0)),
-            fee: 0,
+            // fee: 0,
             parameters: parameters
         });
         if (uint16(uint256(parameters)) != bitmap) {
@@ -55,8 +58,8 @@ contract HooksTest is Test {
             currency1: Currency.wrap(address(0)),
             hooks: IHooks(address(0)),
             poolManager: IPoolManager(address(0)),
-            fee: fee,
-            parameters: parameters
+            // fee: fee,
+            parameters: parameters.setFee(fee)
         });
 
         uint16 bitmap;

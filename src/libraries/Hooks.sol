@@ -39,7 +39,7 @@ library Hooks {
         if (address(poolKey.hooks) == address(0)) {
             /// @notice If the hooks address is 0, then the bitmap must be 0,
             /// in the same time, the dynamic fee should be disabled as well
-            if (bitmapInParameters == 0 && !poolKey.fee.isDynamicLPFee()) {
+            if (bitmapInParameters == 0 && !poolKey.parameters.getFeeFromParameters().isDynamicLPFee()) {
                 return;
             }
             revert HookConfigValidationError();
