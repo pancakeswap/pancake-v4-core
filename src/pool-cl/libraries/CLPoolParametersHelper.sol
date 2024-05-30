@@ -16,6 +16,7 @@ library CLPoolParametersHelper {
     using Encoded for bytes32;
 
     uint256 internal constant OFFSET_TICK_SPACING = 16;
+    uint256 internal constant OFFSET_MOST_SIGNIFICANT_USED_BITS = 39;
 
     /**
      * @dev Get tickSpacing from the encoded pair parameters

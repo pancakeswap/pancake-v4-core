@@ -13,6 +13,7 @@ library BinPoolParametersHelper {
     using Encoded for bytes32;
 
     uint256 internal constant OFFSET_BIN_STEP = 16;
+    uint256 internal constant OFFSET_MOST_SIGNIFICANT_USED_BITS = 31;
 
     /// @dev Get binstep from the encoded pair parameters
     /// @param params The encoded pair parameters, as follows:
