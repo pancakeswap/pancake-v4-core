@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {console2} from "forge-std/console2.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {CurrencyLibrary, Currency} from "../../../src/types/Currency.sol";
+import {CurrencySettlement} from "../../helpers/CurrencySettlement.sol";
 import {ILockCallback} from "../../../src/interfaces//ILockCallback.sol";
 import {ICLPoolManager} from "../../../src/pool-cl/interfaces/ICLPoolManager.sol";
 import {IVault} from "../../../src/interfaces/IVault.sol";
@@ -12,7 +13,7 @@ import {BalanceDelta} from "../../../src/types/BalanceDelta.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 
 contract PoolModifyPositionTest is ILockCallback {
-    using CurrencyLibrary for Currency;
+    using CurrencySettlement for Currency;
 
     IVault public immutable vault;
     ICLPoolManager public immutable manager;
@@ -53,34 +54,17 @@ contract PoolModifyPositionTest is ILockCallback {
         BalanceDelta totalDelta = delta + feeDelta;
 
         if (totalDelta.amount0() > 0) {
-            if (data.key.currency0.isNative()) {
-                vault.settle{value: uint128(totalDelta.amount0())}(data.key.currency0);
-            } else {
-                vault.sync(data.key.currency0);
-                IERC20(Currency.unwrap(data.key.currency0)).transferFrom(
-                    data.sender, address(vault), uint128(totalDelta.amount0())
-                );
-                vault.settle(data.key.currency0);
-            }
+            data.key.currency0.settle(vault, data.sender, uint128(totalDelta.amount0()), false);
         }
-
         if (totalDelta.amount1() > 0) {
-            if (data.key.currency1.isNative()) {
-                vault.settle{value: uint128(delta.amount1())}(data.key.currency1);
-            } else {
-                vault.sync(data.key.currency1);
-                IERC20(Currency.unwrap(data.key.currency1)).transferFrom(
-                    data.sender, address(vault), uint128(totalDelta.amount1())
-                );
-                vault.settle(data.key.currency1);
-            }
+            data.key.currency1.settle(vault, data.sender, uint128(totalDelta.amount1()), false);
         }
 
         if (totalDelta.amount0() < 0) {
-            vault.take(data.key.currency0, data.sender, uint128(-totalDelta.amount0()));
+            data.key.currency0.take(vault, data.sender, uint128(-totalDelta.amount0()), false);
         }
         if (totalDelta.amount1() < 0) {
-            vault.take(data.key.currency1, data.sender, uint128(-totalDelta.amount1()));
+            data.key.currency1.take(vault, data.sender, uint128(-totalDelta.amount0()), false);
         }
 
         return abi.encode(totalDelta);

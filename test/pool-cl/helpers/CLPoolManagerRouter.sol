@@ -10,12 +10,13 @@ import {console2} from "forge-std/console2.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../../../src/types/BalanceDelta.sol";
 import {Hooks} from "../../../src/libraries/Hooks.sol";
+import {CurrencySettlement} from "../../helpers/CurrencySettlement.sol";
 
 contract CLPoolManagerRouter {
     error InvalidAction();
     error HookMissingNoOpPermission();
 
-    using CurrencyLibrary for Currency;
+    using CurrencySettlement for Currency;
     using Hooks for bytes32;
 
     IVault public immutable vault;
@@ -63,35 +64,10 @@ contract CLPoolManagerRouter {
         // delta already takes feeDelta into account
         (BalanceDelta delta, BalanceDelta feeDelta) = poolManager.modifyLiquidity(data.key, data.params, data.hookData);
 
-        if (delta.amount0() < 0) {
-            if (data.key.currency0.isNative()) {
-                vault.settle{value: uint128(-delta.amount0())}(data.key.currency0);
-            } else {
-                vault.sync(data.key.currency0);
-                IERC20(Currency.unwrap(data.key.currency0)).transferFrom(
-                    data.sender, address(vault), uint128(-delta.amount0())
-                );
-                vault.settle(data.key.currency0);
-            }
-        }
-        if (delta.amount1() < 0) {
-            if (data.key.currency1.isNative()) {
-                vault.settle{value: uint128(-delta.amount1())}(data.key.currency1);
-            } else {
-                vault.sync(data.key.currency1);
-                IERC20(Currency.unwrap(data.key.currency1)).transferFrom(
-                    data.sender, address(vault), uint128(-delta.amount1())
-                );
-                vault.settle(data.key.currency1);
-            }
-        }
-
-        if (delta.amount0() > 0) {
-            vault.take(data.key.currency0, data.sender, uint128(delta.amount0()));
-        }
-        if (delta.amount1() > 0) {
-            vault.take(data.key.currency1, data.sender, uint128(delta.amount1()));
-        }
+        if (delta.amount0() < 0) data.key.currency0.settle(vault, data.sender, uint128(-delta.amount0()), false);
+        if (delta.amount1() < 0) data.key.currency1.settle(vault, data.sender, uint128(-delta.amount1()), false);
+        if (delta.amount0() > 0) data.key.currency0.take(vault, data.sender, uint128(delta.amount0()), false);
+        if (delta.amount1() > 0) data.key.currency1.take(vault, data.sender, uint128(delta.amount1()), false);
 
         return abi.encode(delta, feeDelta);
     }
@@ -133,54 +109,30 @@ contract CLPoolManagerRouter {
 
         if (data.params.zeroForOne) {
             if (delta.amount0() < 0) {
-                if (data.testSettings.settleUsingTransfer) {
-                    if (data.key.currency0.isNative()) {
-                        vault.settle{value: uint128(-delta.amount0())}(data.key.currency0);
-                    } else {
-                        vault.sync(data.key.currency0);
-                        IERC20(Currency.unwrap(data.key.currency0)).transferFrom(
-                            data.sender, address(vault), uint128(-delta.amount0())
-                        );
-                        vault.settle(data.key.currency0);
-                    }
-                } else {
-                    // the received hook on this transfer will burn the tokens
+                bool burn = !data.testSettings.settleUsingTransfer;
+                if (burn) {
                     vault.transferFrom(data.sender, address(this), data.key.currency0, uint128(-delta.amount0()));
-                    vault.burn(address(this), data.key.currency0, uint128(-delta.amount0()));
-                }
-            }
-            if (delta.amount1() > 0) {
-                if (data.testSettings.withdrawTokens) {
-                    vault.take(data.key.currency1, data.sender, uint128(delta.amount1()));
+                    data.key.currency0.settle(vault, address(this), uint128(-delta.amount0()), burn);
                 } else {
-                    vault.mint(data.sender, data.key.currency1, uint128(delta.amount1()));
+                    data.key.currency0.settle(vault, data.sender, uint128(-delta.amount0()), burn);
                 }
             }
+
+            bool claims = !data.testSettings.withdrawTokens;
+            if (delta.amount1() > 0) data.key.currency1.take(vault, data.sender, uint128(delta.amount1()), claims);
         } else {
             if (delta.amount1() < 0) {
-                if (data.testSettings.settleUsingTransfer) {
-                    if (data.key.currency1.isNative()) {
-                        vault.settle{value: uint128(-delta.amount1())}(data.key.currency1);
-                    } else {
-                        vault.sync(data.key.currency1);
-                        IERC20(Currency.unwrap(data.key.currency1)).transferFrom(
-                            data.sender, address(vault), uint128(-delta.amount1())
-                        );
-                        vault.settle(data.key.currency1);
-                    }
-                } else {
-                    // the received hook on this transfer will burn the tokens
+                bool burn = !data.testSettings.settleUsingTransfer;
+                if (burn) {
                     vault.transferFrom(data.sender, address(this), data.key.currency1, uint128(-delta.amount1()));
-                    vault.burn(address(this), data.key.currency1, uint128(-delta.amount1()));
-                }
-            }
-            if (delta.amount0() > 0) {
-                if (data.testSettings.withdrawTokens) {
-                    vault.take(data.key.currency0, data.sender, uint128(delta.amount0()));
+                    data.key.currency1.settle(vault, address(this), uint128(-delta.amount1()), burn);
                 } else {
-                    vault.mint(data.sender, data.key.currency0, uint128(delta.amount0()));
+                    data.key.currency1.settle(vault, data.sender, uint128(-delta.amount1()), burn);
                 }
             }
+
+            bool claims = !data.testSettings.withdrawTokens;
+            if (delta.amount0() > 0) data.key.currency0.take(vault, data.sender, uint128(delta.amount0()), claims);
         }
 
         return abi.encode(delta);
@@ -217,28 +169,8 @@ contract CLPoolManagerRouter {
 
         BalanceDelta delta = poolManager.donate(data.key, data.amount0, data.amount1, data.hookData);
 
-        if (delta.amount0() < 0) {
-            if (data.key.currency0.isNative()) {
-                vault.settle{value: uint128(-delta.amount0())}(data.key.currency0);
-            } else {
-                vault.sync(data.key.currency0);
-                IERC20(Currency.unwrap(data.key.currency0)).transferFrom(
-                    data.sender, address(vault), uint128(-delta.amount0())
-                );
-                vault.settle(data.key.currency0);
-            }
-        }
-        if (delta.amount1() < 0) {
-            if (data.key.currency1.isNative()) {
-                vault.settle{value: uint128(-delta.amount1())}(data.key.currency1);
-            } else {
-                vault.sync(data.key.currency1);
-                IERC20(Currency.unwrap(data.key.currency1)).transferFrom(
-                    data.sender, address(vault), uint128(-delta.amount1())
-                );
-                vault.settle(data.key.currency1);
-            }
-        }
+        if (delta.amount0() < 0) data.key.currency0.settle(vault, data.sender, uint128(-delta.amount0()), false);
+        if (delta.amount1() < 0) data.key.currency1.settle(vault, data.sender, uint128(-delta.amount1()), false);
 
         return abi.encode(delta);
     }
@@ -263,15 +195,7 @@ contract CLPoolManagerRouter {
             uint256 balAfter = data.key.currency0.balanceOf(data.sender);
             require(balAfter - balBefore == data.amount0);
 
-            if (data.key.currency0.isNative()) {
-                vault.settle{value: uint256(data.amount0)}(data.key.currency0);
-            } else {
-                vault.sync(data.key.currency0);
-                IERC20(Currency.unwrap(data.key.currency0)).transferFrom(
-                    data.sender, address(vault), uint256(data.amount0)
-                );
-                vault.settle(data.key.currency0);
-            }
+            data.key.currency0.settle(vault, data.sender, uint128(data.amount0), false);
         }
 
         if (data.amount1 > 0) {
@@ -280,15 +204,7 @@ contract CLPoolManagerRouter {
             uint256 balAfter = data.key.currency1.balanceOf(data.sender);
             require(balAfter - balBefore == data.amount1);
 
-            if (data.key.currency1.isNative()) {
-                vault.settle{value: uint256(data.amount1)}(data.key.currency1);
-            } else {
-                vault.sync(data.key.currency1);
-                IERC20(Currency.unwrap(data.key.currency1)).transferFrom(
-                    data.sender, address(vault), uint256(data.amount1)
-                );
-                vault.settle(data.key.currency1);
-            }
+            data.key.currency1.settle(vault, data.sender, uint128(data.amount1), false);
         }
 
         return abi.encode(0);

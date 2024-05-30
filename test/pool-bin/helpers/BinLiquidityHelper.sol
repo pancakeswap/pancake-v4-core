@@ -5,12 +5,13 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IVault} from "../../../src/interfaces/IVault.sol";
 import {IBinPoolManager} from "../../../src/pool-bin/interfaces/IBinPoolManager.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../../../src/types/BalanceDelta.sol";
-import {CurrencyLibrary, Currency} from "../../../src/types/Currency.sol";
+import {Currency} from "../../../src/types/Currency.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {Hooks} from "../../../src/libraries/Hooks.sol";
+import {CurrencySettlement} from "../../helpers/CurrencySettlement.sol";
 
 contract BinLiquidityHelper {
-    using CurrencyLibrary for Currency;
+    using CurrencySettlement for Currency;
     using Hooks for bytes32;
 
     error HookMissingNoOpPermission();
@@ -85,32 +86,10 @@ contract BinLiquidityHelper {
             (delta,) = binManager.mint(data.key, data.params, data.hookData);
         }
 
-        if (delta.amount0() < 0) {
-            if (key.currency0.isNative()) {
-                vault.settle{value: uint128(-delta.amount0())}(key.currency0);
-            } else {
-                vault.sync(key.currency0);
-                IERC20(Currency.unwrap(key.currency0)).transferFrom(sender, address(vault), uint128(-delta.amount0()));
-                vault.settle(key.currency0);
-            }
-        }
-
-        if (delta.amount1() < 0) {
-            if (key.currency1.isNative()) {
-                vault.settle{value: uint128(-delta.amount1())}(key.currency1);
-            } else {
-                vault.sync(key.currency1);
-                IERC20(Currency.unwrap(key.currency1)).transferFrom(sender, address(vault), uint128(-delta.amount1()));
-                vault.settle(key.currency1);
-            }
-        }
-
-        if (delta.amount0() > 0) {
-            vault.take(key.currency0, sender, uint128(delta.amount0()));
-        }
-        if (delta.amount1() > 0) {
-            vault.take(key.currency1, sender, uint128(delta.amount1()));
-        }
+        if (delta.amount0() < 0) key.currency0.settle(vault, sender, uint128(-delta.amount0()), false);
+        if (delta.amount0() > 0) key.currency0.take(vault, sender, uint128(delta.amount0()), false);
+        if (delta.amount1() < 0) key.currency1.settle(vault, sender, uint128(-delta.amount1()), false);
+        if (delta.amount1() > 0) key.currency1.take(vault, sender, uint128(delta.amount1()), false);
 
         return abi.encode(delta);
     }

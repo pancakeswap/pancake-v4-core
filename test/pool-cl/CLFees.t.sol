@@ -32,7 +32,6 @@ contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
     using Hooks for IHooks;
     using CLPool for CLPool.State;
     using PoolIdLibrary for PoolKey;
-    using CurrencyLibrary for Currency;
 
     IVault vault;
     CLPool.State state;

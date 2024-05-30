@@ -6,6 +6,7 @@ import {IERC20Minimal} from "../interfaces/IERC20Minimal.sol";
 type Currency is address;
 
 using {greaterThan as >, lessThan as <, greaterThanOrEqualTo as >=, equals as ==} for Currency global;
+using CurrencyLibrary for Currency global;
 
 function equals(Currency currency, Currency other) pure returns (bool) {
     return Currency.unwrap(currency) == Currency.unwrap(other);

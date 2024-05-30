@@ -26,7 +26,6 @@ import {TickMath} from "../../src/pool-cl/libraries/TickMath.sol";
 
 contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
     using PoolIdLibrary for PoolKey;
-    using CurrencyLibrary for Currency;
     using CLPoolParametersHelper for bytes32;
     using LPFeeLibrary for uint24;
 
