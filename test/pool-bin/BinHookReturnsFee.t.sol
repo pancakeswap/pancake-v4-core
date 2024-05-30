@@ -88,7 +88,7 @@ contract BinHookReturnsFeeTest is Test, BinTestHelper {
             currency1: currency1,
             hooks: dynamicReturnsFeesHook,
             poolManager: poolManager,
-            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG, // 3000 = 0.3%
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             parameters: bytes32(uint256(dynamicReturnsFeesHook.getHooksRegistrationBitmap())).setBinStep(10)
         });
 

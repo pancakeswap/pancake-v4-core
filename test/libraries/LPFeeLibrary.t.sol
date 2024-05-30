@@ -22,10 +22,18 @@ contract LPFeeLibraryTest is Test {
         assertEq(LPFeeLibrary.isDynamicLPFee(0x100000), false);
 
         // 1111 1111 1111 1111 1111 1111
-        assertEq(LPFeeLibrary.isDynamicLPFee(0xFFFFFF), true);
+        assertEq(LPFeeLibrary.isDynamicLPFee(0xFFFFFF), false);
 
         // 0111 1111 1111 1111 1111 1111
         assertEq(LPFeeLibrary.isDynamicLPFee(0x7FFFFF), false);
+    }
+
+    function testIsDynamicLPFeeFuzz(uint24 fee) public {
+        if (fee != 0x800000) {
+            assertEq(LPFeeLibrary.isDynamicLPFee(fee), false);
+        } else {
+            assertEq(LPFeeLibrary.isDynamicLPFee(fee), true);
+        }
     }
 
     function testGetInitialLPFee() public {
@@ -36,12 +44,16 @@ contract LPFeeLibraryTest is Test {
         assertEq(LPFeeLibrary.getInitialLPFee(0x001004), 0x001004);
         assertEq(LPFeeLibrary.getInitialLPFee(0x111020), 0x111020);
         assertEq(LPFeeLibrary.getInitialLPFee(0x511020), 0x511020);
-
+        assertEq(LPFeeLibrary.getInitialLPFee(0xF00F05), 0xF00F05);
+        assertEq(LPFeeLibrary.getInitialLPFee(0x800310), 0x800310);
+        assertEq(LPFeeLibrary.getInitialLPFee(0x901020), 0x901020);
+        assertEq(LPFeeLibrary.getInitialLPFee(0x800001), 0x800001);
+        assertEq(LPFeeLibrary.getInitialLPFee(0x800010), 0x800010);
+        assertEq(LPFeeLibrary.getInitialLPFee(0x800100), 0x800100);
+        assertEq(LPFeeLibrary.getInitialLPFee(0x801000), 0x801000);
+        assertEq(LPFeeLibrary.getInitialLPFee(0x810000), 0x810000);
         // dynamic
-        assertEq(LPFeeLibrary.getInitialLPFee(0xF00F05), 0);
-        assertEq(LPFeeLibrary.getInitialLPFee(0x800310), 0);
         assertEq(LPFeeLibrary.getInitialLPFee(0x800000), 0);
-        assertEq(LPFeeLibrary.getInitialLPFee(0x901020), 0);
     }
 
     function testFuzzValidate(uint24 self, uint24 maxFee) public {
