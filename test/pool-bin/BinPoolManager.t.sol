@@ -56,7 +56,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         Currency indexed currency1,
         uint24 fee,
         uint16 binStep,
-        IBinHooks hooks
+        IHooks hooks
     );
     event Mint(
         PoolId indexed id,
@@ -151,7 +151,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         });
 
         vm.expectEmit();
-        emit Initialize(key.toId(), key.currency0, key.currency1, key.fee, binStep, IBinHooks(address(mockHooks)));
+        emit Initialize(key.toId(), key.currency0, key.currency1, key.fee, binStep, IHooks(address(mockHooks)));
 
         poolManager.initialize(key, activeId, new bytes(0));
     }

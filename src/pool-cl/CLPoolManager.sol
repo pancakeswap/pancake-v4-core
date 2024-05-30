@@ -97,7 +97,6 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         if (tickSpacing < MIN_TICK_SPACING) revert TickSpacingTooSmall();
         if (key.currency0 >= key.currency1) revert CurrenciesInitializedOutOfOrder();
 
-        ICLHooks hooks = ICLHooks(address(key.hooks));
         Hooks.validateHookConfig(key);
         CLHooks.validatePermissionsConflict(key);
 
@@ -105,27 +104,16 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         uint24 lpFee = key.fee.getInitialLPFee();
         lpFee.validate(LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE);
 
-        if (key.parameters.shouldCall(HOOKS_BEFORE_INITIALIZE_OFFSET, hooks)) {
-            if (hooks.beforeInitialize(msg.sender, key, sqrtPriceX96, hookData) != ICLHooks.beforeInitialize.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
-        }
+        CLHooks.beforeInitialize(key, sqrtPriceX96, hookData);
 
         PoolId id = key.toId();
         (, uint24 protocolFee) = _fetchProtocolFee(key);
         tick = pools[id].initialize(sqrtPriceX96, protocolFee, lpFee);
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
-        emit Initialize(id, key.currency0, key.currency1, key.fee, tickSpacing, hooks);
+        emit Initialize(id, key.currency0, key.currency1, key.fee, tickSpacing, key.hooks);
 
-        if (key.parameters.shouldCall(HOOKS_AFTER_INITIALIZE_OFFSET, hooks)) {
-            if (
-                hooks.afterInitialize(msg.sender, key, sqrtPriceX96, tick, hookData)
-                    != ICLHooks.afterInitialize.selector
-            ) {
-                revert Hooks.InvalidHookResponse();
-            }
-        }
+        CLHooks.afterInitialize(key, sqrtPriceX96, tick, hookData);
     }
 
     /// @inheritdoc ICLPoolManager
@@ -145,20 +133,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         PoolId id = key.toId();
         _checkPoolInitialized(id);
 
-        ICLHooks hooks = ICLHooks(address(key.hooks));
-        if (params.liquidityDelta > 0 && key.parameters.shouldCall(HOOKS_BEFORE_ADD_LIQUIDITY_OFFSET, hooks)) {
-            if (hooks.beforeAddLiquidity(msg.sender, key, params, hookData) != ICLHooks.beforeAddLiquidity.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
-        } else if (params.liquidityDelta <= 0 && key.parameters.shouldCall(HOOKS_BEFORE_REMOVE_LIQUIDITY_OFFSET, hooks))
-        {
-            if (
-                hooks.beforeRemoveLiquidity(msg.sender, key, params, hookData)
-                    != ICLHooks.beforeRemoveLiquidity.selector
-            ) {
-                revert Hooks.InvalidHookResponse();
-            }
-        }
+        CLHooks.beforeModifyLiquidity(key, params, hookData);
 
         (delta, feeDelta) = pools[id].modifyLiquidity(
             CLPool.ModifyLiquidityParams({
@@ -251,12 +226,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         PoolId id = key.toId();
         _checkPoolInitialized(id);
 
-        ICLHooks hooks = ICLHooks(address(key.hooks));
-        if (key.parameters.shouldCall(HOOKS_BEFORE_DONATE_OFFSET, hooks)) {
-            if (hooks.beforeDonate(msg.sender, key, amount0, amount1, hookData) != ICLHooks.beforeDonate.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
-        }
+        CLHooks.beforeDonate(key, amount0, amount1, hookData);
 
         int24 tick;
         (delta, tick) = pools[id].donate(amount0, amount1);
@@ -265,11 +235,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
         emit Donate(id, msg.sender, amount0, amount1, tick);
 
-        if (key.parameters.shouldCall(HOOKS_AFTER_DONATE_OFFSET, hooks)) {
-            if (hooks.afterDonate(msg.sender, key, amount0, amount1, hookData) != ICLHooks.afterDonate.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
-        }
+        CLHooks.afterDonate(key, amount0, amount1, hookData);
     }
 
     function getPoolTickInfo(PoolId id, int24 tick) external view returns (Tick.Info memory) {

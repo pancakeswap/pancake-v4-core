@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import {Currency} from "../../types/Currency.sol";
 import {PoolKey} from "../../types/PoolKey.sol";
 import {CLPool} from "../libraries/CLPool.sol";
-import {ICLHooks} from "./ICLHooks.sol";
+import {IHooks} from "../../interfaces/IHooks.sol";
 import {IProtocolFees} from "../../interfaces/IProtocolFees.sol";
 import {BalanceDelta} from "../../types/BalanceDelta.sol";
 import {PoolId} from "../../types/PoolId.sol";
@@ -37,7 +37,7 @@ interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload {
         Currency indexed currency1,
         uint24 fee,
         int24 tickSpacing,
-        ICLHooks hooks
+        IHooks hooks
     );
 
     /// @notice Emitted when a liquidity position is modified

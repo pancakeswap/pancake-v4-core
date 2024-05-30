@@ -100,7 +100,6 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         if (binStep > MAX_BIN_STEP) revert BinStepTooLarge();
         if (key.currency0 >= key.currency1) revert CurrenciesInitializedOutOfOrder();
 
-        IBinHooks hooks = IBinHooks(address(key.hooks));
         Hooks.validateHookConfig(key);
         BinHooks.validatePermissionsConflict(key);
 
@@ -108,11 +107,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         uint24 lpFee = key.fee.getInitialLPFee();
         lpFee.validate(LPFeeLibrary.TEN_PERCENT_FEE);
 
-        if (key.parameters.shouldCall(HOOKS_BEFORE_INITIALIZE_OFFSET, hooks)) {
-            if (hooks.beforeInitialize(msg.sender, key, activeId, hookData) != IBinHooks.beforeInitialize.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
-        }
+        BinHooks.beforeInitialize(key, activeId, hookData);
 
         PoolId id = key.toId();
 
@@ -120,13 +115,9 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         pools[id].initialize(activeId, protocolFee, lpFee);
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
-        emit Initialize(id, key.currency0, key.currency1, key.fee, binStep, hooks);
+        emit Initialize(id, key.currency0, key.currency1, key.fee, binStep, key.hooks);
 
-        if (key.parameters.shouldCall(HOOKS_AFTER_INITIALIZE_OFFSET, hooks)) {
-            if (hooks.afterInitialize(msg.sender, key, activeId, hookData) != IBinHooks.afterInitialize.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
-        }
+        BinHooks.afterInitialize(key, activeId, hookData);
     }
 
     /// @inheritdoc IBinPoolManager
@@ -240,12 +231,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         PoolId id = key.toId();
         _checkPoolInitialized(id);
 
-        IBinHooks hooks = IBinHooks(address(key.hooks));
-        if (key.parameters.shouldCall(HOOKS_BEFORE_MINT_OFFSET, hooks)) {
-            if (hooks.beforeMint(msg.sender, key, params, hookData) != IBinHooks.beforeMint.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
-        }
+        BinHooks.beforeMint(key, params, hookData);
 
         bytes32 feeForProtocol;
         bytes32 compositionFee;
@@ -288,12 +274,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         PoolId id = key.toId();
         _checkPoolInitialized(id);
 
-        IBinHooks hooks = IBinHooks(address(key.hooks));
-        if (key.parameters.shouldCall(HOOKS_BEFORE_BURN_OFFSET, hooks)) {
-            if (hooks.beforeBurn(msg.sender, key, params, hookData) != IBinHooks.beforeBurn.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
-        }
+        BinHooks.beforeBurn(key, params, hookData);
 
         uint256[] memory binIds;
         bytes32[] memory amountRemoved;
@@ -328,12 +309,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         PoolId id = key.toId();
         _checkPoolInitialized(id);
 
-        IBinHooks hooks = IBinHooks(address(key.hooks));
-        if (key.parameters.shouldCall(HOOKS_BEFORE_DONATE_OFFSET, hooks)) {
-            if (hooks.beforeDonate(msg.sender, key, amount0, amount1, hookData) != IBinHooks.beforeDonate.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
-        }
+        BinHooks.beforeDonate(key, amount0, amount1, hookData);
 
         (delta, binId) = pools[id].donate(key.parameters.getBinStep(), amount0, amount1);
 
@@ -342,11 +318,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
         emit Donate(id, msg.sender, delta.amount0(), delta.amount1(), binId);
 
-        if (key.parameters.shouldCall(HOOKS_AFTER_DONATE_OFFSET, hooks)) {
-            if (hooks.afterDonate(msg.sender, key, amount0, amount1, hookData) != IBinHooks.afterDonate.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
-        }
+        BinHooks.afterDonate(key, amount0, amount1, hookData);
     }
 
     /// @inheritdoc IBinPoolManager
