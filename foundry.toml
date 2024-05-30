@@ -1,14 +1,14 @@
 [profile.default]
 src = 'src'
 out = 'foundry-out'
-solc_version = '0.8.24'
+solc_version = '0.8.26'
 optimizer_runs = 800
 via_ir = false
 ffi = true
 fs_permissions = [
     { access = "read-write", path = ".forge-snapshots/" },
     { access = "read", path = "./foundry-out" },
-    { access = "read", path = "./script/config"},
+    { access = "read", path = "./script/config" },
 ]
 evm_version = 'cancun'
 
@@ -21,7 +21,7 @@ runs = 1000
 runs = 10000
 
 [profile.ci.invariant]
-runs = 1000           # The number of calls to make in the invariant tests
+runs = 1000            # The number of calls to make in the invariant tests
 call_override = false  # Override calls
 fail_on_revert = false # Fail the test if the contract reverts
 
