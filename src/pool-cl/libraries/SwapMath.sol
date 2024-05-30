@@ -11,6 +11,29 @@ import "../../libraries/LPFeeLibrary.sol";
 library SwapMath {
     uint256 internal constant MAX_FEE_PIPS = LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE;
 
+    /// @notice Computes the sqrt price target for the next swap step
+    /// @param zeroForOne The direction of the swap, true for currency0 to currency1, false for currency1 to currency0
+    /// @param sqrtPriceNextX96 The Q64.96 sqrt price for the next initialized tick
+    /// @param sqrtPriceLimitX96 The Q64.96 sqrt price limit. If zero for one, the price cannot be less than this value
+    /// after the swap. If one for zero, the price cannot be greater than this value after the swap
+    /// @return sqrtPriceTargetX96 The price target for the next swap step
+    function getSqrtPriceTarget(bool zeroForOne, uint160 sqrtPriceNextX96, uint160 sqrtPriceLimitX96)
+        internal
+        pure
+        returns (uint160 sqrtPriceTargetX96)
+    {
+        assembly {
+            // a flag to toggle between sqrtPriceNextX96 and sqrtPriceLimitX96
+            // when zeroForOne == true, nextOrLimit reduces to sqrtPriceNextX96 >= sqrtPriceLimitX96
+            // sqrtPriceTargetX96 = max(sqrtPriceNextX96, sqrtPriceLimitX96)
+            // when zeroForOne == false, nextOrLimit reduces to sqrtPriceNextX96 < sqrtPriceLimitX96
+            // sqrtPriceTargetX96 = min(sqrtPriceNextX96, sqrtPriceLimitX96)
+            let nextOrLimit := xor(lt(sqrtPriceNextX96, sqrtPriceLimitX96), zeroForOne)
+            let symDiff := xor(sqrtPriceNextX96, sqrtPriceLimitX96)
+            sqrtPriceTargetX96 := xor(sqrtPriceLimitX96, mul(symDiff, nextOrLimit))
+        }
+    }
+
     /// @notice Computes the result of swapping some amount in, or amount out, given the parameters of the swap
     /// @dev The fee, plus the amount in, will never exceed the amount remaining if the swap's `amountSpecified` is positive
     /// @param sqrtRatioCurrentX96 The current sqrt price of the pool
