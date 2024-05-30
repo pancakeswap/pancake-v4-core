@@ -129,9 +129,7 @@ contract ProtocolFeesTest is Test {
         poolManager.setProtocolFeeController(feeController);
 
         vm.mockCall(
-            address(feeController),
-            abi.encodeWithSelector(IProtocolFeeController.protocolFeeForPool.selector, key),
-            abi.encode(fee)
+            address(feeController), abi.encodeCall(IProtocolFeeController.protocolFeeForPool, key), abi.encode(fee)
         );
 
         poolManager.initialize(key, new bytes(0));
