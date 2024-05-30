@@ -18,6 +18,7 @@ import {FixedPoint128} from "../../../src/pool-cl/libraries/FixedPoint128.sol";
 import {ICLPoolManager} from "../../../src/pool-cl/interfaces/ICLPoolManager.sol";
 import {LPFeeLibrary} from "../../../src/libraries/LPFeeLibrary.sol";
 import {ProtocolFeeLibrary} from "../../../src/libraries/ProtocolFeeLibrary.sol";
+import {BalanceDelta, BalanceDeltaLibrary} from "../../../src/types/BalanceDelta.sol";
 
 contract PoolTest is Test {
     using CLPool for CLPool.State;
@@ -98,6 +99,28 @@ contract PoolTest is Test {
         CLPool.SwapParams memory swapParams,
         uint24 lpFee
     ) public {
+        // modifyLiquidityParams = CLPool.ModifyLiquidityParams({
+        //     owner: 0x250Eb93F2C350590E52cdb977b8BcF502a1Db7e7,
+        //     tickLower: -402986,
+        //     tickUpper: 50085,
+        //     liquidityDelta: 33245614918536803008426086500145,
+        //     tickSpacing: 1,
+        //     salt: 0xfd9c91c4f1bbf3d855ba0a973b97c685c1dd51875a574392ef94ab56d7a72528
+        // });
+        // swapParams = CLPool.SwapParams({
+        //     tickSpacing: 8807,
+        //     zeroForOne: true,
+        //     amountSpecified: 20406714586857485490153777552586525,
+        //     sqrtPriceLimitX96: 3669890892491818487,
+        //     lpFeeOverride: 440
+        // });
+        // TODO: find a better way to cover following case:
+        // 1. when amountSpecified is large enough
+        // 2. and the effect price is either too large or too small (due to larger price slippage or inproper liquidity range)
+        // It will cause the amountUnspecified to be out of int128 range hence the tx reverts with SafeCastOverflow
+        // try to comment following three limitations and uncomment above case and rerun the test to verify
+        modifyLiquidityParams.tickLower = -100;
+        modifyLiquidityParams.tickUpper = 100;
         swapParams.amountSpecified = int256(bound(swapParams.amountSpecified, 0, type(int128).max));
 
         testModifyPosition(sqrtPriceX96, modifyLiquidityParams, lpFee);
@@ -149,7 +172,13 @@ contract PoolTest is Test {
             vm.expectRevert(CLPool.InvalidFeeForExactOut.selector);
         }
 
-        state.swap(swapParams);
+        (BalanceDelta delta,) = state.swap(swapParams);
+
+        if (swapParams.amountSpecified == 0) {
+            // early return if amountSpecified is 0
+            assertTrue(delta == BalanceDeltaLibrary.ZERO_DELTA);
+            return;
+        }
 
         if (
             modifyLiquidityParams.liquidityDelta == 0

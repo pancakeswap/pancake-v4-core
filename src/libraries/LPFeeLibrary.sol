@@ -13,10 +13,9 @@ library LPFeeLibrary {
     error FeeTooLarge();
 
     /// @dev the flag and mask
-    uint24 public constant FEE_MASK = 0x7FFFFF;
     uint24 public constant OVERRIDE_MASK = 0xBFFFFF;
 
-    // the top bit of the fee in a PoolKey is used to signal if a Pool's LP fee is dynamic
+    // a dynamic fee pool must have exactly same value for fee field
     uint24 public constant DYNAMIC_FEE_FLAG = 0x800000;
 
     // the second bit of the fee returned by beforeSwap is used to signal if the stored LP fee should be overridden in this swap
@@ -29,7 +28,7 @@ library LPFeeLibrary {
     uint24 public constant TEN_PERCENT_FEE = 100_000;
 
     function isDynamicLPFee(uint24 self) internal pure returns (bool) {
-        return self & DYNAMIC_FEE_FLAG != 0;
+        return self == DYNAMIC_FEE_FLAG;
     }
 
     function validate(uint24 self, uint24 maxFee) internal pure {
@@ -40,7 +39,7 @@ library LPFeeLibrary {
     function getInitialLPFee(uint24 self) internal pure returns (uint24 lpFee) {
         // the initial fee for a dynamic fee pool is 0
         if (self.isDynamicLPFee()) return 0;
-        lpFee = self & FEE_MASK;
+        lpFee = self;
     }
 
     /// @notice returns true if the fee has the override flag set (top bit of the uint24)

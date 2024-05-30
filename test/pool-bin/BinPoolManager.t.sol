@@ -213,7 +213,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             currency1: currency1,
             hooks: IHooks(address(binFeeManagerHook)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000), // 3000 = 0.3%
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             parameters: bytes32(uint256(bitMap)).setBinStep(10)
         });
 
@@ -222,6 +222,24 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         vm.prank(address(binFeeManagerHook));
         vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
         poolManager.updateDynamicLPFee(key, dynamicSwapFee);
+    }
+
+    function testInitializeInvalidFee() public {
+        uint16 bitMap = 0x0040; // 0000 0000 0100 0000 (before swap call)
+        BinFeeManagerHook binFeeManagerHook = new BinFeeManagerHook(poolManager);
+        binFeeManagerHook.setHooksRegistrationBitmap(bitMap);
+
+        key = PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            hooks: IHooks(address(binFeeManagerHook)),
+            poolManager: IPoolManager(address(poolManager)),
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG + 1,
+            parameters: bytes32(uint256(bitMap)).setBinStep(10)
+        });
+
+        vm.expectRevert(LPFeeLibrary.FeeTooLarge.selector);
+        poolManager.initialize(key, 10, new bytes(0));
     }
 
     function testInitializeSwapFeeTooLarge() public {
@@ -888,7 +906,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             currency1: currency1,
             hooks: IHooks(address(binFeeManagerHook)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000), // 3000 = 0.3%
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             parameters: bytes32(uint256(bitMap)).setBinStep(10)
         });
 
@@ -925,7 +943,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             currency1: currency1,
             hooks: IHooks(address(binFeeManagerHook)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000), // 3000 = 0.3%
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             parameters: bytes32(uint256(bitMap)).setBinStep(10)
         });
         poolManager.initialize(key, activeId, new bytes(0));
