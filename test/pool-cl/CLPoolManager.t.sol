@@ -359,7 +359,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         } else if (!_validateHookPermissionsConflict(key)) {
             vm.expectRevert(abi.encodeWithSelector(Hooks.HookPermissionsValidationError.selector));
             poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
-        } else if (key.fee & LPFeeLibrary.FEE_MASK > LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE) {
+        } else if (key.fee > LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE) {
             vm.expectRevert(abi.encodeWithSelector(IProtocolFees.FeeTooLarge.selector));
             poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
         } else {
@@ -662,7 +662,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
-            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000), // 3000 = 0.3%
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             hooks: IHooks(address(clFeeManagerHook)),
             poolManager: poolManager,
             parameters: CLPoolParametersHelper.setTickSpacing(
@@ -673,6 +673,23 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         clFeeManagerHook.setFee(dynamicSwapFee);
 
         vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
+        poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
+    }
+
+    function test_initialize_failsDynamicFeeInvalid() public {
+        clFeeManagerHook.setHooksRegistrationBitmap(uint16(1 << HOOKS_AFTER_INITIALIZE_OFFSET));
+        PoolKey memory key = PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG + 1,
+            hooks: IHooks(address(clFeeManagerHook)),
+            poolManager: poolManager,
+            parameters: CLPoolParametersHelper.setTickSpacing(
+                bytes32(uint256(clFeeManagerHook.getHooksRegistrationBitmap())), 10
+            )
+        });
+
+        vm.expectRevert(LPFeeLibrary.FeeTooLarge.selector);
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
     }
 
@@ -1744,7 +1761,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
-            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000), // 0.3%
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG, // 0.3%
             hooks: IHooks(address(clFeeManagerHook)),
             poolManager: poolManager,
             parameters: bytes32(uint256((60 << 16) | clFeeManagerHook.getHooksRegistrationBitmap()))
@@ -2725,7 +2742,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
-            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000), // 3000 = 0.3%
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             hooks: IHooks(address(clFeeManagerHook)),
             poolManager: poolManager,
             parameters: bytes32(uint256(10) << 16)
@@ -2761,7 +2778,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
-            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000), // 3000 = 0.3%
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             hooks: IHooks(address(clFeeManagerHook)),
             poolManager: poolManager,
             parameters: bytes32(uint256((10 << 16) | clFeeManagerHook.getHooksRegistrationBitmap()))
