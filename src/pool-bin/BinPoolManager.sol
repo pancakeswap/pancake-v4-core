@@ -6,6 +6,7 @@ import {ProtocolFees} from "../ProtocolFees.sol";
 import {Hooks} from "../libraries/Hooks.sol";
 import {BinPool} from "./libraries/BinPool.sol";
 import {BinPoolParametersHelper} from "./libraries/BinPoolParametersHelper.sol";
+import {ParametersHelper} from "../libraries/math/ParametersHelper.sol";
 import {Currency, CurrencyLibrary} from "../types/Currency.sol";
 import {IPoolManager} from "../interfaces/IPoolManager.sol";
 import {IBinPoolManager} from "./interfaces/IBinPoolManager.sol";
@@ -100,6 +101,9 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         if (binStep > MAX_BIN_STEP) revert BinStepTooLarge();
         if (key.currency0 >= key.currency1) revert CurrenciesInitializedOutOfOrder();
 
+        ParametersHelper.checkUnusedBitsAllZero(
+            key.parameters, BinPoolParametersHelper.OFFSET_MOST_SIGNIFICANT_UNUSED_BITS
+        );
         Hooks.validateHookConfig(key);
         BinHooks.validatePermissionsConflict(key);
 

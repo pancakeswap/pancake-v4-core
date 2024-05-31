@@ -14,6 +14,7 @@ import {IPoolManager} from "../interfaces/IPoolManager.sol";
 import {Hooks} from "../libraries/Hooks.sol";
 import {Tick} from "./libraries/Tick.sol";
 import {CLPoolParametersHelper} from "./libraries/CLPoolParametersHelper.sol";
+import {ParametersHelper} from "../libraries/math/ParametersHelper.sol";
 import {LPFeeLibrary} from "../libraries/LPFeeLibrary.sol";
 import {PoolId, PoolIdLibrary} from "../types/PoolId.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../types/BalanceDelta.sol";
@@ -97,6 +98,9 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         if (tickSpacing < MIN_TICK_SPACING) revert TickSpacingTooSmall();
         if (key.currency0 >= key.currency1) revert CurrenciesInitializedOutOfOrder();
 
+        ParametersHelper.checkUnusedBitsAllZero(
+            key.parameters, CLPoolParametersHelper.OFFSET_MOST_SIGNIFICANT_UNUSED_BITS
+        );
         Hooks.validateHookConfig(key);
         CLHooks.validatePermissionsConflict(key);
 

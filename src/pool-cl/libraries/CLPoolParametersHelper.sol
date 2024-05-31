@@ -11,18 +11,20 @@ import {Encoded} from "../../libraries/math/Encoded.sol";
  *
  * [0 - 15[: reserve for hooks
  * [16 - 39[: tickSpacing (24 bits)
+ * [40 - 256[: unused
  */
 library CLPoolParametersHelper {
     using Encoded for bytes32;
 
     uint256 internal constant OFFSET_TICK_SPACING = 16;
+    uint256 internal constant OFFSET_MOST_SIGNIFICANT_UNUSED_BITS = 40;
 
     /**
      * @dev Get tickSpacing from the encoded pair parameters
      * @param params The encoded pair parameters, as follows:
      * [0 - 16[: hooks registration bitmaps
      * [16 - 39[: tickSpacing (24 bits)
-     * [40 - 256[: other parameters
+     * [40 - 256[: unused
      * @return tickSpacing The tickSpacing
      */
     function getTickSpacing(bytes32 params) internal pure returns (int24 tickSpacing) {

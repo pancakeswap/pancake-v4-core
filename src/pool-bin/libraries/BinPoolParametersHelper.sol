@@ -9,16 +9,18 @@ import {Encoded} from "../../libraries/math/Encoded.sol";
 /// The parameters are stored in a single bytes32 variable in the following format:
 /// [0 - 16[: reserve for hooks
 /// [16 - 31[: binStep (16 bits)
+/// [32 - 256[: unused
 library BinPoolParametersHelper {
     using Encoded for bytes32;
 
     uint256 internal constant OFFSET_BIN_STEP = 16;
+    uint256 internal constant OFFSET_MOST_SIGNIFICANT_UNUSED_BITS = 32;
 
     /// @dev Get binstep from the encoded pair parameters
     /// @param params The encoded pair parameters, as follows:
     /// [0 - 15[: bitmap for hooks registration
     /// [16 - 31[: binSteps (16 bits)
-    /// [32 - 256[: other parameters
+    /// [32 - 256[: unused
     /// @return binStep The binStep
     function getBinStep(bytes32 params) internal pure returns (uint16 binStep) {
         binStep = params.decodeUint16(OFFSET_BIN_STEP);
