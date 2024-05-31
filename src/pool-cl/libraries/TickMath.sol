@@ -20,6 +20,9 @@ library TickMath {
     uint160 internal constant MIN_SQRT_RATIO = 4295128739;
     /// @dev The maximum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MAX_TICK)
     uint160 internal constant MAX_SQRT_RATIO = 1461446703485210103287273052203988822378723970342;
+    /// @dev A threshold used for optimized bounds check, equals `MAX_SQRT_RATIO - MIN_SQRT_RATIO - 1`
+    uint160 internal constant MAX_SQRT_RATIO_MINUS_MIN_SQRT_RATIO_MINUS_ONE =
+        1461446703485210103287273052203988822378723970342 - 4295128739 - 1;
 
     /// @notice Given a tickSpacing, compute the maximum usable tick
     function maxUsableTick(int24 tickSpacing) internal pure returns (int24) {
@@ -107,8 +110,18 @@ library TickMath {
     /// @return tick The greatest tick for which the ratio is less than or equal to the input ratio
     function getTickAtSqrtRatio(uint160 sqrtPriceX96) internal pure returns (int24 tick) {
         unchecked {
+            // Equivalent: if (sqrtPriceX96 < MIN_SQRT_RATIO || sqrtPriceX96 >= MAX_SQRT_RATIO) revert InvalidSqrtRatio();
             // second inequality must be < because the price can never reach the price at the max tick
-            if (sqrtPriceX96 < MIN_SQRT_RATIO || sqrtPriceX96 >= MAX_SQRT_RATIO) revert InvalidSqrtRatio();
+            assembly ("memory-safe") {
+                // if sqrtPriceX96 < MIN_SQRT_PRICE, the `sub` underflows and `gt` is true
+                // if sqrtPriceX96 >= MAX_SQRT_PRICE, sqrtPriceX96 - MIN_SQRT_PRICE > MAX_SQRT_PRICE - MIN_SQRT_PRICE - 1
+                if gt(sub(sqrtPriceX96, MIN_SQRT_RATIO), MAX_SQRT_RATIO_MINUS_MIN_SQRT_RATIO_MINUS_ONE) {
+                    // store 4-byte selector of "InvalidSqrtRatio()" at memory [0x1c, 0x20)
+                    mstore(0, 0x02ad01b6)
+                    revert(0x1c, 0x04)
+                }
+            }
+
             uint256 ratio = uint256(sqrtPriceX96) << 32;
 
             uint256 r = ratio;
