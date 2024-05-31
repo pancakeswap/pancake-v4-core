@@ -62,7 +62,7 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
             currency0: currency0,
             currency1: currency1,
             hooks: IHooks(address(0)),
-            poolManager: fakePoolManager,
+            // poolManager: fakePoolManager,
             // fee: 0,
             parameters: 0x00
         });

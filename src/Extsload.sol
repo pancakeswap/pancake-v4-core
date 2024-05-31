@@ -11,13 +11,13 @@ import {IExtsload} from "./interfaces/IExtsload.sol";
 /// https://ethereum-magicians.org/t/extsload-opcode-proposal/2410/11
 abstract contract Extsload is IExtsload {
     function extsload(bytes32 slot) external view returns (bytes32 val) {
-        assembly {
+        assembly ("memory-safe") {
             val := sload(slot)
         }
     }
 
     function extsload(bytes32[] memory slots) external view returns (bytes32[] memory) {
-        assembly {
+        assembly ("memory-safe") {
             let end := add(0x20, add(slots, mul(mload(slots), 0x20)))
             for { let pointer := add(slots, 32) } lt(pointer, end) {} {
                 let value := sload(mload(pointer))

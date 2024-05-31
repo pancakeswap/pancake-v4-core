@@ -106,9 +106,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
                 currency0: Currency.wrap(makeAddr("token0")),
                 currency1: Currency.wrap(makeAddr("token1")),
                 hooks: IHooks(address(0)),
-                poolManager: poolManager,
+                // poolManager: poolManager,
                 // fee: uint24(3000),
-                parameters: bytes32(uint256(0xa0000)).setFee(3000)
+                parameters: bytes32(uint256(0xa0000)).setFee(3000).setPoolManagerId(1)
             });
 
             poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
@@ -120,9 +120,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
                 currency0: Currency.wrap(makeAddr("token0")),
                 currency1: Currency.wrap(makeAddr("token1")),
                 hooks: IHooks(address(0)),
-                poolManager: poolManager,
+                // poolManager: poolManager,
                 // fee: uint24(0),
-                parameters: bytes32(uint256(0xa0000))
+                parameters: bytes32(uint256(0xa0000)).setPoolManagerId(1)
             });
 
             poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
@@ -134,9 +134,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
                 currency0: Currency.wrap(makeAddr("token0")),
                 currency1: Currency.wrap(makeAddr("token1")),
                 hooks: IHooks(address(0)),
-                poolManager: poolManager,
+                // poolManager: poolManager,
                 // fee: uint24(300000),
-                parameters: bytes32(uint256(0xa0000)).setFee(300000)
+                parameters: bytes32(uint256(0xa0000)).setFee(300000).setPoolManagerId(1)
             });
 
             poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
@@ -148,9 +148,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
                 currency0: Currency.wrap(makeAddr("token0")),
                 currency1: Currency.wrap(makeAddr("token1")),
                 hooks: IHooks(address(0)),
-                poolManager: poolManager,
+                // poolManager: poolManager,
                 // fee: uint24(1000000),
-                parameters: bytes32(uint256(0xa0000)).setFee(1000000)
+                parameters: bytes32(uint256(0xa0000)).setFee(1000000).setPoolManagerId(1)
             });
 
             poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
@@ -162,9 +162,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
                 currency0: Currency.wrap(makeAddr("token0")),
                 currency1: Currency.wrap(makeAddr("token1")),
                 hooks: IHooks(address(0)),
-                poolManager: poolManager,
+                // poolManager: poolManager,
                 // fee: uint24(1000001),
-                parameters: bytes32(uint256(0xa0000)).setFee(1000001)
+                parameters: bytes32(uint256(0xa0000)).setFee(1000001).setPoolManagerId(1)
             });
 
             vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
@@ -179,9 +179,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
                 currency0: Currency.wrap(makeAddr("token0")),
                 currency1: Currency.wrap(makeAddr("token1")),
                 hooks: IHooks(address(0)),
-                poolManager: poolManager,
+                // poolManager: poolManager,
                 // fee: uint24(3000),
-                parameters: bytes32(uint256(0x0000)).setFee(3000)
+                parameters: bytes32(uint256(0x0000)).setFee(3000).setPoolManagerId(1)
             });
 
             vm.expectRevert(ICLPoolManager.TickSpacingTooSmall.selector);
@@ -194,9 +194,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
                 currency0: Currency.wrap(makeAddr("token0")),
                 currency1: Currency.wrap(makeAddr("token1")),
                 hooks: IHooks(address(0)),
-                poolManager: poolManager,
+                // poolManager: poolManager,
                 // fee: uint24(3000),
-                parameters: bytes32(uint256(0x10000)).setFee(3000)
+                parameters: bytes32(uint256(0x10000)).setFee(3000).setPoolManagerId(1)
             });
 
             poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
@@ -208,9 +208,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
                 currency0: Currency.wrap(makeAddr("token0")),
                 currency1: Currency.wrap(makeAddr("token1")),
                 hooks: IHooks(address(0)),
-                poolManager: poolManager,
+                // poolManager: poolManager,
                 // fee: uint24(3000),
-                parameters: bytes32(uint256(0xa0000)).setFee(3000)
+                parameters: bytes32(uint256(0xa0000)).setFee(3000).setPoolManagerId(1)
             });
 
             poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
@@ -222,9 +222,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
                 currency0: Currency.wrap(makeAddr("token0")),
                 currency1: Currency.wrap(makeAddr("token1")),
                 hooks: IHooks(address(0)),
-                poolManager: poolManager,
+                // poolManager: poolManager,
                 // fee: uint24(3000),
-                parameters: bytes32(uint256(0x7fff0000)).setFee(3000)
+                parameters: bytes32(uint256(0x7fff0000)).setFee(3000).setPoolManagerId(1)
             });
 
             poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
@@ -236,9 +236,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
                 currency0: Currency.wrap(makeAddr("token0")),
                 currency1: Currency.wrap(makeAddr("token1")),
                 hooks: IHooks(address(0)),
-                poolManager: poolManager,
+                // poolManager: poolManager,
                 // fee: uint24(3000),
-                parameters: bytes32(uint256(0x80000000)).setFee(3000)
+                parameters: bytes32(uint256(0x80000000)).setFee(3000).setPoolManagerId(1)
             });
 
             vm.expectRevert(ICLPoolManager.TickSpacingTooLarge.selector);
@@ -255,11 +255,11 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
                 currency0: Currency.wrap(makeAddr("token0")),
                 currency1: Currency.wrap(makeAddr("token1")),
                 hooks: IHooks(hookAddr),
-                poolManager: poolManager,
+                // poolManager: poolManager,
                 // fee: uint24(3000),
                 // 0 ~ 15  hookRegistrationMap = 0x1
                 // 16 ~ 24 tickSpacing = 10
-                parameters: bytes32(uint256(0xa0001)).setFee(3000)
+                parameters: bytes32(uint256(0xa0001)).setFee(3000).setPoolManagerId(1)
             });
 
             vm.expectRevert(abi.encodeWithSelector(Hooks.HookConfigValidationError.selector));
@@ -274,11 +274,13 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
                 currency0: Currency.wrap(makeAddr("token0")),
                 currency1: Currency.wrap(makeAddr("token1")),
                 hooks: IHooks(hookAddr),
-                poolManager: poolManager,
+                // poolManager: poolManager,
                 // fee: uint24(3000),
                 // 0 ~ 15  hookRegistrationMap =
                 // 16 ~ 24 tickSpacing = 10
-                parameters: bytes32(uint256(0xa0000) | hookAddr.getHooksRegistrationBitmap()).setFee(3000)
+                parameters: bytes32(uint256(0xa0000) | hookAddr.getHooksRegistrationBitmap()).setFee(3000).setPoolManagerId(
+                    1
+                )
             });
 
             vm.expectRevert(abi.encodeWithSelector(Hooks.HookPermissionsValidationError.selector));
@@ -291,11 +293,11 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency0: Currency.wrap(makeAddr("token0")),
             currency1: Currency.wrap(makeAddr("token1")),
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
+            // poolManager: poolManager,
             // fee: uint24(3000),
             // 0 ~ 15  hookRegistrationMap = nil
             // 16 ~ 24 tickSpacing = 10
-            parameters: bytes32(uint256(0xa0000)).setFee(3000)
+            parameters: bytes32(uint256(0xa0000)).setFee(3000).setPoolManagerId(1)
         });
 
         poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
@@ -323,11 +325,11 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency0: currency0,
             currency1: currency1,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
+            // poolManager: poolManager,
             // fee: uint24(3000),
             // 0 ~ 15  hookRegistrationMap = nil
             // 16 ~ 24 tickSpacing = 10
-            parameters: bytes32(uint256(0xa0000)).setFee(3000)
+            parameters: bytes32(uint256(0xa0000)).setFee(3000).setPoolManagerId(1)
         });
 
         snapStart("CLPoolManagerTest#initializeWithoutHooks");
@@ -341,7 +343,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         // tested in Hooks.t.sol
         key.hooks = IHooks(address(0));
-        key.poolManager = poolManager;
+        // key.poolManager = poolManager;
+        key.parameters = key.parameters.setPoolManagerId(1);
 
         if (key.parameters.getTickSpacing() > poolManager.MAX_TICK_SPACING()) {
             vm.expectRevert(abi.encodeWithSelector(ICLPoolManager.TickSpacingTooLarge.selector));
@@ -388,8 +391,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(60 << 16)).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(60 << 16)).setFee(3000).setPoolManagerId(1)
         });
 
         vm.expectEmit(true, true, true, true);
@@ -419,8 +422,10 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(hookAddr),
-            poolManager: poolManager,
-            parameters: bytes32(uint256((60 << 16) | hookAddr.getHooksRegistrationBitmap())).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256((60 << 16) | hookAddr.getHooksRegistrationBitmap())).setFee(3000).setPoolManagerId(
+                1
+            )
         });
 
         int24 tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96);
@@ -449,8 +454,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(int256(poolManager.MAX_TICK_SPACING()) << 16)).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(int256(poolManager.MAX_TICK_SPACING()) << 16)).setFee(3000).setPoolManagerId(1)
         });
 
         vm.expectEmit(true, true, true, true);
@@ -477,8 +482,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: hookEmptyAddr,
-            poolManager: poolManager,
+            // poolManager: poolManager,
             parameters: bytes32(uint256((60 << 16) | hookEmptyAddr.getHooksRegistrationBitmap())).setFee(3000)
+                .setPoolManagerId(1)
         });
 
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
@@ -496,8 +502,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency0,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(60 << 16)).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(60 << 16)).setFee(3000).setPoolManagerId(1)
         });
 
         vm.expectRevert(IPoolManager.CurrenciesInitializedOutOfOrder.selector);
@@ -513,8 +519,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(60 << 16)).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(60 << 16)).setFee(3000).setPoolManagerId(1)
         });
 
         PoolKey memory keyInvertedCurrency = PoolKey({
@@ -522,8 +528,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency0,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(60 << 16)).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(60 << 16)).setFee(3000).setPoolManagerId(1)
         });
 
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
@@ -540,8 +546,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(60 << 16)).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(60 << 16)).setFee(3000).setPoolManagerId(1)
         });
 
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
@@ -557,8 +563,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 100,
             hooks: mockHooks,
-            poolManager: poolManager,
-            parameters: bytes32(uint256(10 << 16) | mockHooks.getHooksRegistrationBitmap()).setFee(100)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(10 << 16) | mockHooks.getHooksRegistrationBitmap()).setFee(100).setPoolManagerId(1)
         });
 
         mockHooks.setReturnValue(mockHooks.beforeInitialize.selector, bytes4(0xdeadbeef));
@@ -582,8 +588,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 100,
             hooks: mockHooks,
-            poolManager: poolManager,
-            parameters: bytes32(uint256(10 << 16) | mockHooks.getHooksRegistrationBitmap()).setFee(100)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(10 << 16) | mockHooks.getHooksRegistrationBitmap()).setFee(100).setPoolManagerId(1)
         });
 
         mockHooks.setReturnValue(mockHooks.beforeInitialize.selector, mockHooks.beforeInitialize.selector);
@@ -611,8 +617,10 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256((int256((poolManager.MAX_TICK_SPACING())) + 1) << 16)).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256((int256((poolManager.MAX_TICK_SPACING())) + 1) << 16)).setFee(3000).setPoolManagerId(
+                1
+            )
         });
 
         vm.expectRevert(abi.encodeWithSelector(ICLPoolManager.TickSpacingTooLarge.selector));
@@ -628,8 +636,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(0)).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(0)).setFee(3000).setPoolManagerId(1)
         });
 
         vm.expectRevert(abi.encodeWithSelector(ICLPoolManager.TickSpacingTooSmall.selector));
@@ -645,9 +653,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
+            // poolManager: poolManager,
             // tickSpacing = -1
-            parameters: bytes32(uint256(0xffffff) << 16).setFee(3000)
+            parameters: bytes32(uint256(0xffffff) << 16).setFee(3000).setPoolManagerId(1)
         });
 
         vm.expectRevert(abi.encodeWithSelector(ICLPoolManager.TickSpacingTooSmall.selector));
@@ -663,10 +671,10 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             hooks: IHooks(address(clFeeManagerHook)),
-            poolManager: poolManager,
+            // poolManager: poolManager,
             parameters: CLPoolParametersHelper.setTickSpacing(
                 bytes32(uint256(clFeeManagerHook.getHooksRegistrationBitmap())), 10
-            ).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG)
+            ).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG).setPoolManagerId(1)
         });
 
         clFeeManagerHook.setFee(dynamicSwapFee);
@@ -682,10 +690,10 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: LPFeeLibrary.DYNAMIC_FEE_FLAG + 1,
             hooks: IHooks(address(clFeeManagerHook)),
-            poolManager: poolManager,
+            // poolManager: poolManager,
             parameters: CLPoolParametersHelper.setTickSpacing(
                 bytes32(uint256(clFeeManagerHook.getHooksRegistrationBitmap())), 10
-            ).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG + 1)
+            ).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG + 1).setPoolManagerId(1)
         });
 
         vm.expectRevert(LPFeeLibrary.FeeTooLarge.selector);
@@ -708,11 +716,11 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency0: currency0,
             currency1: currency1,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
+            // poolManager: poolManager,
             // fee: uint24(3000),
             // 0 ~ 15  hookRegistrationMap = nil
             // 16 ~ 24 tickSpacing = 1
-            parameters: bytes32(uint256(0x10000)).setFee(3000)
+            parameters: bytes32(uint256(0x10000)).setFee(3000).setPoolManagerId(1)
         });
 
         // price = 100 tick roughly 46054
@@ -815,11 +823,11 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency0: currency0,
             currency1: currency1,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
+            // poolManager: poolManager,
             // fee: uint24(3000),
             // 0 ~ 15  hookRegistrationMap = nil
             // 16 ~ 24 tickSpacing = 1
-            parameters: bytes32(uint256(0x10000)).setFee(3000)
+            parameters: bytes32(uint256(0x10000)).setFee(3000).setPoolManagerId(1)
         });
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
@@ -943,11 +951,11 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency0: currency0,
             currency1: currency1,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
+            // poolManager: poolManager,
             // fee: uint24(3000),
             // 0 ~ 15  hookRegistrationMap = nil
             // 16 ~ 24 tickSpacing = 1
-            parameters: bytes32(uint256(0x10000)).setFee(3000)
+            parameters: bytes32(uint256(0x10000)).setFee(3000).setPoolManagerId(1)
         });
 
         // price = 100 tick roughly 46054
@@ -991,11 +999,11 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency0: currency0,
             currency1: currency1,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
+            // poolManager: poolManager,
             // fee: uint24(3000),
             // 0 ~ 15  hookRegistrationMap = nil
             // 16 ~ 24 tickSpacing = 1
-            parameters: bytes32(uint256(0x10000)).setFee(3000)
+            parameters: bytes32(uint256(0x10000)).setFee(3000).setPoolManagerId(1)
         });
 
         // price = 100 tick roughly 46054
@@ -1039,11 +1047,11 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency0: currency0,
             currency1: currency1,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
+            // poolManager: poolManager,
             // fee: uint24(3000),
             // 0 ~ 15  hookRegistrationMap = nil
             // 16 ~ 24 tickSpacing = 1
-            parameters: bytes32(uint256(0x10000)).setFee(3000)
+            parameters: bytes32(uint256(0x10000)).setFee(3000).setPoolManagerId(1)
         });
 
         // price = 100 tick roughly 46054
@@ -1072,11 +1080,11 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency0: currency0,
             currency1: currency1,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
+            // poolManager: poolManager,
             // fee: uint24(3000),
             // 0 ~ 15  hookRegistrationMap = nil
             // 16 ~ 24 tickSpacing = 1
-            parameters: bytes32(uint256(0x10000)).setFee(3000)
+            parameters: bytes32(uint256(0x10000)).setFee(3000).setPoolManagerId(1)
         });
 
         // price = 100 tick roughly 46054
@@ -1105,11 +1113,11 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency0: currency0,
             currency1: currency1,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
+            // poolManager: poolManager,
             // fee: uint24(3000),
             // 0 ~ 15  hookRegistrationMap = nil
             // 16 ~ 24 tickSpacing = 1
-            parameters: bytes32(uint256(0x10000)).setFee(3000)
+            parameters: bytes32(uint256(0x10000)).setFee(3000).setPoolManagerId(1)
         });
 
         // price = 1 i.e. tick 0
@@ -1166,11 +1174,11 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency0: currency0,
             currency1: currency1,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
+            // poolManager: poolManager,
             // fee: uint24(3000),
             // 0 ~ 15  hookRegistrationMap = nil
             // 16 ~ 24 tickSpacing = 1
-            parameters: bytes32(uint256(0x10000)).setFee(3000)
+            parameters: bytes32(uint256(0x10000)).setFee(3000).setPoolManagerId(1)
         });
 
         // price = 100 tick roughly 46054
@@ -1259,8 +1267,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(60) << 16).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(60) << 16).setFee(3000).setPoolManagerId(1)
         });
         vm.expectRevert();
         router.modifyPosition(
@@ -1278,8 +1286,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(60) << 16).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(60) << 16).setFee(3000).setPoolManagerId(1)
         });
 
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
@@ -1302,8 +1310,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(60) << 16).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(60) << 16).setFee(3000).setPoolManagerId(1)
         });
 
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
@@ -1327,8 +1335,10 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(mockAddr),
-            poolManager: poolManager,
-            parameters: bytes32((uint256(60) << 16) | mockAddr.getHooksRegistrationBitmap()).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32((uint256(60) << 16) | mockAddr.getHooksRegistrationBitmap()).setFee(3000).setPoolManagerId(
+                1
+            )
         });
 
         ICLPoolManager.ModifyLiquidityParams memory params =
@@ -1367,8 +1377,10 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 100,
             hooks: mockHooks,
-            poolManager: poolManager,
-            parameters: bytes32((uint256(10) << 16) | mockHooks.getHooksRegistrationBitmap()).setFee(100)
+            // poolManager: poolManager,
+            parameters: bytes32((uint256(10) << 16) | mockHooks.getHooksRegistrationBitmap()).setFee(100).setPoolManagerId(
+                1
+            )
         });
 
         ICLPoolManager.ModifyLiquidityParams memory params =
@@ -1397,8 +1409,10 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 100,
             hooks: mockHooks,
-            poolManager: poolManager,
-            parameters: bytes32((uint256(10) << 16) | mockHooks.getHooksRegistrationBitmap()).setFee(100)
+            // poolManager: poolManager,
+            parameters: bytes32((uint256(10) << 16) | mockHooks.getHooksRegistrationBitmap()).setFee(100).setPoolManagerId(
+                1
+            )
         });
 
         ICLPoolManager.ModifyLiquidityParams memory params =
@@ -1421,8 +1435,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(60) << 16).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(60) << 16).setFee(3000).setPoolManagerId(1)
         });
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
@@ -1449,11 +1463,11 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency0: currency0,
             currency1: currency1,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
+            // poolManager: poolManager,
             // fee: uint24(3000),
             // 0 ~ 15  hookRegistrationMap = nil
             // 16 ~ 24 tickSpacing = 1
-            parameters: bytes32(uint256(0x10000)).setFee(3000)
+            parameters: bytes32(uint256(0x10000)).setFee(3000).setPoolManagerId(1)
         });
 
         // price = 100 tick roughly 46054
@@ -1541,11 +1555,11 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency0: currency0,
             currency1: currency1,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
+            // poolManager: poolManager,
             // fee: uint24(3000),
             // 0 ~ 15  hookRegistrationMap = nil
             // 16 ~ 24 tickSpacing = 1
-            parameters: bytes32(uint256(0x10000)).setFee(3000)
+            parameters: bytes32(uint256(0x10000)).setFee(3000).setPoolManagerId(1)
         });
 
         // price = 100 tick roughly 46054
@@ -1652,11 +1666,11 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency0: currency0,
             currency1: currency1,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
+            // poolManager: poolManager,
             // fee: uint24(3000),
             // 0 ~ 15  hookRegistrationMap = nil
             // 16 ~ 24 tickSpacing = 1
-            parameters: bytes32(uint256(0x10000)).setFee(3000)
+            parameters: bytes32(uint256(0x10000)).setFee(3000).setPoolManagerId(1)
         });
 
         // price = 100 tick roughly 46054
@@ -1707,8 +1721,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(60) << 16).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(60) << 16).setFee(3000).setPoolManagerId(1)
         });
 
         ICLPoolManager.SwapParams memory params =
@@ -1727,8 +1741,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(60) << 16).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(60) << 16).setFee(3000).setPoolManagerId(1)
         });
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
@@ -1762,10 +1776,10 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: LPFeeLibrary.DYNAMIC_FEE_FLAG, // 0.3%
             hooks: IHooks(address(clFeeManagerHook)),
-            poolManager: poolManager,
+            // poolManager: poolManager,
             parameters: bytes32(uint256((60 << 16) | clFeeManagerHook.getHooksRegistrationBitmap())).setFee(
                 LPFeeLibrary.DYNAMIC_FEE_FLAG
-            )
+            ).setPoolManagerId(1)
         });
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
@@ -1798,8 +1812,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             // 0.3%
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(60) << 16).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(60) << 16).setFee(3000).setPoolManagerId(1)
         });
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
@@ -1850,8 +1864,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(60) << 16).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(60) << 16).setFee(3000).setPoolManagerId(1)
         });
 
         ICLPoolManager.SwapParams memory params =
@@ -1876,8 +1890,10 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(mockAddr),
-            poolManager: poolManager,
-            parameters: bytes32((uint256(60) << 16) | mockAddr.getHooksRegistrationBitmap()).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32((uint256(60) << 16) | mockAddr.getHooksRegistrationBitmap()).setFee(3000).setPoolManagerId(
+                1
+            )
         });
 
         ICLPoolManager.SwapParams memory params =
@@ -1918,8 +1934,10 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 100,
             hooks: mockHooks,
-            poolManager: poolManager,
-            parameters: bytes32((uint256(10) << 16) | mockHooks.getHooksRegistrationBitmap()).setFee(100)
+            // poolManager: poolManager,
+            parameters: bytes32((uint256(10) << 16) | mockHooks.getHooksRegistrationBitmap()).setFee(100).setPoolManagerId(
+                1
+            )
         });
 
         ICLPoolManager.ModifyLiquidityParams memory params =
@@ -1955,8 +1973,10 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 100,
             hooks: mockHooks,
-            poolManager: poolManager,
-            parameters: bytes32((uint256(10) << 16) | mockHooks.getHooksRegistrationBitmap()).setFee(100)
+            // poolManager: poolManager,
+            parameters: bytes32((uint256(10) << 16) | mockHooks.getHooksRegistrationBitmap()).setFee(100).setPoolManagerId(
+                1
+            )
         });
 
         ICLPoolManager.ModifyLiquidityParams memory params =
@@ -1986,8 +2006,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(60) << 16).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(60) << 16).setFee(3000).setPoolManagerId(1)
         });
 
         ICLPoolManager.SwapParams memory params =
@@ -2022,8 +2042,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(60) << 16).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(60) << 16).setFee(3000).setPoolManagerId(1)
         });
 
         ICLPoolManager.SwapParams memory params =
@@ -2073,8 +2093,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(60) << 16).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(60) << 16).setFee(3000).setPoolManagerId(1)
         });
 
         ICLPoolManager.SwapParams memory params =
@@ -2100,8 +2120,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(60) << 16).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(60) << 16).setFee(3000).setPoolManagerId(1)
         });
 
         ICLPoolManager.SwapParams memory params =
@@ -2129,8 +2149,10 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: mockHooks,
-            poolManager: poolManager,
-            parameters: bytes32((uint256(60) << 16) | mockHooks.getHooksRegistrationBitmap()).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32((uint256(60) << 16) | mockHooks.getHooksRegistrationBitmap()).setFee(3000).setPoolManagerId(
+                1
+            )
         });
 
         ICLPoolManager.SwapParams memory params =
@@ -2156,8 +2178,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(60) << 16).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(60) << 16).setFee(3000).setPoolManagerId(1)
         });
 
         ICLPoolManager.SwapParams memory params =
@@ -2189,8 +2211,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(60) << 16).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(60) << 16).setFee(3000).setPoolManagerId(1)
         });
 
         ICLPoolManager.SwapParams memory params =
@@ -2235,8 +2257,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(60) << 16).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(60) << 16).setFee(3000).setPoolManagerId(1)
         });
 
         ICLPoolManager.SwapParams memory params =
@@ -2272,8 +2294,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(60) << 16).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(60) << 16).setFee(3000).setPoolManagerId(1)
         });
 
         ICLPoolManager.SwapParams memory params =
@@ -2308,8 +2330,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 100,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(10 << 16)).setFee(100)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(10 << 16)).setFee(100).setPoolManagerId(1)
         });
         vm.expectRevert(abi.encodeWithSelector(CLPool.PoolNotInitialized.selector));
         router.donate(key, 100, 100, ZERO_BYTES);
@@ -2323,8 +2345,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 100,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(10 << 16))
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(10 << 16)).setFee(100).setPoolManagerId(1)
         });
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
         vm.expectRevert(abi.encodeWithSelector(CLPool.NoLiquidityToReceiveFees.selector));
@@ -2338,8 +2360,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 100,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(10 << 16))
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(10 << 16)).setFee(100).setPoolManagerId(1)
         });
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
@@ -2361,9 +2383,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency0: CurrencyLibrary.NATIVE,
             currency1: currency1,
             // fee: 100,
-            poolManager: poolManager,
+            // poolManager: poolManager,
             hooks: IHooks(address(0)),
-            parameters: bytes32(uint256(10 << 16))
+            parameters: bytes32(uint256(10 << 16)).setFee(100).setPoolManagerId(1)
         });
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
@@ -2388,8 +2410,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 100,
             hooks: mockHooks,
-            poolManager: poolManager,
-            parameters: bytes32(uint256(10 << 16) | impl.getHooksRegistrationBitmap()).setFee(100)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(10 << 16) | impl.getHooksRegistrationBitmap()).setFee(100).setPoolManagerId(1)
         });
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
@@ -2420,8 +2442,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 100,
             hooks: mockHooks,
-            poolManager: poolManager,
-            parameters: bytes32(uint256(10 << 16) | impl.getHooksRegistrationBitmap()).setFee(100)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(10 << 16) | impl.getHooksRegistrationBitmap()).setFee(100).setPoolManagerId(1)
         });
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
@@ -2440,8 +2462,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 100,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(10 << 16)).setFee(100)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(10 << 16)).setFee(100).setPoolManagerId(1)
         });
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
@@ -2462,8 +2484,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 100,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(10 << 16)).setFee(100)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(10 << 16)).setFee(100).setPoolManagerId(1)
         });
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
@@ -2484,8 +2506,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency0Invalid ? currency0 : invalidCurrency,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(60) << 16).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(60) << 16).setFee(3000).setPoolManagerId(1)
         });
 
         invalidToken.approve(address(router), type(uint256).max);
@@ -2512,8 +2534,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 100,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(10) << 16).setFee(100)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(10) << 16).setFee(100).setPoolManagerId(1)
         });
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
@@ -2528,8 +2550,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 100,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(10) << 16).setFee(100)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(10) << 16).setFee(100).setPoolManagerId(1)
         });
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
@@ -2546,8 +2568,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 100,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(10) << 16).setFee(100)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(10) << 16).setFee(100).setPoolManagerId(1)
         });
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
@@ -2569,8 +2591,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 100,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(10) << 16).setFee(100)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(10) << 16).setFee(100).setPoolManagerId(1)
         });
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
         feeController.setProtocolFeeForPool(key.toId(), protocolFee);
@@ -2592,8 +2614,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             // 0.3% lp fee
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(10) << 16).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(10) << 16).setFee(3000).setPoolManagerId(1)
         });
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
         feeController.setProtocolFeeForPool(key.toId(), protocolFee);
@@ -2631,8 +2653,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(10) << 16).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(10) << 16).setFee(3000).setPoolManagerId(1)
         });
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
         feeController.setProtocolFeeForPool(key.toId(), protocolFee);
@@ -2671,8 +2693,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(10) << 16).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(10) << 16).setFee(3000).setPoolManagerId(1)
         });
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
         feeController.setProtocolFeeForPool(key.toId(), protocolFee);
@@ -2711,8 +2733,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 3000,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(10) << 16).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(10) << 16).setFee(3000).setPoolManagerId(1)
         });
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
         feeController.setProtocolFeeForPool(key.toId(), protocolFee);
@@ -2745,7 +2767,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             hooks: IHooks(address(clFeeManagerHook)),
-            poolManager: poolManager,
+            // poolManager: poolManager,
             parameters: bytes32(uint256(10) << 16).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG)
         });
 
@@ -2762,8 +2784,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: uint24(3000), // 3000 = 0.3%
             hooks: IHooks(address(clFeeManagerHook)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(10) << 16).setFee(3000)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(10) << 16).setFee(3000).setPoolManagerId(1)
         });
 
         vm.expectRevert(IPoolManager.UnauthorizedDynamicLPFeeUpdate.selector);
@@ -2781,10 +2803,10 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             hooks: IHooks(address(clFeeManagerHook)),
-            poolManager: poolManager,
+            // poolManager: poolManager,
             parameters: bytes32(uint256((10 << 16) | clFeeManagerHook.getHooksRegistrationBitmap())).setFee(
                 LPFeeLibrary.DYNAMIC_FEE_FLAG
-            )
+            ).setPoolManagerId(1)
         });
 
         poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
@@ -2814,9 +2836,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency0: currency0,
             currency1: currency1,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
+            // poolManager: poolManager,
             // fee: uint24(3000),
-            parameters: bytes32(uint256(0x10000)).setFee(3000)
+            parameters: bytes32(uint256(0x10000)).setFee(3000).setPoolManagerId(1)
         });
 
         poolManager.initialize(key, SQRT_RATIO_1_1, new bytes(0));
@@ -2850,9 +2872,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency0: currency0,
             currency1: currency1,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
+            // poolManager: poolManager,
             // fee: uint24(3000),
-            parameters: bytes32(uint256(0x10000)).setFee(3000)
+            parameters: bytes32(uint256(0x10000)).setFee(3000).setPoolManagerId(1)
         });
 
         poolManager.initialize(key, SQRT_RATIO_1_1, new bytes(0));
@@ -2888,9 +2910,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency0: currency0,
             currency1: currency1,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
+            // poolManager: poolManager,
             // fee: uint24(3000),
-            parameters: bytes32(uint256(0x10000)).setFee(3000)
+            parameters: bytes32(uint256(0x10000)).setFee(3000).setPoolManagerId(1)
         });
 
         poolManager.initialize(key, SQRT_RATIO_1_1, new bytes(0));
@@ -2919,8 +2941,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             currency1: currency1,
             // fee: 100,
             hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(10 << 16)).setFee(100)
+            // poolManager: poolManager,
+            parameters: bytes32(uint256(10 << 16)).setFee(100).setPoolManagerId(1)
         });
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 

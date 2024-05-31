@@ -14,24 +14,33 @@ import {ILockCallback} from "./interfaces/ILockCallback.sol";
 import {SafeCast} from "./libraries/SafeCast.sol";
 import {VaultReserves} from "./libraries/VaultReserves.sol";
 import {VaultToken} from "./VaultToken.sol";
+import {ParametersHelper} from "./libraries/math/ParametersHelper.sol";
 
 contract Vault is IVault, VaultToken, Ownable {
     using SafeCast for *;
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
     using VaultReserves for Currency;
+    using ParametersHelper for bytes32;
+
+    /// @dev keep track how many manager had been registered, start from 1
+    uint256 public PoolManagerLength;
 
     mapping(address => bool) public override isPoolManagerRegistered;
+
+    mapping(uint256 => address) public override poolManagerId;
 
     /// @dev keep track of each pool manager's reserves
     mapping(IPoolManager poolManager => mapping(Currency currency => uint256 reserve)) public reservesOfPoolManager;
 
     /// @notice only poolManager is allowed to call swap or modifyLiquidity, donate
-    /// @param poolManager The address specified in PoolKey
-    modifier onlyPoolManager(address poolManager) {
+    /// @param parameters The address specified in PoolKey
+    modifier onlyPoolManager(bytes32 parameters) {
         /// @dev Make sure:
         /// 1. the pool manager specified in PoolKey is the caller
         /// 2. the pool manager has been registered
+        // uint256 id = parameters.getPoolManagerId();
+        address poolManager = poolManagerId[parameters.getPoolManagerId()];
         if (poolManager != msg.sender) revert NotFromPoolManager();
 
         if (!isPoolManagerRegistered[msg.sender]) revert PoolManagerUnregistered();
@@ -48,6 +57,7 @@ contract Vault is IVault, VaultToken, Ownable {
     /// @inheritdoc IVault
     function registerPoolManager(address poolManager) external override onlyOwner {
         isPoolManagerRegistered[poolManager] = true;
+        poolManagerId[++PoolManagerLength] = poolManager;
 
         emit PoolManagerRegistered(poolManager);
     }
@@ -86,14 +96,22 @@ contract Vault is IVault, VaultToken, Ownable {
         external
         override
         isLocked
-        onlyPoolManager(address(key.poolManager))
+        onlyPoolManager(key.parameters)
     {
+        // uint256 id = key.parameters.getPoolManagerId();
+        // IPoolManager poolManager = IPoolManager(poolManagerId[key.parameters.getPoolManagerId()]);
+        IPoolManager poolManager = IPoolManager(msg.sender);
+
+        // if (address(poolManager) != msg.sender) revert NotFromPoolManager();
+
+        // if (!isPoolManagerRegistered[msg.sender]) revert PoolManagerUnregistered();
+
         int128 delta0 = delta.amount0();
         int128 delta1 = delta.amount1();
 
         // keep track on each pool manager
-        _accountDeltaOfPoolManager(key.poolManager, key.currency0, delta0);
-        _accountDeltaOfPoolManager(key.poolManager, key.currency1, delta1);
+        _accountDeltaOfPoolManager(poolManager, key.currency0, delta0);
+        _accountDeltaOfPoolManager(poolManager, key.currency1, delta1);
 
         // keep track of the balance for the whole vault
         SettlementGuard.accountDelta(settler, key.currency0, delta0);

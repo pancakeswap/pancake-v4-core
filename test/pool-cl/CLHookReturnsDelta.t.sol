@@ -51,9 +51,10 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
             currency0: currency0,
             currency1: currency1,
             hooks: clReturnsDeltaHook,
-            poolManager: poolManager,
+            // poolManager: poolManager,
             // fee: uint24(3000),
             parameters: bytes32(uint256(clReturnsDeltaHook.getHooksRegistrationBitmap())).setTickSpacing(10).setFee(3000)
+                .setPoolManagerId(1)
         });
 
         poolManager.initialize(key, SQRT_RATIO_1_1, new bytes(0));

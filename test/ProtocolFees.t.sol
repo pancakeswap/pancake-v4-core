@@ -55,7 +55,7 @@ contract ProtocolFeesTest is Test {
             currency0: Currency.wrap(address(token0)),
             currency1: Currency.wrap(address(token1)),
             hooks: IHooks(address(0)),
-            poolManager: IPoolManager(address(poolManager)),
+            // poolManager: IPoolManager(address(poolManager)),
             // fee: uint24(0), // fee not used in the setup
             parameters: 0x00
         });
@@ -84,7 +84,7 @@ contract ProtocolFeesTest is Test {
             currency0: Currency.wrap(address(token0)),
             currency1: Currency.wrap(address(token1)),
             hooks: IHooks(address(0)),
-            poolManager: IPoolManager(address(poolManagerWithLowControllerGasLimit)),
+            // poolManager: IPoolManager(address(poolManagerWithLowControllerGasLimit)),
             // fee: uint24(0), // fee not used in the setup
             parameters: 0x00
         });

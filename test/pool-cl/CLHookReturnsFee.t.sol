@@ -59,11 +59,11 @@ contract CLHookReturnsFeeTest is Test, Deployers, TokenFixture, GasSnapshot {
             currency0: currency0,
             currency1: currency1,
             hooks: dynamicReturnsFeesHook,
-            poolManager: poolManager,
+            // poolManager: poolManager,
             // fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             parameters: CLPoolParametersHelper.setTickSpacing(
                 bytes32(uint256(dynamicReturnsFeesHook.getHooksRegistrationBitmap())), 1
-            ).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG)
+            ).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG).setPoolManagerId(1)
         });
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
@@ -120,14 +120,14 @@ contract CLHookReturnsFeeTest is Test, Deployers, TokenFixture, GasSnapshot {
     function test_dynamicReturnSwapFee_initializeZeroSwapFee() public {
         key.parameters = CLPoolParametersHelper.setTickSpacing(
             bytes32(uint256(dynamicReturnsFeesHook.getHooksRegistrationBitmap())), 10
-        );
+        ).setPoolManagerId(1);
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
         assertEq(_fetchPoolSwapFee(key), 0);
     }
 
     function test_dynamicReturnSwapFee_notUsedIfPoolIsStaticFee() public {
         // key.fee = 3000; // static fee
-        key.parameters = key.parameters.setFee(3000);
+        key.parameters = key.parameters.setFee(3000).setPoolManagerId(1);
         dynamicReturnsFeesHook.setFee(1000); // 0.10% fee is NOT used because the pool has a static fee
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
@@ -168,7 +168,7 @@ contract CLHookReturnsFeeTest is Test, Deployers, TokenFixture, GasSnapshot {
         // create a new pool with an initial fee of 123
         key.parameters = CLPoolParametersHelper.setTickSpacing(
             bytes32(uint256(dynamicReturnsFeesHook.getHooksRegistrationBitmap())), 10
-        ).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG);
+        ).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG).setPoolManagerId(1);
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
         IERC20(Currency.unwrap(currency0)).approve(address(router), type(uint256).max);

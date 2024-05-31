@@ -19,9 +19,9 @@ contract PoolIdLibraryTest is Test {
             currency0: Currency.wrap(makeAddr("currency0")),
             currency1: Currency.wrap(makeAddr("currency1")),
             hooks: IHooks(makeAddr("hook")),
-            poolManager: IPoolManager(makeAddr("pm")),
+            // poolManager: IPoolManager(makeAddr("pm")),
             // fee: 100,
-            parameters: bytes32(hex"1022").setFee(100)
+            parameters: bytes32(hex"1022").setFee(100).setPoolManagerId(1)
         });
 
         bytes32 id = PoolId.unwrap(key.toId());

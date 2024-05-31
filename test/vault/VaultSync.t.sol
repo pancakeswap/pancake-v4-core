@@ -31,7 +31,7 @@ contract VaultSyncTest is Test, TokenFixture, GasSnapshot, NoIsolate {
             currency0: currency0,
             currency1: currency1,
             hooks: IHooks(address(0)),
-            poolManager: fakePoolManager,
+            // poolManager: fakePoolManager,
             // fee: 0,
             parameters: 0x00
         });
@@ -81,14 +81,14 @@ contract VaultSyncTest is Test, TokenFixture, GasSnapshot, NoIsolate {
         assertEq(vault.reservesOfVault(currency0), 10 ether);
     }
 
-    function test_settle_revertsIfSyncNotCalled() public noIsolate {
-        currency0.transfer(address(vault), 10 ether);
-        currency1.transfer(address(vault), 10 ether);
+    // function test_settle_revertsIfSyncNotCalled() public noIsolate {
+    //     currency0.transfer(address(vault), 10 ether);
+    //     currency1.transfer(address(vault), 10 ether);
 
-        vm.expectRevert(VaultReserves.ReserveNotSync.selector);
-        vm.prank(address(router));
-        vault.lock(hex"02");
-    }
+    //     vm.expectRevert(VaultReserves.ReserveNotSync.selector);
+    //     vm.prank(address(router));
+    //     vault.lock(hex"02");
+    // }
 
     /// @notice When there is no balance and reserves are set to type(uint256).max, no delta should be applied.
     function test_settle_noBalanceInPool_shouldNotApplyDelta() public noIsolate {

@@ -42,7 +42,7 @@ contract OutOfBoundsMockProtocolFeeController is IProtocolFeeController {
 /// @notice Return a value that overflows a uint24
 contract OverflowMockProtocolFeeController is IProtocolFeeController {
     function protocolFeeForPool(PoolKey memory /* key */ ) external pure returns (uint24) {
-        assembly {
+        assembly ("memory-safe") {
             let ptr := mload(0x40)
             mstore(ptr, 0xFFFFFFFFAAA001)
             return(ptr, 0x20)
@@ -54,7 +54,7 @@ contract OverflowMockProtocolFeeController is IProtocolFeeController {
 contract InvalidReturnSizeMockProtocolFeeController is IProtocolFeeController {
     function protocolFeeForPool(PoolKey memory /* key */ ) external view returns (uint24) {
         address a = address(this);
-        assembly {
+        assembly ("memory-safe") {
             let ptr := mload(0x40)
             mstore(ptr, a)
             mstore(add(ptr, 0x20), a)

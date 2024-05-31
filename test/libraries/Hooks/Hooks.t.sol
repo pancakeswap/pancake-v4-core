@@ -27,7 +27,7 @@ contract HooksTest is Test {
             currency0: Currency.wrap(address(0)),
             currency1: Currency.wrap(address(0)),
             hooks: hooksContract,
-            poolManager: IPoolManager(address(0)),
+            // poolManager: IPoolManager(address(0)),
             // fee: 0,
             parameters: bytes32(uint256(bitmap))
         });
@@ -38,7 +38,7 @@ contract HooksTest is Test {
             currency0: Currency.wrap(address(0)),
             currency1: Currency.wrap(address(0)),
             hooks: hooksContract,
-            poolManager: IPoolManager(address(0)),
+            // poolManager: IPoolManager(address(0)),
             // fee: 0,
             parameters: parameters
         });
@@ -57,7 +57,7 @@ contract HooksTest is Test {
             currency0: Currency.wrap(address(0)),
             currency1: Currency.wrap(address(0)),
             hooks: IHooks(address(0)),
-            poolManager: IPoolManager(address(0)),
+            // poolManager: IPoolManager(address(0)),
             // fee: fee,
             parameters: parameters.setFee(fee)
         });

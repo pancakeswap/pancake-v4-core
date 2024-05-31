@@ -17,6 +17,8 @@ library CLPoolParametersHelper {
 
     uint256 internal constant OFFSET_TICK_SPACING = 16;
     uint256 internal constant OFFSET_FEE = 40;
+    uint256 internal constant OFFSET_POOL_MANAGER_ID = 64;
+
     /**
      * @dev Get tickSpacing from the encoded pair parameters
      * @param params The encoded pair parameters, as follows:
@@ -26,7 +28,6 @@ library CLPoolParametersHelper {
      * [40- 63{: fee (24 bits)}
      * @return tickSpacing The tickSpacing
      */
-
     function getTickSpacing(bytes32 params) internal pure returns (int24 tickSpacing) {
         tickSpacing = int24(params.decodeUint24(OFFSET_TICK_SPACING));
     }
@@ -45,5 +46,9 @@ library CLPoolParametersHelper {
 
     function setFee(bytes32 params, uint24 fee) internal pure returns (bytes32) {
         return params.set(fee, Encoded.MASK_UINT24, OFFSET_FEE);
+    }
+
+    function setPoolManagerId(bytes32 params, uint24 poolManagerId) internal pure returns (bytes32) {
+        return params.set(poolManagerId, Encoded.MASK_UINT24, OFFSET_POOL_MANAGER_ID);
     }
 }

@@ -47,9 +47,9 @@ contract BinPoolLiquidityTest is BinTestHelper {
             currency0: Currency.wrap(makeAddr("token0")),
             currency1: Currency.wrap(makeAddr("token1")),
             hooks: IHooks(address(0)),
-            poolManager: IPoolManager(address(poolManager)),
+            // poolManager: IPoolManager(address(poolManager)),
             // fee: uint24(3000),
-            parameters: poolParam.setFee(3000) // binStep
+            parameters: poolParam.setFee(3000).setPoolManagerId(2) // binStep
         });
         poolId = key.toId();
     }
@@ -284,8 +284,8 @@ contract BinPoolLiquidityTest is BinTestHelper {
             balances[i] = poolManager.getPosition(poolId, bob, id, 0).share;
         }
 
-        uint256 reserveX = vault.reservesOfPoolManager(key.poolManager, key.currency0);
-        uint256 reserveY = vault.reservesOfPoolManager(key.poolManager, key.currency1);
+        uint256 reserveX = vault.reservesOfPoolManager(poolManager, key.currency0);
+        uint256 reserveY = vault.reservesOfPoolManager(poolManager, key.currency1);
 
         removeLiquidity(key, poolManager, bob, ids, balances);
 
@@ -297,8 +297,8 @@ contract BinPoolLiquidityTest is BinTestHelper {
             assertEq(uint256(balanceDelta1), reserveY, "test_SimpleBurn::1");
         }
 
-        reserveX = vault.reservesOfPoolManager(key.poolManager, key.currency0);
-        reserveY = vault.reservesOfPoolManager(key.poolManager, key.currency1);
+        reserveX = vault.reservesOfPoolManager(poolManager, key.currency0);
+        reserveY = vault.reservesOfPoolManager(poolManager, key.currency1);
         assertEq(reserveX, 0, "test_BurnPartial::3");
         assertEq(reserveY, 0, "test_BurnPartial::4");
     }
@@ -329,8 +329,8 @@ contract BinPoolLiquidityTest is BinTestHelper {
             balances[i] = balance - balance / 2;
         }
 
-        uint256 reserveX = vault.reservesOfPoolManager(key.poolManager, key.currency0); // vault.reservesOfPool(poolId, 0);
-        uint256 reserveY = vault.reservesOfPoolManager(key.poolManager, key.currency1); // vault.reservesOfPool(poolId, 1);
+        uint256 reserveX = vault.reservesOfPoolManager(poolManager, key.currency0); // vault.reservesOfPool(poolId, 0);
+        uint256 reserveY = vault.reservesOfPoolManager(poolManager, key.currency1); // vault.reservesOfPool(poolId, 1);
 
         removeLiquidity(key, poolManager, bob, ids, halfbalances);
 
@@ -344,8 +344,8 @@ contract BinPoolLiquidityTest is BinTestHelper {
 
         removeLiquidity(key, poolManager, bob, ids, halfbalances);
 
-        reserveX = vault.reservesOfPoolManager(key.poolManager, key.currency0); // vault.reservesOfPool(poolId, 0);
-        reserveY = vault.reservesOfPoolManager(key.poolManager, key.currency1); // vault.reservesOfPool(poolId, 1);
+        reserveX = vault.reservesOfPoolManager(poolManager, key.currency0); // vault.reservesOfPool(poolId, 0);
+        reserveY = vault.reservesOfPoolManager(poolManager, key.currency1); // vault.reservesOfPool(poolId, 1);
         assertEq(reserveX, 0, "test_BurnPartial::5");
         assertEq(reserveY, 0, "test_BurnPartial::6");
     }

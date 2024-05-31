@@ -22,7 +22,7 @@ import {SafeCast} from "../libraries/SafeCast.sol";
 import {CLPoolGetters} from "./libraries/CLPoolGetters.sol";
 import {CLHooks} from "./libraries/CLHooks.sol";
 import {BeforeSwapDelta} from "../types/BeforeSwapDelta.sol";
-import "forge-std/console2.sol";
+import {ParametersHelper} from "../libraries/math/ParametersHelper.sol";
 
 contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     using SafeCast for int256;
@@ -33,6 +33,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     using CLPool for *;
     using CLPosition for mapping(bytes32 => CLPosition.Info);
     using CLPoolGetters for CLPool.State;
+    using ParametersHelper for bytes32;
 
     /// @inheritdoc ICLPoolManager
     int24 public constant override MAX_TICK_SPACING = type(int16).max;
@@ -40,13 +41,16 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     /// @inheritdoc ICLPoolManager
     int24 public constant override MIN_TICK_SPACING = 1;
 
+    uint256 public constant PoolManagerID = 1;
+
     mapping(PoolId id => CLPool.State) public pools;
 
     constructor(IVault _vault, uint256 controllerGasLimit) ProtocolFees(_vault, controllerGasLimit) {}
 
-    /// @notice pool manager specified in the pool key must match current contract
-    modifier poolManagerMatch(address poolManager) {
-        if (address(this) != poolManager) revert PoolManagerMismatch();
+    /// @notice pool manager specified in the pool key must match current pool manager ID
+    modifier poolManagerMatch(bytes32 parameters) {
+        uint256 poolManagerId = parameters.getPoolManagerId();
+        if (poolManagerId != PoolManagerID) revert PoolManagerMismatch();
         _;
     }
 
@@ -90,7 +94,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     function initialize(PoolKey memory key, uint160 sqrtPriceX96, bytes calldata hookData)
         external
         override
-        poolManagerMatch(address(key.poolManager))
+        poolManagerMatch(key.parameters)
         returns (int24 tick)
     {
         int24 tickSpacing = key.parameters.getTickSpacing();
@@ -122,12 +126,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         PoolKey memory key,
         ICLPoolManager.ModifyLiquidityParams memory params,
         bytes calldata hookData
-    )
-        external
-        override
-        poolManagerMatch(address(key.poolManager))
-        returns (BalanceDelta delta, BalanceDelta feeDelta)
-    {
+    ) external override poolManagerMatch(key.parameters) returns (BalanceDelta delta, BalanceDelta feeDelta) {
         // Do not allow add liquidity when paused()
         if (paused() && params.liquidityDelta > 0) revert PoolPaused();
 
@@ -163,7 +162,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     function swap(PoolKey memory key, ICLPoolManager.SwapParams memory params, bytes calldata hookData)
         external
         override
-        poolManagerMatch(address(key.poolManager))
+        poolManagerMatch(key.parameters)
         whenNotPaused
         returns (BalanceDelta delta)
     {
@@ -220,7 +219,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     function donate(PoolKey memory key, uint256 amount0, uint256 amount1, bytes calldata hookData)
         external
         override
-        poolManagerMatch(address(key.poolManager))
+        poolManagerMatch(key.parameters)
         whenNotPaused
         returns (BalanceDelta delta)
     {

@@ -25,7 +25,7 @@ library Encoded {
         pure
         returns (bytes32 newEncoded)
     {
-        assembly {
+        assembly ("memory-safe") {
             newEncoded := and(encoded, not(shl(offset, mask)))
             newEncoded := or(newEncoded, shl(offset, and(value, mask)))
         }
@@ -52,7 +52,7 @@ library Encoded {
      * @return value The decoded value
      */
     function decode(bytes32 encoded, uint256 mask, uint256 offset) internal pure returns (uint256 value) {
-        assembly {
+        assembly ("memory-safe") {
             value := and(shr(offset, encoded), mask)
         }
     }
@@ -65,7 +65,7 @@ library Encoded {
      * @return boolean The decoded value as a bool
      */
     function decodeBool(bytes32 encoded, uint256 offset) internal pure returns (bool boolean) {
-        assembly {
+        assembly ("memory-safe") {
             boolean := and(shr(offset, encoded), MASK_UINT1)
         }
     }
@@ -78,7 +78,7 @@ library Encoded {
      * @return value The decoded value
      */
     function decodeUint16(bytes32 encoded, uint256 offset) internal pure returns (uint16 value) {
-        assembly {
+        assembly ("memory-safe") {
             value := and(shr(offset, encoded), MASK_UINT16)
         }
     }
@@ -91,7 +91,7 @@ library Encoded {
      * @return value The decoded value
      */
     function decodeUint24(bytes32 encoded, uint256 offset) internal pure returns (uint24 value) {
-        assembly {
+        assembly ("memory-safe") {
             value := and(shr(offset, encoded), MASK_UINT24)
         }
     }
@@ -104,7 +104,7 @@ library Encoded {
      * @return value The decoded value
      */
     function decodeUint64(bytes32 encoded, uint256 offset) internal pure returns (uint64 value) {
-        assembly {
+        assembly ("memory-safe") {
             value := and(shr(offset, encoded), MASK_UINT64)
         }
     }

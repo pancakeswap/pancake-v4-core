@@ -8,11 +8,13 @@ import {PoolKey} from "../types/PoolKey.sol";
 import {BalanceDelta} from "../types/BalanceDelta.sol";
 import {Currency, CurrencyLibrary} from "../types/Currency.sol";
 import {SafeCast} from "../libraries/SafeCast.sol";
+import {ParametersHelper} from "../libraries/math/ParametersHelper.sol";
 
 contract MockVault {
     using SafeCast for *;
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
+    using ParametersHelper for bytes32;
 
     mapping(IPoolManager poolManager => mapping(Currency currency => uint256 reserve)) public reservesOfPoolManager;
     mapping(PoolId poolId => BalanceDelta delta) public balanceDeltaOfPool;
@@ -23,8 +25,8 @@ contract MockVault {
         PoolId poolId = key.toId();
         balanceDeltaOfPool[poolId] = delta;
 
-        _accountDeltaOfPoolManager(key.poolManager, key.currency0, delta.amount0());
-        _accountDeltaOfPoolManager(key.poolManager, key.currency1, delta.amount1());
+        _accountDeltaOfPoolManager(IPoolManager(msg.sender), key.currency0, delta.amount0());
+        _accountDeltaOfPoolManager(IPoolManager(msg.sender), key.currency1, delta.amount1());
     }
 
     function _accountDeltaOfPoolManager(IPoolManager poolManager, Currency currency, int128 delta) internal {

@@ -56,6 +56,9 @@ contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
     function setUp() public {
         vault = new Vault();
         poolManager = new BinPoolManager(IVault(address(vault)), 500000);
+        // mock pool manager id 1
+        BinPoolManager poolManagerIdOne = new BinPoolManager(IVault(address(vault)), 500000);
+        vault.registerPoolManager(address(poolManagerIdOne));
 
         vault.registerPoolManager(address(poolManager));
 
@@ -89,9 +92,10 @@ contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
             currency0: currency0,
             currency1: currency1,
             hooks: binReturnsDeltaHook,
-            poolManager: IPoolManager(address(poolManager)),
+            // poolManager: IPoolManager(address(poolManager)),
             // fee: uint24(3000), // 3000 = 0.3%
             parameters: bytes32(uint256(binReturnsDeltaHook.getHooksRegistrationBitmap())).setBinStep(10).setFee(3000)
+                .setPoolManagerId(2)
         });
 
         poolManager.initialize(key, activeId, new bytes(0));

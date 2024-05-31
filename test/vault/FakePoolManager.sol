@@ -9,6 +9,8 @@ import {IPoolManager} from "../../src/interfaces/IPoolManager.sol";
 contract FakePoolManager is IPoolManager {
     IVault public vault;
 
+    uint256 public constant PoolManagerID = 1;
+
     constructor(IVault _vault) {
         vault = _vault;
     }

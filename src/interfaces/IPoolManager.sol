@@ -19,6 +19,9 @@ interface IPoolManager {
     /// @dev The event is emitted even if the updated fee value is the same as previous one
     event DynamicLPFeeUpdated(PoolId indexed id, uint24 dynamicLPFee);
 
+    /// @notice Pool manager id
+    function PoolManagerID() external view returns (uint256);
+
     /// @notice Updates lp fee for a dyanmic fee pool
     /// @dev Some of the use case could be:
     ///   1) when hook#beforeSwap() is called and hook call this function to update the lp fee

@@ -90,9 +90,9 @@ contract BinPoolFeeTest is BinTestHelper {
             currency0: currency0,
             currency1: currency1,
             hooks: IHooks(address(0)),
-            poolManager: IPoolManager(address(poolManager)),
+            // poolManager: IPoolManager(address(poolManager)),
             // fee: uint24(3000), // 3000 = 0.3%
-            parameters: poolParam.setFee(3000) // binStep
+            parameters: poolParam.setFee(3000).setPoolManagerId(2) // binStep
         });
         poolId = key.toId();
 
@@ -137,9 +137,9 @@ contract BinPoolFeeTest is BinTestHelper {
             currency0: currency0,
             currency1: currency1,
             hooks: IHooks(address(binFeeManagerHook)),
-            poolManager: IPoolManager(address(poolManager)),
+            // poolManager: IPoolManager(address(poolManager)),
             // fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
-            parameters: bytes32(uint256(bitMap)).setBinStep(10).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG)
+            parameters: bytes32(uint256(bitMap)).setBinStep(10).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG).setPoolManagerId(2)
         });
 
         uint24 activeId = ID_ONE; // where token price are the same
@@ -156,12 +156,12 @@ contract BinPoolFeeTest is BinTestHelper {
             currency0: currency0,
             currency1: currency1,
             hooks: IHooks(address(mockFeeManagerHook)),
-            poolManager: IPoolManager(address(poolManager)),
+            // poolManager: IPoolManager(address(poolManager)),
             /// @dev dynamic swap fee is 0 when pool is initialized, hence 0.3% will be ignored
             // fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             parameters: BinPoolParametersHelper.setBinStep(
                 bytes32(uint256(mockFeeManagerHook.getHooksRegistrationBitmap())), 10
-            ).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG)
+            ).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG).setPoolManagerId(2)
         });
 
         // this could be sync to pool through beforeInitialize hook
@@ -290,10 +290,10 @@ contract BinPoolFeeTest is BinTestHelper {
             currency0: currency0,
             currency1: currency1,
             hooks: IHooks(address(binFeeManagerHook)),
-            poolManager: IPoolManager(address(poolManager)),
+            // poolManager: IPoolManager(address(poolManager)),
             // fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             // parameters: poolParam // binStep
-            parameters: bytes32(uint256(bitMap)).setBinStep(10).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG)
+            parameters: bytes32(uint256(bitMap)).setBinStep(10).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG).setPoolManagerId(2)
         });
 
         // addLiquidity: 10_000 token0 and token1 on active bin
@@ -331,9 +331,9 @@ contract BinPoolFeeTest is BinTestHelper {
             currency0: currency0,
             currency1: currency1,
             hooks: IHooks(address(binFeeManagerHook)),
-            poolManager: IPoolManager(address(poolManager)),
+            // poolManager: IPoolManager(address(poolManager)),
             // fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
-            parameters: bytes32(uint256(bitMap)).setBinStep(10).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG)
+            parameters: bytes32(uint256(bitMap)).setBinStep(10).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG).setPoolManagerId(2)
         });
 
         // addLiquidity: 10_000 token0 and token1 on active bin

@@ -30,7 +30,12 @@ interface IVault is IVaultToken {
     /// @notice Thrown when there is no locker
     error NoLocker();
 
+    function PoolManagerLength() external view returns (uint256);
+
+    // Need to add poolManagerId , will do later
     function isPoolManagerRegistered(address poolManager) external returns (bool);
+
+    function poolManagerId(uint256 id) external returns (address);
 
     /// @notice Returns the reserves for a currency thats sync in transient storage
     function reservesOfVault(Currency currency) external view returns (uint256);

@@ -66,9 +66,9 @@ contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
             currency0: currency0,
             currency1: currency1,
             hooks: hook,
-            poolManager: manager,
+            // poolManager: manager,
             // fee: uint24(3000),
-            parameters: bytes32(uint256((60 << 16) | hook.getHooksRegistrationBitmap())).setFee(3000)
+            parameters: bytes32(uint256((60 << 16) | hook.getHooksRegistrationBitmap())).setFee(3000).setPoolManagerId(1)
         });
 
         manager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);

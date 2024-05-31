@@ -57,6 +57,9 @@ contract BinHookSkipCallbackTest is Test, GasSnapshot, BinTestHelper {
         vault = new Vault();
         poolManager = new BinPoolManager(IVault(address(vault)), 500000);
 
+        BinPoolManager poolManagerIdOne = new BinPoolManager(IVault(address(vault)), 500000);
+        vault.registerPoolManager(address(poolManagerIdOne));
+
         vault.registerPoolManager(address(poolManager));
 
         token0 = new MockERC20("TestA", "A", 18);
@@ -89,9 +92,10 @@ contract BinHookSkipCallbackTest is Test, GasSnapshot, BinTestHelper {
             currency0: currency0,
             currency1: currency1,
             hooks: binSkipCallbackHook,
-            poolManager: IPoolManager(address(poolManager)),
+            // poolManager: IPoolManager(address(poolManager)),
             // fee: uint24(3000), // 3000 = 0.3%
             parameters: bytes32(uint256(binSkipCallbackHook.getHooksRegistrationBitmap())).setBinStep(10).setFee(3000)
+                .setPoolManagerId(2)
         });
     }
 

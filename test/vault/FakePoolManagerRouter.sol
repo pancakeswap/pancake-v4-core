@@ -20,7 +20,7 @@ contract FakePoolManagerRouter is Test {
     constructor(IVault _vault, PoolKey memory _poolKey) {
         vault = _vault;
         poolKey = _poolKey;
-        poolManager = FakePoolManager(address(_poolKey.poolManager));
+        poolManager = FakePoolManager(address(_vault));
         forwarder = new Forwarder();
     }
 
@@ -55,7 +55,7 @@ contract FakePoolManagerRouter is Test {
         } else if (data[0] == 0x06) {
             // poolKey.poolManager was hacked hence not equal to msg.sender
             PoolKey memory maliciousPoolKey = poolKey;
-            maliciousPoolKey.poolManager = IPoolManager(address(0));
+            // maliciousPoolKey.poolManager = IPoolManager(address(0));
             poolManager.mockAccounting(maliciousPoolKey, -3 ether, 3 ether);
         } else if (data[0] == 0x07) {
             // generate nested lock call

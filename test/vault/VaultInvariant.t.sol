@@ -59,7 +59,7 @@ contract VaultPoolManager is Test {
             currency0: currency0,
             currency1: currency1,
             hooks: IHooks(address(0)),
-            poolManager: IPoolManager(address(this)),
+            // poolManager: IPoolManager(address(this)),
             // fee: 0,
             parameters: 0x00
         });

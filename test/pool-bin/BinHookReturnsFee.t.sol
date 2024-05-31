@@ -58,6 +58,10 @@ contract BinHookReturnsFeeTest is Test, BinTestHelper {
     function setUp() public {
         vault = new Vault();
         poolManager = new BinPoolManager(IVault(address(vault)), 500000);
+        // mock pool manager id 1
+        BinPoolManager poolManagerIdOne = new BinPoolManager(IVault(address(vault)), 500000);
+        vault.registerPoolManager(address(poolManagerIdOne));
+
         vault.registerPoolManager(address(poolManager));
 
         // initializeTokens
@@ -87,11 +91,11 @@ contract BinHookReturnsFeeTest is Test, BinTestHelper {
             currency0: currency0,
             currency1: currency1,
             hooks: dynamicReturnsFeesHook,
-            poolManager: poolManager,
+            // poolManager: poolManager,
             // fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             parameters: bytes32(uint256(dynamicReturnsFeesHook.getHooksRegistrationBitmap())).setBinStep(10).setFee(
                 LPFeeLibrary.DYNAMIC_FEE_FLAG
-            )
+            ).setPoolManagerId(2)
         });
 
         poolManager.initialize(key, activeId, new bytes(0));
@@ -125,8 +129,9 @@ contract BinHookReturnsFeeTest is Test, BinTestHelper {
     }
 
     function test_dynamicReturnSwapFee_initializeZeroSwapFee() public {
-        key.parameters =
-            BinPoolParametersHelper.setBinStep(bytes32(uint256(dynamicReturnsFeesHook.getHooksRegistrationBitmap())), 1);
+        key.parameters = BinPoolParametersHelper.setBinStep(
+            bytes32(uint256(dynamicReturnsFeesHook.getHooksRegistrationBitmap())), 1
+        ).setPoolManagerId(2);
         poolManager.initialize(key, activeId, new bytes(0));
         assertEq(_fetchPoolSwapFee(key), 0);
     }
@@ -159,7 +164,7 @@ contract BinHookReturnsFeeTest is Test, BinTestHelper {
         // create a new pool with an initial fee of 123
         key.parameters = BinPoolParametersHelper.setBinStep(
             bytes32(uint256(dynamicReturnsFeesHook.getHooksRegistrationBitmap())), 1
-        ).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG);
+        ).setFee(LPFeeLibrary.DYNAMIC_FEE_FLAG).setPoolManagerId(2);
         poolManager.initialize(key, activeId, new bytes(0));
         IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
         binLiquidityHelper.mint(key, mintParams, abi.encode(0));

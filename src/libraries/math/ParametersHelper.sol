@@ -9,6 +9,7 @@ library ParametersHelper {
 
     uint256 internal constant OFFSET_HOOK = 0;
     uint256 internal constant OFFSET_FEE = 40;
+    uint256 internal constant OFFSET_POOL_MANAGER_ID = 64;
 
     /**
      * @dev Get the hooks registration bitmap from the encoded parameters
@@ -23,5 +24,9 @@ library ParametersHelper {
 
     function getFeeFromParameters(bytes32 params) internal pure returns (uint24 fee) {
         fee = params.decodeUint24(OFFSET_FEE);
+    }
+
+    function getPoolManagerId(bytes32 params) internal pure returns (uint24 poolManagerId) {
+        poolManagerId = params.decodeUint24(OFFSET_POOL_MANAGER_ID);
     }
 }

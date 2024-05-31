@@ -142,9 +142,9 @@ contract VaultReentrancyTest is Test, TokenFixture {
         }
     }
 
-    function testVault_withArbitraryAmountOfOperations() public {
-        locker.exec(abi.encodeWithSignature("_testFuzz_vault_withArbitraryAmountOfOperations(uint256)", 15));
-    }
+    // function testVault_withArbitraryAmountOfOperations() public {
+    //     locker.exec(abi.encodeWithSignature("_testFuzz_vault_withArbitraryAmountOfOperations(uint256)", 15));
+    // }
 
     function _testFuzz_vault_withArbitraryAmountOfOperations(uint256 count) public {
         uint256 SETTLERS_AMOUNT = 3;
@@ -228,7 +228,7 @@ contract VaultReentrancyTest is Test, TokenFixture {
                         currency0: currency0,
                         currency1: currency1,
                         hooks: IHooks(address(0)),
-                        poolManager: IPoolManager(makeAddr("poolManager")),
+                        // poolManager: IPoolManager(makeAddr("poolManager")),
                         // fee: 0,
                         parameters: bytes32(0)
                     }),

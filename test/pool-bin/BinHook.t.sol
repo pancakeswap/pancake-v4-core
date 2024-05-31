@@ -266,9 +266,9 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
             currency0: Currency.wrap(makeAddr("token0")),
             currency1: Currency.wrap(makeAddr("token1")),
             hooks: IHooks(address(mockHooks)),
-            poolManager: IPoolManager(address(poolManager)),
+            // poolManager: IPoolManager(address(poolManager)),
             // fee: uint24(3000),
-            parameters: bytes32(uint256(_bitMap)).setBinStep(1).setFee(3000)
+            parameters: bytes32(uint256(_bitMap)).setBinStep(1).setFee(3000).setPoolManagerId(2)
         });
     }
 }

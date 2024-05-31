@@ -14,6 +14,7 @@ library BinPoolParametersHelper {
 
     uint256 internal constant OFFSET_BIN_STEP = 16;
     uint256 internal constant OFFSET_FEE = 40;
+    uint256 internal constant OFFSET_POOL_MANAGER_ID = 64;
 
     /// @dev Get binstep from the encoded pair parameters
     /// @param params The encoded pair parameters, as follows:
@@ -39,5 +40,9 @@ library BinPoolParametersHelper {
 
     function setFee(bytes32 params, uint24 fee) internal pure returns (bytes32) {
         return params.set(fee, Encoded.MASK_UINT24, OFFSET_FEE);
+    }
+
+    function setPoolManagerId(bytes32 params, uint24 poolManagerId) internal pure returns (bytes32) {
+        return params.set(poolManagerId, Encoded.MASK_UINT24, OFFSET_POOL_MANAGER_ID);
     }
 }
