@@ -14,8 +14,9 @@ import {ILockCallback} from "./interfaces/ILockCallback.sol";
 import {SafeCast} from "./libraries/SafeCast.sol";
 import {VaultReserves} from "./libraries/VaultReserves.sol";
 import {VaultToken} from "./VaultToken.sol";
+import {Exttload} from "./Exttload.sol";
 
-contract Vault is IVault, VaultToken, Ownable {
+contract Vault is IVault, VaultToken, Ownable, Exttload {
     using SafeCast for *;
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;

@@ -7,8 +7,9 @@ import {PoolKey} from "../types/PoolKey.sol";
 import {BalanceDelta} from "../types/BalanceDelta.sol";
 import {IPoolManager} from "./IPoolManager.sol";
 import {IVaultToken} from "./IVaultToken.sol";
+import {IExttload} from "./IExttload.sol";
 
-interface IVault is IVaultToken {
+interface IVault is IVaultToken, IExttload {
     event PoolManagerRegistered(address indexed poolManager);
 
     /// @notice Thrown when a function is not called by a pool manager
