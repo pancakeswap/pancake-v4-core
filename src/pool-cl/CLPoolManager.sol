@@ -99,7 +99,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         if (key.currency0 >= key.currency1) revert CurrenciesInitializedOutOfOrder();
 
         ParametersHelper.checkUnusedBitsAllZero(
-            key.parameters, CLPoolParametersHelper.OFFSET_MOST_SIGNIFICANT_USED_BITS
+            key.parameters, CLPoolParametersHelper.OFFSET_MOST_SIGNIFICANT_UNUSED_BITS
         );
         Hooks.validateHookConfig(key);
         CLHooks.validatePermissionsConflict(key);

@@ -102,7 +102,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         if (key.currency0 >= key.currency1) revert CurrenciesInitializedOutOfOrder();
 
         ParametersHelper.checkUnusedBitsAllZero(
-            key.parameters, BinPoolParametersHelper.OFFSET_MOST_SIGNIFICANT_USED_BITS
+            key.parameters, BinPoolParametersHelper.OFFSET_MOST_SIGNIFICANT_UNUSED_BITS
         );
         Hooks.validateHookConfig(key);
         BinHooks.validatePermissionsConflict(key);

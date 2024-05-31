@@ -2829,10 +2829,15 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         vm.expectEmit();
         emit DynamicLPFeeUpdated(key.toId(), _swapFee);
 
-        snapStart("CLPoolManagerTest#testFuzzUpdateDynamicLPFee");
         vm.prank(address(clFeeManagerHook));
-        poolManager.updateDynamicLPFee(key, _swapFee);
-        snapEnd();
+        if (_swapFee != 0) {
+            // temp fix to only record gas if _swapFee !=0. todo use snapLastCall to make this part of code easier to read
+            snapStart("CLPoolManagerTest#testFuzzUpdateDynamicLPFee");
+            poolManager.updateDynamicLPFee(key, _swapFee);
+            snapEnd();
+        } else {
+            poolManager.updateDynamicLPFee(key, _swapFee);
+        }
 
         (,,, uint24 swapFee) = poolManager.getSlot0(key.toId());
         assertEq(swapFee, _swapFee);
@@ -2968,7 +2973,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
     function checkUnusedBitsAllZero(bytes32 params) internal pure returns (bool) {
         return
-            (uint256(params) & (type(uint256).max << CLPoolParametersHelper.OFFSET_MOST_SIGNIFICANT_USED_BITS + 1)) == 0;
+            (uint256(params) & (type(uint256).max << CLPoolParametersHelper.OFFSET_MOST_SIGNIFICANT_UNUSED_BITS)) == 0;
     }
 
     function _validateHookConfig(PoolKey memory poolKey) internal view returns (bool) {

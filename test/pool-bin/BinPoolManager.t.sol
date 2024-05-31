@@ -158,7 +158,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     }
 
     function test_FuzzInitializePoolUnusedBits(uint256 randomOneBitOffset) external {
-        randomOneBitOffset = bound(randomOneBitOffset, BinPoolParametersHelper.OFFSET_MOST_SIGNIFICANT_USED_BITS, 255);
+        randomOneBitOffset = bound(randomOneBitOffset, BinPoolParametersHelper.OFFSET_MOST_SIGNIFICANT_UNUSED_BITS, 255);
 
         uint16 bitMap = 0x0008; // after mint call
         MockBinHooks mockHooks = new MockBinHooks();
@@ -174,10 +174,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             parameters: bytes32(uint256(bitMap) | (1 << randomOneBitOffset)).setBinStep(1)
         });
 
-        // just a bigger binStep if equals to BinPoolParametersHelper.OFFSET_MOST_SIGNIFICANT_USED_BITS
-        if (randomOneBitOffset != BinPoolParametersHelper.OFFSET_MOST_SIGNIFICANT_USED_BITS) {
-            vm.expectRevert(abi.encodeWithSelector(ParametersHelper.UnusedBitsNonZero.selector));
-        }
+        vm.expectRevert(abi.encodeWithSelector(ParametersHelper.UnusedBitsNonZero.selector));
         poolManager.initialize(key, activeId, new bytes(0));
     }
 
@@ -978,10 +975,15 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         vm.expectEmit();
         emit DynamicLPFeeUpdated(key.toId(), _lpFee);
 
-        snapStart("BinPoolManagerTest#testFuzzUpdateDynamicLPFee");
         vm.prank(address(binFeeManagerHook));
-        poolManager.updateDynamicLPFee(key, _lpFee);
-        snapEnd();
+        if (_lpFee != 0) {
+            // temp fix to only record gas if _lpFee !=0. todo use snapLastCall to make this part of code easier to read
+            snapStart("BinPoolManagerTest#testFuzzUpdateDynamicLPFee");
+            poolManager.updateDynamicLPFee(key, _lpFee);
+            snapEnd();
+        } else {
+            poolManager.updateDynamicLPFee(key, _lpFee);
+        }
 
         (,, uint24 swapFee) = poolManager.getSlot0(key.toId());
         assertEq(swapFee, _lpFee);

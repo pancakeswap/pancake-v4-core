@@ -22,8 +22,8 @@ library ParametersHelper {
         bitmap = params.decodeUint16(OFFSET_HOOK);
     }
 
-    function checkUnusedBitsAllZero(bytes32 params, uint256 mostSignificantUsedBitOffset) internal pure {
-        if ((uint256(params) >> (mostSignificantUsedBitOffset + 1)) != 0) {
+    function checkUnusedBitsAllZero(bytes32 params, uint256 mostSignificantUnUsedBitOffset) internal pure {
+        if ((uint256(params) >> (mostSignificantUnUsedBitOffset)) != 0) {
             revert UnusedBitsNonZero();
         }
     }
