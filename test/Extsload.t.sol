@@ -45,23 +45,6 @@ contract ExtsloadTest is Test, GasSnapshot {
         assertEq(abi.encode(slot3), abi.encode(address(0xabcd)));
     }
 
-    function testExtsloadNSlot() public {
-        snapStart("ExtsloadTest#testExtsloadNSlot");
-        bytes memory data = poolManager.extsload(bytes32(uint256(0x00)), 4);
-        snapEnd();
-
-        address owner;
-        address protocolFeeController;
-        assembly {
-            owner := mload(add(data, 32))
-            // slot 0x01 and 0x02 are mapping so skip for now
-            protocolFeeController := mload(add(data, 128))
-        }
-
-        assertEq(owner, address(this));
-        assertEq(protocolFeeController, address(0xabcd));
-    }
-
     function testExtsloadInBatch() public {
         bytes32[] memory slots = new bytes32[](2);
         slots[0] = 0x00;
