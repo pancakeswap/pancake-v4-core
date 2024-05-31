@@ -9,6 +9,17 @@ import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {SqrtPriceMath} from "../../../src/pool-cl/libraries/SqrtPriceMath.sol";
 
 contract SwapMathTest is Test, GasSnapshot {
+    function testFuzz_getSqrtPriceTarget(bool zeroForOne, uint160 sqrtPriceNextX96, uint160 sqrtPriceLimitX96)
+        external
+    {
+        assertEq(
+            SwapMath.getSqrtPriceTarget(zeroForOne, sqrtPriceNextX96, sqrtPriceLimitX96),
+            (zeroForOne ? sqrtPriceNextX96 < sqrtPriceLimitX96 : sqrtPriceNextX96 > sqrtPriceLimitX96)
+                ? sqrtPriceLimitX96
+                : sqrtPriceNextX96
+        );
+    }
+
     function testComputeSwapTest_sufficientAmountInOneForZero() external {
         // (y / x) ^ 0.5 * 2^(96 * 2 * 0.5)
         // (y / x) ^ 0.5 * 2^ (192 * 0.5)
