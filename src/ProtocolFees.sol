@@ -50,7 +50,7 @@ abstract contract ProtocolFees is IProtocolFees, PausableRole {
             if (gasleft() < controllerGasLimit) revert ProtocolFeeCannotBeFetched();
 
             (bool _success, bytes memory _data) = address(protocolFeeController).call{gas: controllerGasLimit}(
-                abi.encodeWithSelector(IProtocolFeeController.protocolFeeForPool.selector, key)
+                abi.encodeCall(IProtocolFeeController.protocolFeeForPool, (key))
             );
             // Ensure that the return data fits within a word
             if (!_success || _data.length > 32) return (false, 0);

@@ -1,15 +1,14 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-/// @title This is an interface to read contract's state that supports extsload.
 interface IExtsload {
-    /// @notice Returns a value from the storage.
-    /// @param slot to read from.
-    /// @return value stored at the slot.
+    /// @notice Called by external contracts to access granular pool state
+    /// @param slot Key of slot to sload
+    /// @return value The value of the slot as bytes32
     function extsload(bytes32 slot) external view returns (bytes32 value);
 
-    /// @notice Returns multiple values from storage.
-    /// @param slots to read from.
-    /// @return values stored at the slots.
-    function extsload(bytes32[] memory slots) external view returns (bytes32[] memory);
+    /// @notice Called by external contracts to access sparse pool state
+    /// @param slots List of slots to SLOAD from.
+    /// @return values List of loaded values.
+    function extsload(bytes32[] calldata slots) external view returns (bytes32[] memory values);
 }
