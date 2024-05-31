@@ -43,6 +43,11 @@ contract TickMathTestTest is Test {
         assertEq(maxTick, MAX_TICK);
     }
 
+    function test_getSqrtRatioAtTick_throwsForInt24Min() public {
+        vm.expectRevert(TickMath.InvalidTick.selector);
+        tickMath.getSqrtRatioAtTick(type(int24).min);
+    }
+
     function test_getSqrtRatioAtTick_throwsForTooLow() public {
         vm.expectRevert(TickMath.InvalidTick.selector);
         tickMath.getSqrtRatioAtTick(MIN_TICK - 1);
