@@ -17,7 +17,7 @@ library TickBitmap {
     /// @param tick The tick for which to compute the position
     /// @return wordPos The key in the mapping containing the word in which the bit is stored
     /// @return bitPos The bit position in the word where the flag is stored
-    function position(int24 tick) private pure returns (int16 wordPos, uint8 bitPos) {
+    function position(int24 tick) internal pure returns (int16 wordPos, uint8 bitPos) {
         unchecked {
             wordPos = int16(tick >> 8);
             bitPos = uint8(int8(tick % 256));
@@ -29,11 +29,31 @@ library TickBitmap {
     /// @param tick The tick to flip
     /// @param tickSpacing The spacing between usable ticks
     function flipTick(mapping(int16 => uint256) storage self, int24 tick, int24 tickSpacing) internal {
-        unchecked {
-            if (tick % tickSpacing != 0) revert TickMisaligned(tick, tickSpacing); // ensure that the tick is spaced
-            (int16 wordPos, uint8 bitPos) = position(tick / tickSpacing);
-            uint256 mask = 1 << bitPos;
-            self[wordPos] ^= mask;
+        /**
+         * @notice Equivalent to the following Solidity:
+         *     if (tick % tickSpacing != 0) revert TickMisaligned(tick, tickSpacing);  // ensure that the tick is spaced
+         *     (int16 wordPos, uint8 bitPos) = position(tick / tickSpacing);
+         *     uint256 mask = 1 << bitPos;
+         *     self[wordPos] ^= mask;
+         */
+        assembly ("memory-safe") {
+            // ensure that the tick is spaced
+            if smod(tick, tickSpacing) {
+                mstore(0, 0xd4d8f3e6) // selector for TickMisaligned(int24,int24)
+                mstore(0x20, tick)
+                mstore(0x40, tickSpacing)
+                revert(0x1c, 0x44)
+            }
+            tick := sdiv(tick, tickSpacing)
+            // calculate the storage slot corresponding to the tick
+            // wordPos = tick >> 8
+            mstore(0, sar(8, tick))
+            mstore(0x20, self.slot)
+            // the slot of self[wordPos] is keccak256(abi.encode(wordPos, self.slot))
+            let slot := keccak256(0, 0x40)
+            // mask = 1 << bitPos = 1 << (tick % 256)
+            // self[wordPos] ^= mask
+            sstore(slot, xor(sload(slot), shl(and(tick, 0xff), 1)))
         }
     }
 

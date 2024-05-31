@@ -97,6 +97,22 @@ contract TickBitmapTest is Test, GasSnapshot {
         snapEnd();
     }
 
+    function testFuzz_flipTick(int24 tick, int24 tickSpacing) public {
+        tickSpacing = int24(bound(tickSpacing, 1, type(int24).max));
+
+        if (tick % tickSpacing != 0) {
+            vm.expectRevert(abi.encodeWithSelector(TickBitmap.TickMisaligned.selector, tick, tickSpacing));
+            bitmap.flipTick(tick, tickSpacing);
+        } else {
+            bool initialized = isInitialized(tick, tickSpacing);
+            bitmap.flipTick(tick, tickSpacing);
+            assertEq(isInitialized(tick, tickSpacing), !initialized);
+            // flip again
+            bitmap.flipTick(tick, tickSpacing);
+            assertEq(isInitialized(tick, tickSpacing), initialized);
+        }
+    }
+
     function test_nextInitializedTickWithinOneWord_lteFalse_returnsTickToRightIfAtInitializedTick() public {
         (int24 next, bool initialized) = bitmap.nextInitializedTickWithinOneWord(78, 1, false);
         assertEq(next, 84);
@@ -279,6 +295,14 @@ contract TickBitmapTest is Test, GasSnapshot {
                 assertTrue(!isInitialized(i));
             }
             assertEq(isInitialized(next), initialized);
+        }
+    }
+
+    function isInitialized(int24 tick, int24 tickSpacing) internal view returns (bool) {
+        unchecked {
+            if (tick % tickSpacing != 0) return false;
+            (int16 wordPos, uint8 bitPos) = TickBitmap.position(tick / tickSpacing);
+            return bitmap[wordPos] & (1 << bitPos) != 0;
         }
     }
 
