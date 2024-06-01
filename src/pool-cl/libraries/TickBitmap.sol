@@ -16,8 +16,8 @@ library TickBitmap {
     /// @dev round towards negative infinity
     function compress(int24 tick, int24 tickSpacing) internal pure returns (int24 compressed) {
         // Equivalent to:
-        // compressed = tick / tickSpacing;
-        // if (tick < 0 && tick % tickSpacing != 0) compressed--;
+        //   compressed = tick / tickSpacing;
+        //   if (tick < 0 && tick % tickSpacing != 0) compressed--;
         assembly {
             compressed :=
                 sub(
@@ -45,13 +45,11 @@ library TickBitmap {
     /// @param tick The tick to flip
     /// @param tickSpacing The spacing between usable ticks
     function flipTick(mapping(int16 => uint256) storage self, int24 tick, int24 tickSpacing) internal {
-        /**
-         * @notice Equivalent to the following Solidity:
-         *     if (tick % tickSpacing != 0) revert TickMisaligned(tick, tickSpacing);  // ensure that the tick is spaced
-         *     (int16 wordPos, uint8 bitPos) = position(tick / tickSpacing);
-         *     uint256 mask = 1 << bitPos;
-         *     self[wordPos] ^= mask;
-         */
+        // Equivalent to:
+        //   if (tick % tickSpacing != 0) revert TickMisaligned(tick, tickSpacing);  // ensure that the tick is spaced
+        //   (int16 wordPos, uint8 bitPos) = position(tick / tickSpacing);
+        //   uint256 mask = 1 << bitPos;
+        //   self[wordPos] ^= mask;
         assembly ("memory-safe") {
             // ensure that the tick is spaced
             if smod(tick, tickSpacing) {
