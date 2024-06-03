@@ -11,9 +11,9 @@ contract CLPoolParametersHelperTest is Test, GasSnapshot {
         int24 tickSpacing0 = CLPoolParametersHelper.getTickSpacing(paramsWithTickSpacing0);
         assertEq(tickSpacing0, 0);
 
-        bytes32 paramsWithTickSpacing13 = bytes32(uint256(0xd0000));
-        int24 tickSpacing13 = CLPoolParametersHelper.getTickSpacing(paramsWithTickSpacing13);
-        assertEq(tickSpacing13, 13);
+        bytes32 paramsWithTickSpacingNegative13 = bytes32(uint256(0xfffff30000));
+        int24 tickSpacingNegative13 = CLPoolParametersHelper.getTickSpacing(paramsWithTickSpacingNegative13);
+        assertEq(tickSpacingNegative13, -13);
 
         bytes32 paramsWithTickSpacing5 = bytes32(uint256(0x0000050000));
         int24 tickSpacinge5 = CLPoolParametersHelper.getTickSpacing(paramsWithTickSpacing5);
