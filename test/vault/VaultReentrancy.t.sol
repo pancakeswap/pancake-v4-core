@@ -223,19 +223,9 @@ contract VaultReentrancyTest is Test, TokenFixture {
             } else if (i % 6 == 5) {
                 // accountPoolBalanceDelta
                 vm.prank(makeAddr("poolManager"));
-                vault.accountPoolBalanceDelta(
-                    PoolKey({
-                        currency0: currency0,
-                        currency1: currency1,
-                        hooks: IHooks(address(0)),
-                        poolManager: IPoolManager(makeAddr("poolManager")),
-                        fee: 0,
-                        parameters: bytes32(0)
-                    }),
-                    toBalanceDelta(-(paidAmount.toInt128()), int128(0)),
-                    callerAddr
-                );
-
+                vault.accountPoolBalanceDelta(currency0, -(paidAmount.toInt128()), callerAddr);
+                vm.prank(makeAddr("poolManager"));
+                vault.accountPoolBalanceDelta(currency0, 0, callerAddr);
                 currencyDelta[i % SETTLERS_AMOUNT] -= int256(paidAmount);
             }
 
