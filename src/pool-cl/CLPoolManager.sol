@@ -125,12 +125,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         PoolKey memory key,
         ICLPoolManager.ModifyLiquidityParams memory params,
         bytes calldata hookData
-    )
-        external
-        override
-        poolManagerMatch(address(key.poolManager))
-        returns (BalanceDelta delta, BalanceDelta feeDelta)
-    {
+    ) external override returns (BalanceDelta delta, BalanceDelta feeDelta) {
         // Do not allow add liquidity when paused()
         if (paused() && params.liquidityDelta > 0) revert PoolPaused();
 
@@ -166,7 +161,6 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     function swap(PoolKey memory key, ICLPoolManager.SwapParams memory params, bytes calldata hookData)
         external
         override
-        poolManagerMatch(address(key.poolManager))
         whenNotPaused
         returns (BalanceDelta delta)
     {
@@ -223,7 +217,6 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     function donate(PoolKey memory key, uint256 amount0, uint256 amount1, bytes calldata hookData)
         external
         override
-        poolManagerMatch(address(key.poolManager))
         whenNotPaused
         returns (BalanceDelta delta)
     {
