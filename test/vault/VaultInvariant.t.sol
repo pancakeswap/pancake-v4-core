@@ -145,13 +145,15 @@ contract VaultPoolManager is Test {
 
         if (action.actionType == ActionType.Take) {
             BalanceDelta delta = toBalanceDelta(-(int128(action.amt0)), -(int128(action.amt1)));
-            vault.accountPoolBalanceDelta(poolKey, delta, address(this));
+            vault.accountPoolBalanceDelta(poolKey.currency0, delta.amount0(), address(this));
+            vault.accountPoolBalanceDelta(poolKey.currency1, delta.amount1(), address(this));
 
             vault.take(currency0, address(this), action.amt0);
             vault.take(currency1, address(this), action.amt1);
         } else if (action.actionType == ActionType.Mint) {
             BalanceDelta delta = toBalanceDelta(-(int128(action.amt0)), -(int128(action.amt1)));
-            vault.accountPoolBalanceDelta(poolKey, delta, address(this));
+            vault.accountPoolBalanceDelta(poolKey.currency0, delta.amount0(), address(this));
+            vault.accountPoolBalanceDelta(poolKey.currency1, delta.amount1(), address(this));
 
             vault.mint(address(this), currency0, action.amt0);
             vault.mint(address(this), currency1, action.amt1);
@@ -159,7 +161,8 @@ contract VaultPoolManager is Test {
             totalMintedCurrency1 += action.amt1;
         } else if (action.actionType == ActionType.Settle) {
             BalanceDelta delta = toBalanceDelta(int128(action.amt0), int128(action.amt1));
-            vault.accountPoolBalanceDelta(poolKey, delta, address(this));
+            vault.accountPoolBalanceDelta(poolKey.currency0, delta.amount0(), address(this));
+            vault.accountPoolBalanceDelta(poolKey.currency1, delta.amount1(), address(this));
 
             vault.sync(currency0);
             vault.sync(currency1);
@@ -172,7 +175,8 @@ contract VaultPoolManager is Test {
         } else if (action.actionType == ActionType.SettleFor) {
             // hook cash out the fee ahead
             BalanceDelta delta = toBalanceDelta(int128(action.amt0), int128(action.amt1));
-            vault.accountPoolBalanceDelta(poolKey, delta, makeAddr("hook"));
+            vault.accountPoolBalanceDelta(poolKey.currency0, delta.amount0(), makeAddr("hook"));
+            vault.accountPoolBalanceDelta(poolKey.currency1, delta.amount1(), makeAddr("hook"));
 
             // transfer hook's fee to user
             vault.settleFor(currency0, makeAddr("hook"), action.amt0);
@@ -189,7 +193,8 @@ contract VaultPoolManager is Test {
             vault.settle(currency1);
         } else if (action.actionType == ActionType.Burn) {
             BalanceDelta delta = toBalanceDelta(int128(action.amt0), int128(action.amt1));
-            vault.accountPoolBalanceDelta(poolKey, delta, address(this));
+            vault.accountPoolBalanceDelta(poolKey.currency0, delta.amount0(), address(this));
+            vault.accountPoolBalanceDelta(poolKey.currency1, delta.amount1(), address(this));
 
             vault.burn(address(this), currency0, action.amt0);
             vault.burn(address(this), currency1, action.amt1);
@@ -245,8 +250,12 @@ contract VaultInvariant is Test, NoIsolate, GasSnapshot {
         uint256 totalMintedCurrency1 = vaultPoolManager.totalMintedCurrency1();
 
         IPoolManager manager = IPoolManager(address(vaultPoolManager));
-        assertGe(amt0Bal, vault.reservesOfPoolManager(manager, vaultPoolManager.currency0()) + totalMintedCurrency0);
-        assertGe(amt1Bal, vault.reservesOfPoolManager(manager, vaultPoolManager.currency1()) + totalMintedCurrency1);
+        assertGe(
+            amt0Bal, vault.reservesOfPoolManager(address(manager), vaultPoolManager.currency0()) + totalMintedCurrency0
+        );
+        assertGe(
+            amt1Bal, vault.reservesOfPoolManager(address(manager), vaultPoolManager.currency1()) + totalMintedCurrency1
+        );
     }
 
     function invariant_ReserveOfVaultEqReserveOfPoolManagerPlusSurplusToken() public noIsolate {
@@ -258,11 +267,11 @@ contract VaultInvariant is Test, NoIsolate, GasSnapshot {
         vault.sync(vaultPoolManager.currency1());
         assertEq(
             vault.reservesOfVault(vaultPoolManager.currency0()),
-            vault.reservesOfPoolManager(manager, vaultPoolManager.currency0()) + totalMintedCurrency0
+            vault.reservesOfPoolManager(address(manager), vaultPoolManager.currency0()) + totalMintedCurrency0
         );
         assertEq(
             vault.reservesOfVault(vaultPoolManager.currency1()),
-            vault.reservesOfPoolManager(manager, vaultPoolManager.currency1()) + totalMintedCurrency1
+            vault.reservesOfPoolManager(address(manager), vaultPoolManager.currency1()) + totalMintedCurrency1
         );
     }
 

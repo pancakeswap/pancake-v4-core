@@ -2,17 +2,10 @@
 pragma solidity ^0.8.24;
 
 import {Currency} from "../types/Currency.sol";
-import {PoolId} from "../types/PoolId.sol";
-import {PoolKey} from "../types/PoolKey.sol";
-import {BalanceDelta} from "../types/BalanceDelta.sol";
-import {IPoolManager} from "./IPoolManager.sol";
 import {IVaultToken} from "./IVaultToken.sol";
 
 interface IVault is IVaultToken {
     event PoolManagerRegistered(address indexed poolManager);
-
-    /// @notice Thrown when a function is not called by a pool manager
-    error NotFromPoolManager();
 
     /// @notice Thrown when a pool manager is not registered
     error PoolManagerUnregistered();
@@ -36,7 +29,7 @@ interface IVault is IVaultToken {
     function reservesOfVault(Currency currency) external view returns (uint256);
 
     /// @notice Returns the reserves for a a given pool type and currency
-    function reservesOfPoolManager(IPoolManager poolManager, Currency currency) external view returns (uint256);
+    function reservesOfPoolManager(address poolManager, Currency currency) external view returns (uint256);
 
     /// @notice enable or disable specific pool manager
     function registerPoolManager(address poolManager) external;
@@ -58,10 +51,10 @@ interface IVault is IVaultToken {
 
     /// @notice Called by the pool manager to account for a change in the pool balance,
     /// typically after modifyLiquidity, swap, donate
-    /// @param key The key for the pool
+    /// @param currency The currency to update
     /// @param delta The change in the pool's balance
     /// @param settler The address whose delta will be updated
-    function accountPoolBalanceDelta(PoolKey memory key, BalanceDelta delta, address settler) external;
+    function accountPoolBalanceDelta(Currency currency, int128 delta, address settler) external;
 
     /// @notice Called by the user to net out some value owed to the user
     /// @dev Can also be used as a mechanism for _free_ flash loans
