@@ -11,7 +11,7 @@ library VaultReserves {
     error ReserveNotSync();
 
     // uint256 constant RESERVE_OF_VAULT_SLOT = uint256(keccak256("reservesOfVault")) - 1;
-    uint256 constant RESERVE_OF_VAULT_SLOT = uint256(0xb54c65c0f448723e3496562a0e878a1341c4dd2511ef542b5fd5f19cebc47663);
+    uint256 constant RESERVE_OF_VAULT_SLOT = 0xb54c65c0f448723e3496562a0e878a1341c4dd2511ef542b5fd5f19cebc47663;
 
     /// @notice Set balance to the max as a sentinel to track that it has been set if amount == 0
     uint256 constant ZERO_BALANCE = type(uint256).max;
@@ -40,9 +40,8 @@ library VaultReserves {
     }
 
     function _getCurrencySlotKey(Currency currency) internal pure returns (bytes32 key) {
-        uint256 slot = RESERVE_OF_VAULT_SLOT;
         assembly {
-            mstore(0x0, slot)
+            mstore(0x0, RESERVE_OF_VAULT_SLOT)
             mstore(0x20, currency)
             key := keccak256(0x0, 0x40)
         }
