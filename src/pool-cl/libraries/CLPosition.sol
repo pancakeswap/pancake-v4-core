@@ -35,9 +35,10 @@ library CLPosition {
         returns (Info storage position)
     {
         bytes32 key;
+        // still memory-safe because we've cleared the data that is out of scratch space range
         // make use of memory scratch space
         // ref: https://github.com/Vectorized/solady/blob/main/src/tokens/ERC20.sol#L95
-        assembly {
+        assembly ("memory-safe") {
             mstore(0x26, salt)
             mstore(0x06, tickUpper)
             mstore(0x03, tickLower)

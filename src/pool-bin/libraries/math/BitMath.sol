@@ -34,7 +34,7 @@ library BitMath {
     /// @param x The value as a uint256
     /// @return msb The index of the most significant bit of x
     function mostSignificantBit(uint256 x) internal pure returns (uint8 msb) {
-        assembly {
+        assembly ("memory-safe") {
             if gt(x, 0xffffffffffffffffffffffffffffffff) {
                 x := shr(128, x)
                 msb := 128
@@ -71,7 +71,7 @@ library BitMath {
     /// @param x The value as a uint256
     /// @return lsb The index of the least significant bit of x
     function leastSignificantBit(uint256 x) internal pure returns (uint8 lsb) {
-        assembly {
+        assembly ("memory-safe") {
             let sx := shl(128, x)
             if iszero(iszero(sx)) {
                 lsb := 128

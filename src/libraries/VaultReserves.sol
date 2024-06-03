@@ -22,7 +22,7 @@ library VaultReserves {
         if (amount == 0) amount = ZERO_BALANCE;
 
         bytes32 slotKey = _getCurrencySlotKey(currency);
-        assembly {
+        assembly ("memory-safe") {
             tstore(slotKey, amount)
         }
     }
@@ -31,7 +31,7 @@ library VaultReserves {
     /// @dev If this is called before vault.sync, it will be reverted
     function getVaultReserves(Currency currency) internal view returns (uint256 amount) {
         bytes32 slotKey = _getCurrencySlotKey(currency);
-        assembly {
+        assembly ("memory-safe") {
             amount := tload(slotKey)
         }
 
@@ -41,7 +41,7 @@ library VaultReserves {
 
     function _getCurrencySlotKey(Currency currency) internal pure returns (bytes32 key) {
         uint256 slot = RESERVE_OF_VAULT_SLOT;
-        assembly {
+        assembly ("memory-safe") {
             mstore(0x0, slot)
             mstore(0x20, currency)
             key := keccak256(0x0, 0x40)

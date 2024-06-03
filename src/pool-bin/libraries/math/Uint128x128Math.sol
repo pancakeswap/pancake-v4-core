@@ -90,7 +90,7 @@ library Uint128x128Math {
 
         if (y == 0) return Constants.SCALE;
 
-        assembly {
+        assembly ("memory-safe") {
             absY := y
             if slt(absY, 0) {
                 absY := sub(0, absY)
@@ -100,7 +100,7 @@ library Uint128x128Math {
 
         if (absY < 0x100000) {
             result = Constants.SCALE;
-            assembly {
+            assembly ("memory-safe") {
                 let squared := x
                 if gt(x, 0xffffffffffffffffffffffffffffffff) {
                     squared := div(not(0), squared)
