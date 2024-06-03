@@ -26,31 +26,25 @@ library SettlementGuard {
         if (currentLocker == newLocker) return;
         if (currentLocker != address(0) && newLocker != address(0)) revert IVault.LockerAlreadySet(currentLocker);
 
-        uint256 slot = LOCKER_SLOT;
         assembly {
-            tstore(slot, newLocker)
+            tstore(LOCKER_SLOT, newLocker)
         }
     }
 
     function getLocker() internal view returns (address locker) {
-        uint256 slot = LOCKER_SLOT;
         assembly {
-            locker := tload(slot)
+            locker := tload(LOCKER_SLOT)
         }
     }
 
     function getUnsettledDeltasCount() internal view returns (uint256 count) {
-        uint256 slot = UNSETTLED_DELTAS_COUNT;
         assembly {
-            count := tload(slot)
+            count := tload(UNSETTLED_DELTAS_COUNT)
         }
     }
 
     function accountDelta(address settler, Currency currency, int256 newlyAddedDelta) internal {
         if (newlyAddedDelta == 0) return;
-
-        uint256 slot = CURRENCY_DELTA;
-        uint256 countSlot = UNSETTLED_DELTAS_COUNT;
 
         /// @dev update the count of non-zero deltas if necessary
         int256 currentDelta = getCurrencyDelta(settler, currency);
@@ -58,11 +52,11 @@ library SettlementGuard {
         unchecked {
             if (nextDelta == 0) {
                 assembly {
-                    tstore(countSlot, sub(tload(countSlot), 1))
+                    tstore(UNSETTLED_DELTAS_COUNT, sub(tload(UNSETTLED_DELTAS_COUNT), 1))
                 }
             } else if (currentDelta == 0) {
                 assembly {
-                    tstore(countSlot, add(tload(countSlot), 1))
+                    tstore(UNSETTLED_DELTAS_COUNT, add(tload(UNSETTLED_DELTAS_COUNT), 1))
                 }
             }
         }
@@ -70,15 +64,14 @@ library SettlementGuard {
         /// @dev ref: https://docs.soliditylang.org/en/v0.8.24/internals/layout_in_storage.html#mappings-and-dynamic-arrays
         /// simulating mapping index but with a single hash
         /// save one keccak256 hash compared to built-in nested mapping
-        uint256 elementSlot = uint256(keccak256(abi.encode(settler, currency, slot)));
+        uint256 elementSlot = uint256(keccak256(abi.encode(settler, currency, CURRENCY_DELTA)));
         assembly {
             tstore(elementSlot, nextDelta)
         }
     }
 
     function getCurrencyDelta(address settler, Currency currency) internal view returns (int256 delta) {
-        uint256 slot = CURRENCY_DELTA;
-        uint256 elementSlot = uint256(keccak256(abi.encode(settler, currency, slot)));
+        uint256 elementSlot = uint256(keccak256(abi.encode(settler, currency, CURRENCY_DELTA)));
         assembly {
             delta := tload(elementSlot)
         }
