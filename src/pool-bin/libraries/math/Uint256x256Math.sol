@@ -135,7 +135,7 @@ library Uint256x256Math {
         // 512-bit multiply [prod1 prod0] = x * y. Compute the product mod 2^256 and mod 2^256 - 1, then use
         // use the Chinese Remainder Theorem to reconstruct the 512 bit result. The result is stored in two 256
         // variables such that product = prod1 * 2^256 + prod0.
-        assembly {
+        assembly ("memory-safe") {
             let mm := mulmod(x, y, not(0))
             prod0 := mul(x, y)
             prod1 := sub(sub(mm, prod0), lt(mm, prod0))
@@ -165,7 +165,7 @@ library Uint256x256Math {
 
             // Make division exact by subtracting the remainder from [prod1 prod0].
             uint256 remainder;
-            assembly {
+            assembly ("memory-safe") {
                 // Compute remainder using mulmod.
                 remainder := mulmod(x, y, denominator)
 
@@ -179,7 +179,7 @@ library Uint256x256Math {
             unchecked {
                 // Does not overflow because the denominator cannot be zero at this stage in the function
                 uint256 lpotdod = denominator & (~denominator + 1);
-                assembly {
+                assembly ("memory-safe") {
                     // Divide denominator by lpotdod.
                     denominator := div(denominator, lpotdod)
 

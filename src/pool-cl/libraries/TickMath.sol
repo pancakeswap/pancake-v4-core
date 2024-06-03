@@ -47,7 +47,7 @@ library TickMath {
         unchecked {
             // Equivalent: uint256 absTick = tick < 0 ? uint256(-int256(tick)) : uint256(int256(tick));
             uint256 absTick;
-            assembly {
+            assembly ("memory-safe") {
                 // mask = 0 if tick >= 0 else -1 (all 1s)
                 let mask := sar(255, tick)
                 absTick := xor(mask, add(mask, tick))
@@ -66,7 +66,7 @@ library TickMath {
             //     ratio = absTick & 0x1 != 0 ? 0xfffcb933bd6fad37aa2d162d1a594001 : 0x100000000000000000000000000000000;
             //     or price = int(2**128 / sqrt(1.0001)) if (absTick & 0x1) else 1 << 128
             uint256 ratio;
-            assembly {
+            assembly ("memory-safe") {
                 ratio := xor(shl(128, 1), mul(xor(shl(128, 1), 0xfffcb933bd6fad37aa2d162d1a594001), and(absTick, 0x1)))
             }
             if (absTick & 0x2 != 0) ratio = (ratio * 0xfff97272373d413259a46990580e213a) >> 128;
@@ -89,7 +89,7 @@ library TickMath {
             if (absTick & 0x40000 != 0) ratio = (ratio * 0x2216e584f5fa1ea926041bedfe98) >> 128;
             if (absTick & 0x80000 != 0) ratio = (ratio * 0x48a170391f7dc42444e8fa2) >> 128;
 
-            assembly {
+            assembly ("memory-safe") {
                 // Equivalent: if (tick > 0) ratio = type(uint256).max / ratio;
                 if sgt(tick, 0) { ratio := div(not(0), ratio) }
 
@@ -127,42 +127,42 @@ library TickMath {
             uint256 r = ratio;
             uint256 msb = 0;
 
-            assembly {
+            assembly ("memory-safe") {
                 let f := shl(7, gt(r, 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF))
                 msb := or(msb, f)
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 let f := shl(6, gt(r, 0xFFFFFFFFFFFFFFFF))
                 msb := or(msb, f)
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 let f := shl(5, gt(r, 0xFFFFFFFF))
                 msb := or(msb, f)
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 let f := shl(4, gt(r, 0xFFFF))
                 msb := or(msb, f)
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 let f := shl(3, gt(r, 0xFF))
                 msb := or(msb, f)
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 let f := shl(2, gt(r, 0xF))
                 msb := or(msb, f)
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 let f := shl(1, gt(r, 0x3))
                 msb := or(msb, f)
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 let f := gt(r, 0x1)
                 msb := or(msb, f)
             }
@@ -172,85 +172,85 @@ library TickMath {
 
             int256 log_2 = (int256(msb) - 128) << 64;
 
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(63, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(62, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(61, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(60, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(59, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(58, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(57, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(56, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(55, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(54, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(53, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(52, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(51, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(50, f))

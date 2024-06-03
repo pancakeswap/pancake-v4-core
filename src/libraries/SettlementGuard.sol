@@ -26,19 +26,19 @@ library SettlementGuard {
         if (currentLocker == newLocker) return;
         if (currentLocker != address(0) && newLocker != address(0)) revert IVault.LockerAlreadySet(currentLocker);
 
-        assembly {
+        assembly ("memory-safe") {
             tstore(LOCKER_SLOT, newLocker)
         }
     }
 
     function getLocker() internal view returns (address locker) {
-        assembly {
+        assembly ("memory-safe") {
             locker := tload(LOCKER_SLOT)
         }
     }
 
     function getUnsettledDeltasCount() internal view returns (uint256 count) {
-        assembly {
+        assembly ("memory-safe") {
             count := tload(UNSETTLED_DELTAS_COUNT)
         }
     }
@@ -51,11 +51,11 @@ library SettlementGuard {
         int256 nextDelta = currentDelta + newlyAddedDelta;
         unchecked {
             if (nextDelta == 0) {
-                assembly {
+                assembly ("memory-safe") {
                     tstore(UNSETTLED_DELTAS_COUNT, sub(tload(UNSETTLED_DELTAS_COUNT), 1))
                 }
             } else if (currentDelta == 0) {
-                assembly {
+                assembly ("memory-safe") {
                     tstore(UNSETTLED_DELTAS_COUNT, add(tload(UNSETTLED_DELTAS_COUNT), 1))
                 }
             }
@@ -65,14 +65,14 @@ library SettlementGuard {
         /// simulating mapping index but with a single hash
         /// save one keccak256 hash compared to built-in nested mapping
         uint256 elementSlot = uint256(keccak256(abi.encode(settler, currency, CURRENCY_DELTA)));
-        assembly {
+        assembly ("memory-safe") {
             tstore(elementSlot, nextDelta)
         }
     }
 
     function getCurrencyDelta(address settler, Currency currency) internal view returns (int256 delta) {
         uint256 elementSlot = uint256(keccak256(abi.encode(settler, currency, CURRENCY_DELTA)));
-        assembly {
+        assembly ("memory-safe") {
             delta := tload(elementSlot)
         }
     }

@@ -26,10 +26,11 @@ library BinPosition {
         returns (BinPosition.Info storage position)
     {
         bytes32 key;
+        // still memory-safe because we've cleared the data that is out of scratch space range
         // make use of memory scratch space
         // ref: https://github.com/Vectorized/solady/blob/main/src/tokens/ERC20.sol#L95
         // memory will be 12 bytes of zeros, the 20 bytes of address, 3 bytes for uint24
-        assembly {
+        assembly ("memory-safe") {
             mstore(0x23, salt)
             mstore(0x03, binId)
             mstore(0x00, owner)

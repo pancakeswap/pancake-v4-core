@@ -8,8 +8,7 @@ type PoolId is bytes32;
 /// @notice Library for computing the ID of a pool
 library PoolIdLibrary {
     function toId(PoolKey memory poolKey) internal pure returns (PoolId poolId) {
-        // @solidity memory-safe-assembly
-        assembly {
+        assembly ("memory-safe") {
             poolId := keccak256(poolKey, mul(32, 6))
         }
     }
