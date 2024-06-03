@@ -128,7 +128,6 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
     function swap(PoolKey memory key, bool swapForY, uint128 amountIn, bytes calldata hookData)
         external
         override
-        poolManagerMatch(address(key.poolManager))
         whenNotPaused
         returns (BalanceDelta delta)
     {
@@ -228,7 +227,6 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
     function mint(PoolKey memory key, IBinPoolManager.MintParams calldata params, bytes calldata hookData)
         external
         override
-        poolManagerMatch(address(key.poolManager))
         whenNotPaused
         returns (BalanceDelta delta, BinPool.MintArrays memory mintArray)
     {
@@ -272,7 +270,6 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
     function burn(PoolKey memory key, IBinPoolManager.BurnParams memory params, bytes calldata hookData)
         external
         override
-        poolManagerMatch(address(key.poolManager))
         returns (BalanceDelta delta)
     {
         PoolId id = key.toId();
@@ -306,7 +303,6 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
     function donate(PoolKey memory key, uint128 amount0, uint128 amount1, bytes calldata hookData)
         external
         override
-        poolManagerMatch(address(key.poolManager))
         whenNotPaused
         returns (BalanceDelta delta, uint24 binId)
     {
