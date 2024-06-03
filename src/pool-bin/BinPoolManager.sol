@@ -168,12 +168,14 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         (delta, hookDelta) = BinHooks.afterSwap(key, swapForY, amountIn, delta, hookData, beforeSwapDelta);
 
         if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
-            vault.accountPoolBalanceDelta(key.currency0, hookDelta.amount0(), address(key.hooks));
-            vault.accountPoolBalanceDelta(key.currency1, hookDelta.amount1(), address(key.hooks));
+            // vault.accountPoolBalanceDelta(key.currency0, hookDelta.amount0(), address(key.hooks));
+            // vault.accountPoolBalanceDelta(key.currency1, hookDelta.amount1(), address(key.hooks));
+            vault.accountPoolBalanceDelta(key.currency0, key.currency1, hookDelta, address(key.hooks));
         }
 
-        vault.accountPoolBalanceDelta(key.currency0, delta.amount0(), msg.sender);
-        vault.accountPoolBalanceDelta(key.currency1, delta.amount1(), msg.sender);
+        // vault.accountPoolBalanceDelta(key.currency0, delta.amount0(), msg.sender);
+        // vault.accountPoolBalanceDelta(key.currency1, delta.amount1(), msg.sender);
+        vault.accountPoolBalanceDelta(key.currency0, key.currency1, delta, msg.sender);
     }
 
     /// @inheritdoc IBinPoolManager
@@ -263,11 +265,13 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         (delta, hookDelta) = BinHooks.afterMint(key, params, delta, hookData);
 
         if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
-            vault.accountPoolBalanceDelta(key.currency0, hookDelta.amount0(), address(key.hooks));
-            vault.accountPoolBalanceDelta(key.currency1, hookDelta.amount1(), address(key.hooks));
+            // vault.accountPoolBalanceDelta(key.currency0, hookDelta.amount0(), address(key.hooks));
+            // vault.accountPoolBalanceDelta(key.currency1, hookDelta.amount1(), address(key.hooks));
+            vault.accountPoolBalanceDelta(key.currency0, key.currency1, hookDelta, address(key.hooks));
         }
-        vault.accountPoolBalanceDelta(key.currency0, delta.amount0(), msg.sender);
-        vault.accountPoolBalanceDelta(key.currency1, delta.amount1(), msg.sender);
+        // vault.accountPoolBalanceDelta(key.currency0, delta.amount0(), msg.sender);
+        // vault.accountPoolBalanceDelta(key.currency1, delta.amount1(), msg.sender);
+        vault.accountPoolBalanceDelta(key.currency0, key.currency1, delta, msg.sender);
     }
 
     /// @inheritdoc IBinPoolManager
@@ -299,11 +303,13 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         (delta, hookDelta) = BinHooks.afterBurn(key, params, delta, hookData);
 
         if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
-            vault.accountPoolBalanceDelta(key.currency0, hookDelta.amount0(), address(key.hooks));
-            vault.accountPoolBalanceDelta(key.currency1, hookDelta.amount1(), address(key.hooks));
+            // vault.accountPoolBalanceDelta(key.currency0, hookDelta.amount0(), address(key.hooks));
+            // vault.accountPoolBalanceDelta(key.currency1, hookDelta.amount1(), address(key.hooks));
+            vault.accountPoolBalanceDelta(key.currency0, key.currency1, hookDelta, address(key.hooks));
         }
-        vault.accountPoolBalanceDelta(key.currency0, delta.amount0(), msg.sender);
-        vault.accountPoolBalanceDelta(key.currency1, delta.amount1(), msg.sender);
+        // vault.accountPoolBalanceDelta(key.currency0, delta.amount0(), msg.sender);
+        // vault.accountPoolBalanceDelta(key.currency1, delta.amount1(), msg.sender);
+        vault.accountPoolBalanceDelta(key.currency0, key.currency1, delta, msg.sender);
     }
 
     function donate(PoolKey memory key, uint128 amount0, uint128 amount1, bytes calldata hookData)
@@ -319,8 +325,9 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
 
         (delta, binId) = pools[id].donate(key.parameters.getBinStep(), amount0, amount1);
 
-        vault.accountPoolBalanceDelta(key.currency0, delta.amount0(), msg.sender);
-        vault.accountPoolBalanceDelta(key.currency1, delta.amount1(), msg.sender);
+        // vault.accountPoolBalanceDelta(key.currency0, delta.amount0(), msg.sender);
+        // vault.accountPoolBalanceDelta(key.currency1, delta.amount1(), msg.sender);
+        vault.accountPoolBalanceDelta(key.currency0, key.currency1, delta, msg.sender);
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
         emit Donate(id, msg.sender, delta.amount0(), delta.amount1(), binId);

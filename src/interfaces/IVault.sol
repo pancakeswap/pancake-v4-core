@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {Currency} from "../types/Currency.sol";
 import {IVaultToken} from "./IVaultToken.sol";
+import {BalanceDelta} from "../types/BalanceDelta.sol";
 
 interface IVault is IVaultToken {
     event PoolManagerRegistered(address indexed poolManager);
@@ -51,10 +52,13 @@ interface IVault is IVaultToken {
 
     /// @notice Called by the pool manager to account for a change in the pool balance,
     /// typically after modifyLiquidity, swap, donate
-    /// @param currency The currency to update
+    /// @param currency0 The currency0 to update
+    /// @param currency1 The currency1 to update
     /// @param delta The change in the pool's balance
     /// @param settler The address whose delta will be updated
-    function accountPoolBalanceDelta(Currency currency, int128 delta, address settler) external;
+    // function accountPoolBalanceDelta(Currency currency, int128 delta, address settler) external;
+    function accountPoolBalanceDelta(Currency currency0, Currency currency1, BalanceDelta delta, address settler)
+        external;
 
     /// @notice Called by the user to net out some value owed to the user
     /// @dev Can also be used as a mechanism for _free_ flash loans

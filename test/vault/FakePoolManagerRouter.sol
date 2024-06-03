@@ -75,7 +75,8 @@ contract FakePoolManagerRouter is Test {
             vault.take(poolKey.currency1, address(this), 5 ether);
         } else if (data[0] == 0x10) {
             // call accountPoolBalanceDelta from arbitrary addr
-            vault.accountPoolBalanceDelta(poolKey.currency0, int128(-1), address(0));
+            // vault.accountPoolBalanceDelta(poolKey.currency0, int128(-1), address(0));
+            vault.accountPoolBalanceDelta(poolKey.currency0, poolKey.currency1, toBalanceDelta(-1, 0), address(0));
         } else if (data[0] == 0x11) {
             // settleFor
             Payer payer = new Payer();

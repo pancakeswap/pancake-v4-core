@@ -122,11 +122,13 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
 
         vm.expectRevert(abi.encodeWithSelector(IVault.NoLocker.selector));
         vm.prank(address(fakePoolManager));
-        vault.accountPoolBalanceDelta(key.currency0, delta.amount0(), address(this));
+        // vault.accountPoolBalanceDelta(key.currency0, delta.amount0(), address(this));
+        vault.accountPoolBalanceDelta(key.currency0, key.currency1, delta, address(this));
 
         vm.expectRevert(abi.encodeWithSelector(IVault.NoLocker.selector));
         vm.prank(address(fakePoolManager));
-        vault.accountPoolBalanceDelta(key.currency1, delta.amount1(), address(this));
+        // vault.accountPoolBalanceDelta(key.currency1, delta.amount1(), address(this));
+        vault.accountPoolBalanceDelta(key.currency0, key.currency1, delta, address(this));
     }
 
     function testLockNotSettled() public {

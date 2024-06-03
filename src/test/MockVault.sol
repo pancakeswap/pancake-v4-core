@@ -22,10 +22,21 @@ contract MockVault {
         return toBalanceDelta(_balanceDeltaOfCurrency[poolKey.currency0], _balanceDeltaOfCurrency[poolKey.currency1]);
     }
 
-    function accountPoolBalanceDelta(Currency currency, int128 delta, address) external {
-        _balanceDeltaOfCurrency[currency] = delta;
+    // function accountPoolBalanceDelta(Currency currency, int128 delta, address) external {
+    //     _balanceDeltaOfCurrency[currency] = delta;
 
-        _accountDeltaOfPoolManager(msg.sender, currency, delta);
+    //     _accountDeltaOfPoolManager(msg.sender, currency, delta);
+    // }
+
+    function accountPoolBalanceDelta(Currency currency0, Currency currency1, BalanceDelta delta, address) external {
+        int128 delta0 = delta.amount0();
+        int128 delta1 = delta.amount1();
+
+        _balanceDeltaOfCurrency[currency0] = delta0;
+        _balanceDeltaOfCurrency[currency1] = delta1;
+
+        _accountDeltaOfPoolManager(msg.sender, currency0, delta0);
+        _accountDeltaOfPoolManager(msg.sender, currency1, delta1);
     }
 
     function _accountDeltaOfPoolManager(address poolManager, Currency currency, int128 delta) internal {

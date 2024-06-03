@@ -11,6 +11,7 @@ import {ILockCallback} from "./interfaces/ILockCallback.sol";
 import {SafeCast} from "./libraries/SafeCast.sol";
 import {VaultReserves} from "./libraries/VaultReserves.sol";
 import {VaultToken} from "./VaultToken.sol";
+import {BalanceDelta} from "./types/BalanceDelta.sol";
 
 contract Vault is IVault, VaultToken, Ownable {
     using SafeCast for *;
@@ -73,17 +74,22 @@ contract Vault is IVault, VaultToken, Ownable {
     }
 
     /// @inheritdoc IVault
-    function accountPoolBalanceDelta(Currency currency, int128 delta, address settler)
+    function accountPoolBalanceDelta(Currency currency0, Currency currency1, BalanceDelta delta, address settler)
         external
         override
         isLocked
         onlyPoolManager
     {
+        int128 delta0 = delta.amount0();
+        int128 delta1 = delta.amount1();
+
         // keep track on each pool manager
-        _accountDeltaOfPoolManager(msg.sender, currency, delta);
+        _accountDeltaOfPoolManager(msg.sender, currency0, delta0);
+        _accountDeltaOfPoolManager(msg.sender, currency1, delta1);
 
         // keep track of the balance for the whole vault
-        SettlementGuard.accountDelta(settler, currency, delta);
+        SettlementGuard.accountDelta(settler, currency0, delta0);
+        SettlementGuard.accountDelta(settler, currency1, delta1);
     }
 
     /// @inheritdoc IVault
