@@ -250,7 +250,13 @@ library BinPool {
                 break;
             } else {
                 uint24 nextId = getNextNonEmptyBin(self, swapForY, swapState.activeId);
-                if (nextId == 0 || nextId == type(uint24).max) revert BinPool__OutOfLiquidity();
+                // Equivalent to: if (nextId == 0 || nextId == type(uint24).max) revert BinPool__OutOfLiquidity();
+                assembly ("memory-safe") {
+                    if or(iszero(nextId), eq(nextId, 0xffffff)) {
+                        mstore(0x00, 0x96aa65ad) // Selector BinPool__OutOfLiquidity()
+                        revert(0x1c, 0x04)
+                    }
+                }
                 swapState.activeId = nextId;
             }
         }
