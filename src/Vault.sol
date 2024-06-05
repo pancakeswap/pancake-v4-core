@@ -4,7 +4,6 @@ pragma solidity ^0.8.24;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IVault, IVaultToken} from "./interfaces/IVault.sol";
-import {IPoolManager} from "./interfaces/IPoolManager.sol";
 import {PoolId, PoolIdLibrary} from "./types/PoolId.sol";
 import {PoolKey} from "./types/PoolKey.sol";
 import {SettlementGuard} from "./libraries/SettlementGuard.sol";
@@ -24,16 +23,11 @@ contract Vault is IVault, VaultToken, Ownable {
     mapping(address => bool) public override isPoolManagerRegistered;
 
     /// @dev keep track of each pool manager's reserves
-    mapping(IPoolManager poolManager => mapping(Currency currency => uint256 reserve)) public reservesOfPoolManager;
+    mapping(address => mapping(Currency currency => uint256 reserve)) public reservesOfPoolManager;
 
     /// @notice only poolManager is allowed to call swap or modifyLiquidity, donate
-    /// @param poolManager The address specified in PoolKey
-    modifier onlyPoolManager(address poolManager) {
-        /// @dev Make sure:
-        /// 1. the pool manager specified in PoolKey is the caller
-        /// 2. the pool manager has been registered
-        if (poolManager != msg.sender) revert NotFromPoolManager();
-
+    modifier onlyPoolManager() {
+        /// @dev Make sure the pool manager has been registered
         if (!isPoolManagerRegistered[msg.sender]) revert PoolManagerUnregistered();
 
         _;
@@ -86,18 +80,28 @@ contract Vault is IVault, VaultToken, Ownable {
         external
         override
         isLocked
-        onlyPoolManager(address(key.poolManager))
+        onlyPoolManager
     {
         int128 delta0 = delta.amount0();
         int128 delta1 = delta.amount1();
 
         // keep track on each pool manager
-        _accountDeltaOfPoolManager(key.poolManager, key.currency0, delta0);
-        _accountDeltaOfPoolManager(key.poolManager, key.currency1, delta1);
+        _accountDeltaOfPoolManager(msg.sender, key.currency0, delta0);
+        _accountDeltaOfPoolManager(msg.sender, key.currency1, delta1);
 
         // keep track of the balance for the whole vault
         SettlementGuard.accountDelta(settler, key.currency0, delta0);
         SettlementGuard.accountDelta(settler, key.currency1, delta1);
+    }
+
+    function accountPoolBalanceDelta(Currency currency, int128 delta, address settler)
+        external
+        override
+        isLocked
+        onlyPoolManager
+    {
+        _accountDeltaOfPoolManager(msg.sender, currency, delta);
+        SettlementGuard.accountDelta(settler, currency, delta);
     }
 
     /// @inheritdoc IVault
@@ -148,7 +152,7 @@ contract Vault is IVault, VaultToken, Ownable {
 
     /// @inheritdoc IVault
     function collectFee(Currency currency, uint256 amount, address recipient) external {
-        reservesOfPoolManager[IPoolManager(msg.sender)][currency] -= amount;
+        reservesOfPoolManager[msg.sender][currency] -= amount;
         currency.transfer(recipient, amount);
     }
 
@@ -157,7 +161,7 @@ contract Vault is IVault, VaultToken, Ownable {
         return currency.getVaultReserves();
     }
 
-    function _accountDeltaOfPoolManager(IPoolManager poolManager, Currency currency, int128 delta) internal {
+    function _accountDeltaOfPoolManager(address poolManager, Currency currency, int128 delta) internal {
         if (delta == 0) return;
 
         if (delta >= 0) {

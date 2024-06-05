@@ -245,8 +245,12 @@ contract VaultInvariant is Test, NoIsolate, GasSnapshot {
         uint256 totalMintedCurrency1 = vaultPoolManager.totalMintedCurrency1();
 
         IPoolManager manager = IPoolManager(address(vaultPoolManager));
-        assertGe(amt0Bal, vault.reservesOfPoolManager(manager, vaultPoolManager.currency0()) + totalMintedCurrency0);
-        assertGe(amt1Bal, vault.reservesOfPoolManager(manager, vaultPoolManager.currency1()) + totalMintedCurrency1);
+        assertGe(
+            amt0Bal, vault.reservesOfPoolManager(address(manager), vaultPoolManager.currency0()) + totalMintedCurrency0
+        );
+        assertGe(
+            amt1Bal, vault.reservesOfPoolManager(address(manager), vaultPoolManager.currency1()) + totalMintedCurrency1
+        );
     }
 
     function invariant_ReserveOfVaultEqReserveOfPoolManagerPlusSurplusToken() public noIsolate {
@@ -258,11 +262,11 @@ contract VaultInvariant is Test, NoIsolate, GasSnapshot {
         vault.sync(vaultPoolManager.currency1());
         assertEq(
             vault.reservesOfVault(vaultPoolManager.currency0()),
-            vault.reservesOfPoolManager(manager, vaultPoolManager.currency0()) + totalMintedCurrency0
+            vault.reservesOfPoolManager(address(manager), vaultPoolManager.currency0()) + totalMintedCurrency0
         );
         assertEq(
             vault.reservesOfVault(vaultPoolManager.currency1()),
-            vault.reservesOfPoolManager(manager, vaultPoolManager.currency1()) + totalMintedCurrency1
+            vault.reservesOfPoolManager(address(manager), vaultPoolManager.currency1()) + totalMintedCurrency1
         );
     }
 
