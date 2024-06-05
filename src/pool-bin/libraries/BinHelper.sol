@@ -120,17 +120,32 @@ library BinHelper {
     /// @return liquidity The amount of liquidity
     function getLiquidity(uint256 x, uint256 y, uint256 price) internal pure returns (uint256 liquidity) {
         if (x > 0) {
-            unchecked {
-                liquidity = price * x;
-                if (liquidity / x != price) revert BinHelper__LiquidityOverflow();
+            // equivalent to
+            //   liquidity = price * x;
+            //   if (liquidity / x != price) revert BinHelper__LiquidityOverflow();
+            assembly ("memory-safe") {
+                liquidity := mul(price, x)
+                if iszero(eq(div(liquidity, x), price)) {
+                    mstore(0x00, 0x63f1e01f) // selector BinHelper__LiquidityOverflow
+                    revert(0x1c, 0x04)
+                }
             }
         }
         if (y > 0) {
-            unchecked {
-                y <<= Constants.SCALE_OFFSET;
-                liquidity += y;
+            // equivalent to
+            //   y <<= Constants.SCALE_OFFSET;
+            //   liquidity += y;
+            //   if (liquidity < y) revert BinHelper__LiquidityOverflow();
+            uint8 offset = Constants.SCALE_OFFSET;
+            assembly ("memory-safe") {
+                y := shl(offset, y)
+                liquidity := add(liquidity, y)
 
-                if (liquidity < y) revert BinHelper__LiquidityOverflow();
+                // Check for overflow: if liquidity < y, revert with error
+                if lt(liquidity, y) {
+                    mstore(0x00, 0x63f1e01f) // selector BinHelper__LiquidityOverflow
+                    revert(0x1c, 0x04)
+                }
             }
         }
 
