@@ -3,15 +3,15 @@ pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IVault} from "../../../src/interfaces/IVault.sol";
-import {HOOKS_NO_OP_OFFSET} from "../../../src/pool-bin/interfaces/IBinHooks.sol";
 import {IBinPoolManager} from "../../../src/pool-bin/interfaces/IBinPoolManager.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../../../src/types/BalanceDelta.sol";
 import {CurrencyLibrary, Currency} from "../../../src/types/Currency.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {Hooks} from "../../../src/libraries/Hooks.sol";
+import {CurrencySettlement} from "../../helpers/CurrencySettlement.sol";
 
 contract BinSwapHelper {
-    using CurrencyLibrary for Currency;
+    using CurrencySettlement for Currency;
     using Hooks for bytes32;
 
     error HookMissingNoOpPermission();
@@ -61,62 +61,30 @@ contract BinSwapHelper {
 
         BalanceDelta delta = binManager.swap(data.key, data.swapForY, data.amountIn, data.hookData);
 
-        if (delta == BalanceDeltaLibrary.MAXIMUM_DELTA) {
-            // check if the hook has permission to no-op, if true, return early
-            if (!data.key.parameters.shouldCall(HOOKS_NO_OP_OFFSET, data.key.hooks)) {
-                revert HookMissingNoOpPermission();
-            }
-            return abi.encode(delta);
-        }
-
         if (data.swapForY) {
-            if (delta.amount0() > 0) {
-                if (data.testSettings.settleUsingTransfer) {
-                    if (data.key.currency0.isNative()) {
-                        vault.settle{value: uint128(delta.amount0())}(data.key.currency0);
-                    } else {
-                        IERC20(Currency.unwrap(data.key.currency0)).transferFrom(
-                            data.sender, address(vault), uint128(delta.amount0())
-                        );
-                        vault.settle(data.key.currency0);
-                    }
-                } else {
-                    // the received hook on this transfer will burn the tokens
-                    vault.transferFrom(data.sender, address(this), data.key.currency0, uint128(delta.amount0()));
-                    vault.burn(address(this), data.key.currency0, uint128(delta.amount0()));
-                }
-            }
-            if (delta.amount1() < 0) {
-                if (data.testSettings.withdrawTokens) {
-                    vault.take(data.key.currency1, data.sender, uint128(-delta.amount1()));
-                } else {
-                    vault.mint(data.sender, data.key.currency1, uint128(-delta.amount1()));
-                }
-            }
-        } else {
-            if (delta.amount1() > 0) {
-                if (data.testSettings.settleUsingTransfer) {
-                    if (data.key.currency1.isNative()) {
-                        vault.settle{value: uint128(delta.amount1())}(data.key.currency1);
-                    } else {
-                        IERC20(Currency.unwrap(data.key.currency1)).transferFrom(
-                            data.sender, address(vault), uint128(delta.amount1())
-                        );
-                        vault.settle(data.key.currency1);
-                    }
-                } else {
-                    // the received hook on this transfer will burn the tokens
-                    vault.transferFrom(data.sender, address(this), data.key.currency1, uint128(delta.amount1()));
-                    vault.burn(address(this), data.key.currency1, uint128(delta.amount1()));
-                }
-            }
             if (delta.amount0() < 0) {
-                if (data.testSettings.withdrawTokens) {
-                    vault.take(data.key.currency0, data.sender, uint128(-delta.amount0()));
+                bool burn = !data.testSettings.settleUsingTransfer;
+                // transfer VaultToken to vault before calling settle if burn
+                if (burn) vault.transferFrom(data.sender, address(this), data.key.currency0, uint128(-delta.amount0()));
+                data.key.currency0.settle(vault, data.sender, uint128(-delta.amount0()), burn);
+            }
+
+            bool claims = !data.testSettings.withdrawTokens;
+            if (delta.amount1() > 0) data.key.currency1.take(vault, data.sender, uint128(delta.amount1()), claims);
+        } else {
+            if (delta.amount1() < 0) {
+                bool burn = !data.testSettings.settleUsingTransfer;
+                // transfer VaultToken to vault before calling settle if burn
+                if (burn) {
+                    vault.transferFrom(data.sender, address(this), data.key.currency1, uint128(-delta.amount1()));
+                    data.key.currency1.settle(vault, address(this), uint128(-delta.amount1()), burn);
                 } else {
-                    vault.mint(data.sender, data.key.currency0, uint128(-delta.amount0()));
+                    data.key.currency1.settle(vault, data.sender, uint128(-delta.amount1()), burn);
                 }
             }
+
+            bool claims = !data.testSettings.withdrawTokens;
+            if (delta.amount0() > 0) data.key.currency0.take(vault, data.sender, uint128(delta.amount0()), claims);
         }
 
         return abi.encode(delta);

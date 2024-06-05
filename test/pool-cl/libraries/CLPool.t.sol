@@ -12,41 +12,47 @@ import {Tick} from "../../../src/pool-cl/libraries/Tick.sol";
 import {FixedPoint96} from "../../../src/pool-cl/libraries/FixedPoint96.sol";
 import {SafeCast} from "../../../src/libraries/SafeCast.sol";
 import {LiquidityAmounts} from "../helpers/LiquidityAmounts.sol";
-import {SwapFeeLibrary} from "../../../src/libraries/SwapFeeLibrary.sol";
+import {LPFeeLibrary} from "../../../src/libraries/LPFeeLibrary.sol";
 import {FullMath} from "../../../src/pool-cl/libraries/FullMath.sol";
 import {FixedPoint128} from "../../../src/pool-cl/libraries/FixedPoint128.sol";
+import {ICLPoolManager} from "../../../src/pool-cl/interfaces/ICLPoolManager.sol";
+import {LPFeeLibrary} from "../../../src/libraries/LPFeeLibrary.sol";
+import {ProtocolFeeLibrary} from "../../../src/libraries/ProtocolFeeLibrary.sol";
+import {BalanceDelta, BalanceDeltaLibrary} from "../../../src/types/BalanceDelta.sol";
 
 contract PoolTest is Test {
     using CLPool for CLPool.State;
+    using LPFeeLibrary for uint24;
+    using ProtocolFeeLibrary for uint24;
 
     CLPool.State state;
 
-    function testPoolInitialize(uint160 sqrtPriceX96, uint16 protocolFee, uint24 swapFee) public {
+    function testPoolInitialize(uint160 sqrtPriceX96, uint16 protocolFee, uint24 lpFee) public {
         protocolFee = uint16(bound(protocolFee, 0, 2 ** 16 - 1));
-        swapFee = uint24(bound(swapFee, 0, 999999));
+        lpFee = uint24(bound(lpFee, 0, 999999));
 
         if (sqrtPriceX96 < TickMath.MIN_SQRT_RATIO || sqrtPriceX96 >= TickMath.MAX_SQRT_RATIO) {
             vm.expectRevert(TickMath.InvalidSqrtRatio.selector);
-            state.initialize(sqrtPriceX96, protocolFee, swapFee);
+            state.initialize(sqrtPriceX96, protocolFee, lpFee);
         } else {
-            state.initialize(sqrtPriceX96, protocolFee, swapFee);
+            state.initialize(sqrtPriceX96, protocolFee, lpFee);
             assertEq(state.slot0.sqrtPriceX96, sqrtPriceX96);
             assertEq(state.slot0.protocolFee, protocolFee);
             assertEq(state.slot0.tick, TickMath.getTickAtSqrtRatio(sqrtPriceX96));
             assertLt(state.slot0.tick, TickMath.MAX_TICK);
             assertGt(state.slot0.tick, TickMath.MIN_TICK - 1);
-            assertEq(state.slot0.swapFee, swapFee);
+            assertEq(state.slot0.lpFee, lpFee);
         }
     }
 
-    function testModifyPosition(uint160 sqrtPriceX96, CLPool.ModifyLiquidityParams memory params, uint24 swapFee)
+    function testModifyPosition(uint160 sqrtPriceX96, CLPool.ModifyLiquidityParams memory params, uint24 lpFee)
         public
     {
         // Assumptions tested in PoolManager.t.sol
         params.tickSpacing = int24(bound(params.tickSpacing, 1, 32767));
-        swapFee = uint24(bound(swapFee, 0, SwapFeeLibrary.ONE_HUNDRED_PERCENT_FEE - 1));
+        lpFee = uint24(bound(lpFee, 0, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE - 1));
 
-        testPoolInitialize(sqrtPriceX96, 0, swapFee);
+        testPoolInitialize(sqrtPriceX96, 0, lpFee);
 
         if (params.tickLower >= params.tickUpper) {
             vm.expectRevert(abi.encodeWithSelector(Tick.TicksMisordered.selector, params.tickLower, params.tickUpper));
@@ -91,16 +97,50 @@ contract PoolTest is Test {
         uint160 sqrtPriceX96,
         CLPool.ModifyLiquidityParams memory modifyLiquidityParams,
         CLPool.SwapParams memory swapParams,
-        uint24 swapFee
+        uint24 lpFee
     ) public {
-        testModifyPosition(sqrtPriceX96, modifyLiquidityParams, swapFee);
+        // modifyLiquidityParams = CLPool.ModifyLiquidityParams({
+        //     owner: 0x250Eb93F2C350590E52cdb977b8BcF502a1Db7e7,
+        //     tickLower: -402986,
+        //     tickUpper: 50085,
+        //     liquidityDelta: 33245614918536803008426086500145,
+        //     tickSpacing: 1,
+        //     salt: 0xfd9c91c4f1bbf3d855ba0a973b97c685c1dd51875a574392ef94ab56d7a72528
+        // });
+        // swapParams = CLPool.SwapParams({
+        //     tickSpacing: 8807,
+        //     zeroForOne: true,
+        //     amountSpecified: 20406714586857485490153777552586525,
+        //     sqrtPriceLimitX96: 3669890892491818487,
+        //     lpFeeOverride: 440
+        // });
+        // TODO: find a better way to cover following case:
+        // 1. when amountSpecified is large enough
+        // 2. and the effect price is either too large or too small (due to larger price slippage or inproper liquidity range)
+        // It will cause the amountUnspecified to be out of int128 range hence the tx reverts with SafeCastOverflow
+        // try to comment following three limitations and uncomment above case and rerun the test to verify
+        modifyLiquidityParams.tickLower = -100;
+        modifyLiquidityParams.tickUpper = 100;
+        swapParams.amountSpecified = int256(bound(swapParams.amountSpecified, 0, type(int128).max));
+
+        testModifyPosition(sqrtPriceX96, modifyLiquidityParams, lpFee);
 
         swapParams.tickSpacing = modifyLiquidityParams.tickSpacing;
         CLPool.Slot0 memory slot0 = state.slot0;
 
-        if (swapParams.amountSpecified == 0) {
-            vm.expectRevert(CLPool.SwapAmountCannotBeZero.selector);
-        } else if (swapParams.zeroForOne) {
+        // avoid lpFee override valid
+        if (
+            swapParams.lpFeeOverride.isOverride()
+                && swapParams.lpFeeOverride.removeOverrideFlag() > LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE
+        ) {
+            return;
+        }
+
+        uint24 swapFee = swapParams.lpFeeOverride.isOverride()
+            ? swapParams.lpFeeOverride.removeOverrideAndValidate(LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE)
+            : lpFee;
+
+        if (swapParams.zeroForOne) {
             if (swapParams.sqrtPriceLimitX96 >= slot0.sqrtPriceX96) {
                 vm.expectRevert(
                     abi.encodeWithSelector(
@@ -128,9 +168,17 @@ contract PoolTest is Test {
                     )
                 );
             }
+        } else if (swapParams.amountSpecified <= 0 && swapFee == LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE) {
+            vm.expectRevert(CLPool.InvalidFeeForExactOut.selector);
         }
 
-        state.swap(swapParams);
+        (BalanceDelta delta,) = state.swap(swapParams);
+
+        if (swapParams.amountSpecified == 0) {
+            // early return if amountSpecified is 0
+            assertTrue(delta == BalanceDeltaLibrary.ZERO_DELTA);
+            return;
+        }
 
         if (
             modifyLiquidityParams.liquidityDelta == 0

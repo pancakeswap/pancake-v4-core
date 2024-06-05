@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {UnsafeMath} from "../../../src/pool-cl/libraries/UnsafeMath.sol";
+import {UnsafeMath} from "../../../src/libraries/math/UnsafeMath.sol";
 
 contract UnsafeMathTest is Test {
     function testDivRoundingUpFuzz(uint256 x, uint256 d) external {

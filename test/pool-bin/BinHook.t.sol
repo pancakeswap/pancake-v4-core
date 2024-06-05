@@ -123,7 +123,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         poolManager.initialize(key, binId, "");
         addLiquidityToBin(key, poolManager, bob, binId, 1e18, 1e18, 1e18, 1e18, new bytes(123));
 
-        uint256 bobBal = poolManager.getPosition(key.toId(), bob, binId).share;
+        uint256 bobBal = poolManager.getPosition(key.toId(), bob, binId, 0).share;
 
         snapStart("BinHookTest#testBurnSucceedsWithHook");
         removeLiquidityFromBin(key, poolManager, bob, binId, bobBal, new bytes(456));
@@ -144,7 +144,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         poolManager.initialize(key, binId, "");
         addLiquidityToBin(key, poolManager, bob, binId, 1e18, 1e18, 1e18, 1e18, "");
 
-        uint256 bobBal = poolManager.getPosition(key.toId(), bob, binId).share;
+        uint256 bobBal = poolManager.getPosition(key.toId(), bob, binId, 0).share;
         vm.expectRevert(Hooks.InvalidHookResponse.selector);
         removeLiquidityFromBin(key, poolManager, bob, binId, bobBal, "");
     }
@@ -160,7 +160,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         poolManager.initialize(key, binId, "");
         addLiquidityToBin(key, poolManager, bob, binId, 1e18, 1e18, 1e18, 1e18, "");
 
-        uint256 bobBal = poolManager.getPosition(key.toId(), bob, binId).share;
+        uint256 bobBal = poolManager.getPosition(key.toId(), bob, binId, 0).share;
         vm.expectRevert(Hooks.InvalidHookResponse.selector);
         removeLiquidityFromBin(key, poolManager, bob, binId, bobBal, "");
     }

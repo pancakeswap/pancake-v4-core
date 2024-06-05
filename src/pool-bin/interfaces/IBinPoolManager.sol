@@ -2,16 +2,16 @@
 pragma solidity ^0.8.24;
 
 import {Currency} from "../../types/Currency.sol";
-import {IFees} from "../../interfaces/IFees.sol";
+import {IProtocolFees} from "../../interfaces/IProtocolFees.sol";
 import {PoolId} from "../../types/PoolId.sol";
 import {PoolKey} from "../../types/PoolKey.sol";
 import {BalanceDelta} from "../../types/BalanceDelta.sol";
 import {IPoolManager} from "../../interfaces/IPoolManager.sol";
 import {IExtsload} from "../../interfaces/IExtsload.sol";
-import {IBinHooks} from "./IBinHooks.sol";
+import {IHooks} from "../../interfaces/IHooks.sol";
 import {BinPosition, BinPool} from "../libraries/BinPool.sol";
 
-interface IBinPoolManager is IFees, IPoolManager, IExtsload {
+interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @notice PoolManagerMismatch is thrown when pool manager specified in the pool key does not match current contract
     error PoolManagerMismatch();
 
@@ -23,6 +23,9 @@ interface IBinPoolManager is IFees, IPoolManager, IExtsload {
 
     /// @notice Error thrown when owner set max bin step too small
     error MaxBinStepTooSmall(uint16 maxBinStep);
+
+    /// @notice Error thrown when amountIn is 0
+    error InsufficientAmountIn();
 
     /// @notice Returns the constant representing the max bin step
     /// @return maxBinStep a value of 100 would represent a 1% price jump between bin (limit can be raised by owner)
@@ -36,7 +39,7 @@ interface IBinPoolManager is IFees, IPoolManager, IExtsload {
     /// @param id The abi encoded hash of the pool key struct for the new pool
     /// @param currency0 The first currency of the pool by address sort order
     /// @param currency1 The second currency of the pool by address sort order
-    /// @param fee The fee collected upon every swap in the pool, denominated in hundredths of a bip
+    /// @param fee The lp fee collected upon every swap in the pool, denominated in hundredths of a bip
     /// @param binStep The bin step in basis point, used to calculate log(1 + binStep / 10_000)
     /// @param hooks The hooks contract address for the pool, or address(0) if none
     event Initialize(
@@ -45,7 +48,7 @@ interface IBinPoolManager is IFees, IPoolManager, IExtsload {
         Currency indexed currency1,
         uint24 fee,
         uint16 binStep,
-        IBinHooks hooks
+        IHooks hooks
     );
 
     /// @notice Emitted for swaps between currency0 and currency1
@@ -54,8 +57,8 @@ interface IBinPoolManager is IFees, IPoolManager, IExtsload {
     /// @param amount0 The delta of the currency0 balance of the pool
     /// @param amount1 The delta of the currency1 balance of the pool
     /// @param activeId The activeId of the pool after the swap
-    /// @param fee Total swap fee - 10_000 = 1%
-    /// @param pFee Protocol fee from the swap: token0 and token1 amount
+    /// @param fee The fee collected upon every swap in the pool (including protocol fee and LP fee), denominated in hundredths of a bip
+    /// @param protocolFee Protocol fee from the swap, also denominated in hundredths of a bip
     event Swap(
         PoolId indexed id,
         address indexed sender,
@@ -63,13 +66,14 @@ interface IBinPoolManager is IFees, IPoolManager, IExtsload {
         int128 amount1,
         uint24 activeId,
         uint24 fee,
-        bytes32 pFee
+        uint24 protocolFee
     );
 
     /// @notice Emitted when liquidity is added
     /// @param id The abi encoded hash of the pool key struct for the pool that was modified
     /// @param sender The address that modified the pool
     /// @param ids List of binId with liquidity added
+    /// @param salt The salt to distinguish different mint from the same owner
     /// @param amounts List of amount added to each bin
     /// @param compositionFee fee occurred
     /// @param pFee Protocol fee from the swap: token0 and token1 amount
@@ -77,6 +81,7 @@ interface IBinPoolManager is IFees, IPoolManager, IExtsload {
         PoolId indexed id,
         address indexed sender,
         uint256[] ids,
+        bytes32 salt,
         bytes32[] amounts,
         bytes32 compositionFee,
         bytes32 pFee
@@ -86,8 +91,9 @@ interface IBinPoolManager is IFees, IPoolManager, IExtsload {
     /// @param id The abi encoded hash of the pool key struct for the pool that was modified
     /// @param sender The address that modified the pool
     /// @param ids List of binId with liquidity removed
+    /// @param salt The salt to specify the position to burn if multiple positions are available
     /// @param amounts List of amount removed from each bin
-    event Burn(PoolId indexed id, address indexed sender, uint256[] ids, bytes32[] amounts);
+    event Burn(PoolId indexed id, address indexed sender, uint256[] ids, bytes32 salt, bytes32[] amounts);
 
     /// @notice Emitted when donate happen
     /// @param id The abi encoded hash of the pool key struct for the pool that was modified
@@ -104,6 +110,8 @@ interface IBinPoolManager is IFees, IPoolManager, IExtsload {
         bytes32[] liquidityConfigs;
         /// @dev amountIn intended
         bytes32 amountIn;
+        /// the salt to distinguish different mint from the same owner
+        bytes32 salt;
     }
 
     struct BurnParams {
@@ -111,10 +119,12 @@ interface IBinPoolManager is IFees, IPoolManager, IExtsload {
         uint256[] ids;
         /// @notice amount of share to burn for each bin
         uint256[] amountsToBurn;
+        /// the salt to specify the position to burn if multiple positions are available
+        bytes32 salt;
     }
 
     /// @notice Get the current value in slot0 of the given pool
-    function getSlot0(PoolId id) external view returns (uint24 activeId, uint16 protocolFee, uint24 swapFee);
+    function getSlot0(PoolId id) external view returns (uint24 activeId, uint24 protocolFee, uint24 lpFee);
 
     /// @notice Returns the reserves of a bin
     /// @param id The id of the bin
@@ -126,7 +136,8 @@ interface IBinPoolManager is IFees, IPoolManager, IExtsload {
     /// @param id The id of PoolKey
     /// @param owner Address of the owner
     /// @param binId The id of the bin
-    function getPosition(PoolId id, address owner, uint24 binId)
+    /// @param salt The salt to distinguish different positions for the same owner
+    function getPosition(PoolId id, address owner, uint24 binId, bytes32 salt)
         external
         view
         returns (BinPosition.Info memory position);
@@ -143,13 +154,14 @@ interface IBinPoolManager is IFees, IPoolManager, IExtsload {
     function initialize(PoolKey memory key, uint24 activeId, bytes calldata hookData) external;
 
     /// @notice Add liquidity to a pool
-    /// @return delta BalanceDelta, will be positive indicating how much total amt0 and amt1 liquidity added
+    /// @return delta BalanceDelta, will be negative indicating how much total amt0 and amt1 liquidity added
     /// @return mintArray Liquidity added in which ids, how much amt0, amt1 and how much liquidity added
     function mint(PoolKey memory key, IBinPoolManager.MintParams calldata params, bytes calldata hookData)
         external
         returns (BalanceDelta delta, BinPool.MintArrays memory mintArray);
 
     /// @notice Remove liquidity from a pool
+    /// @return delta BalanceDelta, will be positive indicating how much total amt0 and amt1 liquidity removed
     function burn(PoolKey memory key, IBinPoolManager.BurnParams memory params, bytes calldata hookData)
         external
         returns (BalanceDelta delta);
@@ -160,7 +172,7 @@ interface IBinPoolManager is IFees, IPoolManager, IExtsload {
         returns (BalanceDelta delta);
 
     /// @notice Donate the given currency amounts to the pool with the given pool key.
-    /// @return delta Positive amt means the caller owes the vault, while negative amt means the vault owes the caller
+    /// @return delta Negative amt means the caller owes the vault, while positive amt means the vault owes the caller
     /// @return binId The donated bin id, which is the current active bin id. if no-op happen, binId will be 0
     function donate(PoolKey memory key, uint128 amount0, uint128 amount1, bytes calldata hookData)
         external

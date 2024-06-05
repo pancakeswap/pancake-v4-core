@@ -131,7 +131,7 @@ library Tick {
         ///@dev accessing two members without touching the same slot twice
         uint128 liquidityGrossBefore;
         int128 liquidityNetBefore;
-        assembly {
+        assembly ("memory-safe") {
             let slot0 := sload(info.slot)
             liquidityGrossBefore := shr(128, shl(128, slot0))
             liquidityNetBefore := shr(128, slot0)
@@ -155,7 +155,7 @@ library Tick {
         int128 liquidityNetAfter = upper ? (liquidityNetBefore - liquidityDelta) : (liquidityNetBefore + liquidityDelta);
 
         // update two members in one go
-        assembly {
+        assembly ("memory-safe") {
             sstore(info.slot, or(liquidityGrossAfter, shl(128, liquidityNetAfter)))
         }
     }

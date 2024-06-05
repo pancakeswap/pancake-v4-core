@@ -3,10 +3,12 @@ pragma solidity ^0.8.24;
 
 import {IVault} from "../../../src/interfaces/IVault.sol";
 import {Currency, CurrencyLibrary} from "../../../src/types/Currency.sol";
+import {CurrencySettlement} from "../../helpers/CurrencySettlement.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {PoolKey} from "../../../src/types/PoolKey.sol";
-import {BalanceDelta} from "../../../src/types/BalanceDelta.sol";
+import {BalanceDelta, BalanceDeltaLibrary} from "../../../src/types/BalanceDelta.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "../../../src/types/BeforeSwapDelta.sol";
 import {IBinHooks} from "../../../src/pool-bin/interfaces/IBinHooks.sol";
 import {IBinPoolManager} from "../../../src/pool-bin/interfaces/IBinPoolManager.sol";
 import {Hooks} from "../../../src/libraries/Hooks.sol";
@@ -16,7 +18,7 @@ import {BaseBinTestHook} from "./BaseBinTestHook.sol";
 contract BinSkipCallbackHook is BaseBinTestHook {
     error InvalidAction();
 
-    using CurrencyLibrary for Currency;
+    using CurrencySettlement for Currency;
     using Hooks for bytes32;
 
     IBinPoolManager public immutable poolManager;
@@ -51,7 +53,10 @@ contract BinSkipCallbackHook is BaseBinTestHook {
                 afterSwap: true,
                 beforeDonate: true,
                 afterDonate: true,
-                noOp: false
+                beforeSwapReturnsDelta: true,
+                afterSwapReturnsDelta: true,
+                afterMintReturnsDelta: true,
+                afterBurnReturnsDelta: true
             })
         );
     }
@@ -185,30 +190,10 @@ contract BinSkipCallbackHook is BaseBinTestHook {
             (delta,) = poolManager.donate(data.key, data.amount0, data.amount1, data.hookData);
         }
 
-        if (delta.amount0() > 0) {
-            if (key.currency0.isNative()) {
-                vault.settle{value: uint128(delta.amount0())}(key.currency0);
-            } else {
-                IERC20(Currency.unwrap(key.currency0)).transferFrom(sender, address(vault), uint128(delta.amount0()));
-                vault.settle(key.currency0);
-            }
-        }
-
-        if (delta.amount1() > 0) {
-            if (key.currency1.isNative()) {
-                vault.settle{value: uint128(delta.amount1())}(key.currency1);
-            } else {
-                IERC20(Currency.unwrap(key.currency1)).transferFrom(sender, address(vault), uint128(delta.amount1()));
-                vault.settle(key.currency1);
-            }
-        }
-
-        if (delta.amount0() < 0) {
-            vault.take(key.currency0, sender, uint128(-delta.amount0()));
-        }
-        if (delta.amount1() < 0) {
-            vault.take(key.currency1, sender, uint128(-delta.amount1()));
-        }
+        if (delta.amount0() < 0) key.currency0.settle(vault, sender, uint128(-delta.amount0()), false);
+        if (delta.amount0() > 0) key.currency0.take(vault, sender, uint128(delta.amount0()), false);
+        if (delta.amount1() < 0) key.currency1.settle(vault, sender, uint128(-delta.amount1()), false);
+        if (delta.amount1() > 0) key.currency1.take(vault, sender, uint128(delta.amount1()), false);
 
         return abi.encode(delta);
     }
@@ -239,10 +224,10 @@ contract BinSkipCallbackHook is BaseBinTestHook {
     function afterMint(address, PoolKey calldata, IBinPoolManager.MintParams calldata, BalanceDelta, bytes calldata)
         external
         override
-        returns (bytes4)
+        returns (bytes4, BalanceDelta)
     {
         hookCounterCallbackCount++;
-        return BinSkipCallbackHook.afterMint.selector;
+        return (BinSkipCallbackHook.afterMint.selector, BalanceDeltaLibrary.ZERO_DELTA);
     }
 
     function beforeBurn(address, PoolKey calldata, IBinPoolManager.BurnParams calldata, bytes calldata)
@@ -257,24 +242,28 @@ contract BinSkipCallbackHook is BaseBinTestHook {
     function afterBurn(address, PoolKey calldata, IBinPoolManager.BurnParams calldata, BalanceDelta, bytes calldata)
         external
         override
-        returns (bytes4)
+        returns (bytes4, BalanceDelta)
     {
         hookCounterCallbackCount++;
-        return BinSkipCallbackHook.afterBurn.selector;
+        return (BinSkipCallbackHook.afterBurn.selector, BalanceDeltaLibrary.ZERO_DELTA);
     }
 
-    function beforeSwap(address, PoolKey calldata, bool, uint128, bytes calldata) external override returns (bytes4) {
+    function beforeSwap(address, PoolKey calldata, bool, uint128, bytes calldata)
+        external
+        override
+        returns (bytes4, BeforeSwapDelta, uint24)
+    {
         hookCounterCallbackCount++;
-        return BinSkipCallbackHook.beforeSwap.selector;
+        return (BinSkipCallbackHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
 
     function afterSwap(address, PoolKey calldata, bool, uint128, BalanceDelta, bytes calldata)
         external
         override
-        returns (bytes4)
+        returns (bytes4, int128)
     {
         hookCounterCallbackCount++;
-        return BinSkipCallbackHook.afterSwap.selector;
+        return (BinSkipCallbackHook.afterSwap.selector, 0);
     }
 
     function beforeDonate(address, PoolKey calldata, uint256, uint256, bytes calldata)

@@ -11,6 +11,7 @@ import {Constants} from "./Constants.sol";
 import {BinPoolParametersHelper} from "./BinPoolParametersHelper.sol";
 import {FeeHelper} from "./FeeHelper.sol";
 import {PriceHelper} from "./PriceHelper.sol";
+import {ProtocolFeeLibrary} from "../../libraries/ProtocolFeeLibrary.sol";
 
 /// @notice This library contains functions to help interaction with bins.
 library BinHelper {
@@ -21,6 +22,7 @@ library BinHelper {
     using SafeCast for uint256;
     using BinPoolParametersHelper for bytes32;
     using FeeHelper for uint128;
+    using ProtocolFeeLibrary for uint24;
 
     error BinHelper__CompositionFactorFlawed(uint24 id);
     error BinHelper__LiquidityOverflow();
@@ -148,31 +150,42 @@ library BinHelper {
     /// @dev Returns the composition fees when adding liquidity to the active bin with a different
     ///      composition factor than the bin's one, as it does an implicit swap
     /// @param binReserves The reserves of the bin
-    /// @param fee 100 = 0.01%, 1000 = 0.1%
+    /// @param protocolFee 100 = 0.01%, 1000 = 0.1%
+    /// @param lpFee 100 = 0.01%, 1000 = 0.1%
     /// @param amountsIn The amounts of tokens to add
     /// @param totalSupply The total supply of the liquidity book
     /// @param shares The share of the liquidity book that the user will receive
-    /// @return fees The encoded fees that will be charged
+    /// @return fees The encoded fees that will be charged (including protocol and LP fee)
+    //// @return feeForProtocol The encoded protocol fee that will be charged
     function getCompositionFees(
         bytes32 binReserves,
-        uint24 fee, // fee: 100 = 0.01%
+        uint24 protocolFee, // fee: 100 = 0.01%
+        uint24 lpFee,
         bytes32 amountsIn,
         uint256 totalSupply,
         uint256 shares
-    ) internal pure returns (bytes32 fees) {
-        if (shares == 0) return 0;
+    ) internal pure returns (bytes32 fees, bytes32 feeForProtocol) {
+        if (shares == 0) return (0, 0);
 
         (uint128 amountX, uint128 amountY) = amountsIn.decode();
         (uint128 receivedAmountX, uint128 receivedAmountY) =
             getAmountOutOfBin(binReserves.add(amountsIn), shares, totalSupply + shares).decode();
 
-        // if received more X than given X
+        // if received more X than given X, then swap some Y for X
         if (receivedAmountX > amountX) {
-            uint128 feeY = (amountY - receivedAmountY).getCompositionFee(fee);
-            fees = feeY.encodeSecond();
+            protocolFee = protocolFee.getOneForZeroFee();
+            uint24 swapFee = uint24(protocolFee).calculateSwapFee(lpFee);
+
+            uint128 amtSwapped = amountY - receivedAmountY;
+            fees = amtSwapped.getCompositionFee(swapFee).encodeSecond();
+            feeForProtocol = amtSwapped.getCompositionFee(protocolFee).encodeSecond();
         } else if (receivedAmountY > amountY) {
-            uint128 feeX = (amountX - receivedAmountX).getCompositionFee(fee);
-            fees = feeX.encodeFirst();
+            protocolFee = protocolFee.getZeroForOneFee();
+            uint24 swapFee = uint24(protocolFee).calculateSwapFee(lpFee);
+
+            uint128 amtSwapped = amountX - receivedAmountX;
+            fees = amtSwapped.getCompositionFee(swapFee).encodeFirst();
+            feeForProtocol = amtSwapped.getCompositionFee(protocolFee).encodeFirst();
         }
     }
 

@@ -14,12 +14,15 @@ library TickMath {
     /// @dev The minimum tick that may be passed to #getSqrtRatioAtTick computed from log base 1.0001 of 2**-128
     int24 internal constant MIN_TICK = -887272;
     /// @dev The maximum tick that may be passed to #getSqrtRatioAtTick computed from log base 1.0001 of 2**128
-    int24 internal constant MAX_TICK = -MIN_TICK;
+    int24 internal constant MAX_TICK = 887272;
 
     /// @dev The minimum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MIN_TICK)
     uint160 internal constant MIN_SQRT_RATIO = 4295128739;
     /// @dev The maximum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MAX_TICK)
     uint160 internal constant MAX_SQRT_RATIO = 1461446703485210103287273052203988822378723970342;
+    /// @dev A threshold used for optimized bounds check, equals `MAX_SQRT_RATIO - MIN_SQRT_RATIO - 1`
+    uint160 internal constant MAX_SQRT_RATIO_MINUS_MIN_SQRT_RATIO_MINUS_ONE =
+        1461446703485210103287273052203988822378723970342 - 4295128739 - 1;
 
     /// @notice Given a tickSpacing, compute the maximum usable tick
     function maxUsableTick(int24 tickSpacing) internal pure returns (int24) {
@@ -42,11 +45,30 @@ library TickMath {
     /// at the given tick
     function getSqrtRatioAtTick(int24 tick) internal pure returns (uint160 sqrtPriceX96) {
         unchecked {
-            uint256 absTick = tick < 0 ? uint256(-int256(tick)) : uint256(int256(tick));
-            if (absTick > uint256(int256(MAX_TICK))) revert InvalidTick();
+            // Equivalent: uint256 absTick = tick < 0 ? uint256(-int256(tick)) : uint256(int256(tick));
+            uint256 absTick;
+            assembly ("memory-safe") {
+                // mask = 0 if tick >= 0 else -1 (all 1s)
+                let mask := sar(255, tick)
+                absTick := xor(mask, add(mask, tick))
+            }
 
-            uint256 ratio =
-                absTick & 0x1 != 0 ? 0xfffcb933bd6fad37aa2d162d1a594001 : 0x100000000000000000000000000000000;
+            // Equivalent: if (absTick > MAX_TICK) revert InvalidTick();
+            assembly ("memory-safe") {
+                if gt(absTick, MAX_TICK) {
+                    // store 4-byte selector of "InvalidTick()" at memory [0x1c, 0x20)
+                    mstore(0, 0xce8ef7fc)
+                    revert(0x1c, 0x04)
+                }
+            }
+
+            // Equivalent to:
+            //     ratio = absTick & 0x1 != 0 ? 0xfffcb933bd6fad37aa2d162d1a594001 : 0x100000000000000000000000000000000;
+            //     or price = int(2**128 / sqrt(1.0001)) if (absTick & 0x1) else 1 << 128
+            uint256 ratio;
+            assembly ("memory-safe") {
+                ratio := xor(shl(128, 1), mul(xor(shl(128, 1), 0xfffcb933bd6fad37aa2d162d1a594001), and(absTick, 0x1)))
+            }
             if (absTick & 0x2 != 0) ratio = (ratio * 0xfff97272373d413259a46990580e213a) >> 128;
             if (absTick & 0x4 != 0) ratio = (ratio * 0xfff2e50f5f656932ef12357cf3c7fdcc) >> 128;
             if (absTick & 0x8 != 0) ratio = (ratio * 0xffe5caca7e10e4e61c3624eaa0941cd0) >> 128;
@@ -67,12 +89,17 @@ library TickMath {
             if (absTick & 0x40000 != 0) ratio = (ratio * 0x2216e584f5fa1ea926041bedfe98) >> 128;
             if (absTick & 0x80000 != 0) ratio = (ratio * 0x48a170391f7dc42444e8fa2) >> 128;
 
-            if (tick > 0) ratio = type(uint256).max / ratio;
+            assembly ("memory-safe") {
+                // Equivalent: if (tick > 0) ratio = type(uint256).max / ratio;
+                if sgt(tick, 0) { ratio := div(not(0), ratio) }
 
-            // this divides by 1<<32 rounding up to go from a Q128.128 to a Q128.96.
-            // we then downcast because we know the result always fits within 160 bits due to our tick input constraint
-            // we round up in the division so getTickAtSqrtRatio of the output price is always consistent
-            sqrtPriceX96 = uint160((ratio >> 32) + (ratio % (1 << 32) == 0 ? 0 : 1));
+                // this divides by 1<<32 rounding up to go from a Q128.128 to a Q128.96.
+                // we then downcast because we know the result always fits within 160 bits due to our tick input constraint
+                // we round up in the division so getTickAtSqrtPrice of the output price is always consistent
+                // `sub(shl(32, 1), 1)` is `type(uint32).max`
+                // `ratio + type(uint32).max` will not overflow because `ratio` fits in 192 bits
+                sqrtPriceX96 := shr(32, add(ratio, sub(shl(32, 1), 1)))
+            }
         }
     }
 
@@ -83,49 +110,59 @@ library TickMath {
     /// @return tick The greatest tick for which the ratio is less than or equal to the input ratio
     function getTickAtSqrtRatio(uint160 sqrtPriceX96) internal pure returns (int24 tick) {
         unchecked {
+            // Equivalent: if (sqrtPriceX96 < MIN_SQRT_RATIO || sqrtPriceX96 >= MAX_SQRT_RATIO) revert InvalidSqrtRatio();
             // second inequality must be < because the price can never reach the price at the max tick
-            if (sqrtPriceX96 < MIN_SQRT_RATIO || sqrtPriceX96 >= MAX_SQRT_RATIO) revert InvalidSqrtRatio();
+            assembly ("memory-safe") {
+                // if sqrtPriceX96 < MIN_SQRT_PRICE, the `sub` underflows and `gt` is true
+                // if sqrtPriceX96 >= MAX_SQRT_PRICE, sqrtPriceX96 - MIN_SQRT_PRICE > MAX_SQRT_PRICE - MIN_SQRT_PRICE - 1
+                if gt(sub(sqrtPriceX96, MIN_SQRT_RATIO), MAX_SQRT_RATIO_MINUS_MIN_SQRT_RATIO_MINUS_ONE) {
+                    // store 4-byte selector of "InvalidSqrtRatio()" at memory [0x1c, 0x20)
+                    mstore(0, 0x02ad01b6)
+                    revert(0x1c, 0x04)
+                }
+            }
+
             uint256 ratio = uint256(sqrtPriceX96) << 32;
 
             uint256 r = ratio;
             uint256 msb = 0;
 
-            assembly {
+            assembly ("memory-safe") {
                 let f := shl(7, gt(r, 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF))
                 msb := or(msb, f)
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 let f := shl(6, gt(r, 0xFFFFFFFFFFFFFFFF))
                 msb := or(msb, f)
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 let f := shl(5, gt(r, 0xFFFFFFFF))
                 msb := or(msb, f)
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 let f := shl(4, gt(r, 0xFFFF))
                 msb := or(msb, f)
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 let f := shl(3, gt(r, 0xFF))
                 msb := or(msb, f)
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 let f := shl(2, gt(r, 0xF))
                 msb := or(msb, f)
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 let f := shl(1, gt(r, 0x3))
                 msb := or(msb, f)
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 let f := gt(r, 0x1)
                 msb := or(msb, f)
             }
@@ -135,85 +172,85 @@ library TickMath {
 
             int256 log_2 = (int256(msb) - 128) << 64;
 
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(63, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(62, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(61, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(60, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(59, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(58, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(57, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(56, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(55, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(54, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(53, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(52, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(51, f))
                 r := shr(f, r)
             }
-            assembly {
+            assembly ("memory-safe") {
                 r := shr(127, mul(r, r))
                 let f := shr(128, r)
                 log_2 := or(log_2, shl(50, f))

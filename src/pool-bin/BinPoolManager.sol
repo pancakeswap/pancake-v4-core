@@ -2,10 +2,11 @@
 // Copyright (C) 2024 PancakeSwap
 pragma solidity ^0.8.24;
 
-import {Fees} from "../Fees.sol";
+import {ProtocolFees} from "../ProtocolFees.sol";
 import {Hooks} from "../libraries/Hooks.sol";
 import {BinPool} from "./libraries/BinPool.sol";
 import {BinPoolParametersHelper} from "./libraries/BinPoolParametersHelper.sol";
+import {ParametersHelper} from "../libraries/math/ParametersHelper.sol";
 import {Currency, CurrencyLibrary} from "../types/Currency.sol";
 import {IPoolManager} from "../interfaces/IPoolManager.sol";
 import {IBinPoolManager} from "./interfaces/IBinPoolManager.sol";
@@ -15,18 +16,20 @@ import {PoolKey} from "../types/PoolKey.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../types/BalanceDelta.sol";
 import {IVault} from "../interfaces/IVault.sol";
 import {BinPosition} from "./libraries/BinPosition.sol";
-import {SwapFeeLibrary} from "../libraries/SwapFeeLibrary.sol";
+import {LPFeeLibrary} from "../libraries/LPFeeLibrary.sol";
 import {PackedUint128Math} from "./libraries/math/PackedUint128Math.sol";
 import {Extsload} from "../Extsload.sol";
+import {BinHooks} from "./libraries/BinHooks.sol";
+import {BeforeSwapDelta} from "../types/BeforeSwapDelta.sol";
 import "./interfaces/IBinHooks.sol";
 
 /// @notice Holds the state for all bin pools
-contract BinPoolManager is IBinPoolManager, Fees, Extsload {
+contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
     using PoolIdLibrary for PoolKey;
     using BinPool for *;
     using BinPosition for mapping(bytes32 => BinPosition.Info);
     using BinPoolParametersHelper for bytes32;
-    using SwapFeeLibrary for uint24;
+    using LPFeeLibrary for uint24;
     using PackedUint128Math for bytes32;
     using Hooks for bytes32;
 
@@ -38,7 +41,7 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
 
     mapping(PoolId id => BinPool.State) public pools;
 
-    constructor(IVault vault, uint256 controllerGasLimit) Fees(vault, controllerGasLimit) {}
+    constructor(IVault vault, uint256 controllerGasLimit) ProtocolFees(vault, controllerGasLimit) {}
 
     /// @notice pool manager specified in the pool key must match current contract
     modifier poolManagerMatch(address poolManager) {
@@ -51,10 +54,10 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
     }
 
     /// @inheritdoc IBinPoolManager
-    function getSlot0(PoolId id) external view override returns (uint24 activeId, uint16 protocolFee, uint24 swapFee) {
+    function getSlot0(PoolId id) external view override returns (uint24 activeId, uint24 protocolFee, uint24 lpFee) {
         BinPool.Slot0 memory slot0 = pools[id].slot0;
 
-        return (slot0.activeId, slot0.protocolFee, slot0.swapFee);
+        return (slot0.activeId, slot0.protocolFee, slot0.lpFee);
     }
 
     /// @inheritdoc IBinPoolManager
@@ -68,13 +71,13 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
     }
 
     /// @inheritdoc IBinPoolManager
-    function getPosition(PoolId id, address owner, uint24 binId)
+    function getPosition(PoolId id, address owner, uint24 binId, bytes32 salt)
         external
         view
         override
         returns (BinPosition.Info memory position)
     {
-        return pools[id].positions.get(owner, binId);
+        return pools[id].positions.get(owner, binId, salt);
     }
 
     /// @inheritdoc IBinPoolManager
@@ -98,83 +101,77 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         if (binStep > MAX_BIN_STEP) revert BinStepTooLarge();
         if (key.currency0 >= key.currency1) revert CurrenciesInitializedOutOfOrder();
 
-        IBinHooks hooks = IBinHooks(address(key.hooks));
+        ParametersHelper.checkUnusedBitsAllZero(
+            key.parameters, BinPoolParametersHelper.OFFSET_MOST_SIGNIFICANT_UNUSED_BITS
+        );
         Hooks.validateHookConfig(key);
-        _validateHookNoOp(key);
+        BinHooks.validatePermissionsConflict(key);
 
-        /// @notice init value for dynamic swap fee is 0, but hook can still set it in afterInitialize
-        uint24 swapFee = key.fee.getInitialSwapFee();
-        if (swapFee.isSwapFeeTooLarge(SwapFeeLibrary.TEN_PERCENT_FEE)) revert FeeTooLarge();
+        /// @notice init value for dynamic lp fee is 0, but hook can still set it in afterInitialize
+        uint24 lpFee = key.fee.getInitialLPFee();
+        lpFee.validate(LPFeeLibrary.TEN_PERCENT_FEE);
 
-        if (key.parameters.shouldCall(HOOKS_BEFORE_INITIALIZE_OFFSET, hooks)) {
-            if (hooks.beforeInitialize(msg.sender, key, activeId, hookData) != IBinHooks.beforeInitialize.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
-        }
+        BinHooks.beforeInitialize(key, activeId, hookData);
 
         PoolId id = key.toId();
 
-        (, uint16 protocolFee) = _fetchProtocolFee(key);
-        pools[id].initialize(activeId, protocolFee, swapFee);
+        (, uint24 protocolFee) = _fetchProtocolFee(key);
+        pools[id].initialize(activeId, protocolFee, lpFee);
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
-        emit Initialize(id, key.currency0, key.currency1, key.fee, binStep, hooks);
+        emit Initialize(id, key.currency0, key.currency1, key.fee, binStep, key.hooks);
 
-        if (key.parameters.shouldCall(HOOKS_AFTER_INITIALIZE_OFFSET, hooks)) {
-            if (hooks.afterInitialize(msg.sender, key, activeId, hookData) != IBinHooks.afterInitialize.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
-        }
+        BinHooks.afterInitialize(key, activeId, hookData);
     }
 
     /// @inheritdoc IBinPoolManager
     function swap(PoolKey memory key, bool swapForY, uint128 amountIn, bytes calldata hookData)
         external
         override
-        poolManagerMatch(address(key.poolManager))
         whenNotPaused
         returns (BalanceDelta delta)
     {
+        if (amountIn == 0) revert InsufficientAmountIn();
+
         PoolId id = key.toId();
         _checkPoolInitialized(id);
 
-        IBinHooks hooks = IBinHooks(address(key.hooks));
-        if (key.parameters.shouldCall(HOOKS_BEFORE_SWAP_OFFSET, hooks)) {
-            bytes4 selector = hooks.beforeSwap(msg.sender, key, swapForY, amountIn, hookData);
-            if (key.parameters.isValidNoOpCall(HOOKS_NO_OP_OFFSET, selector)) {
-                // Sentinel return value used to signify that a NoOp occurred.
-                return BalanceDeltaLibrary.MAXIMUM_DELTA;
-            } else if (selector != IBinHooks.beforeSwap.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
-        }
+        (uint128 amountToSwap, BeforeSwapDelta beforeSwapDelta, uint24 lpFeeOverride) =
+            BinHooks.beforeSwap(key, swapForY, amountIn, hookData);
 
         /// @dev fix stack too deep
         {
-            bytes32 feeForProtocol;
-            uint24 activeId;
-            uint24 swapFee;
-            (delta, feeForProtocol, activeId, swapFee) =
-                pools[id].swap(BinPool.SwapParams({swapForY: swapForY, binStep: key.parameters.getBinStep()}), amountIn);
-
-            vault.accountPoolBalanceDelta(key, delta, msg.sender);
+            BinPool.SwapState memory state;
+            (delta, state) = pools[id].swap(
+                BinPool.SwapParams({
+                    swapForY: swapForY,
+                    binStep: key.parameters.getBinStep(),
+                    lpFeeOverride: lpFeeOverride
+                }),
+                amountToSwap
+            );
 
             unchecked {
-                if (feeForProtocol > 0) {
-                    protocolFeesAccrued[key.currency0] += feeForProtocol.decodeX();
-                    protocolFeesAccrued[key.currency1] += feeForProtocol.decodeY();
+                if (state.feeForProtocol > 0) {
+                    protocolFeesAccrued[key.currency0] += state.feeForProtocol.decodeX();
+                    protocolFeesAccrued[key.currency1] += state.feeForProtocol.decodeY();
                 }
             }
 
             /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
-            emit Swap(id, msg.sender, delta.amount0(), delta.amount1(), activeId, swapFee, feeForProtocol);
+            emit Swap(
+                id, msg.sender, delta.amount0(), delta.amount1(), state.activeId, state.swapFee, state.protocolFee
+            );
         }
 
-        if (key.parameters.shouldCall(HOOKS_AFTER_SWAP_OFFSET, hooks)) {
-            if (hooks.afterSwap(msg.sender, key, swapForY, amountIn, delta, hookData) != IBinHooks.afterSwap.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
+        BalanceDelta hookDelta;
+        (delta, hookDelta) = BinHooks.afterSwap(key, swapForY, amountIn, delta, hookData, beforeSwapDelta);
+
+        if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
+            vault.accountPoolBalanceDelta(key, hookDelta, address(key.hooks));
         }
+
+        vault.accountPoolBalanceDelta(key, delta, msg.sender);
     }
 
     /// @inheritdoc IBinPoolManager
@@ -187,20 +184,18 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         PoolId id = key.toId();
         _checkPoolInitialized(id);
 
-        uint24 totalSwapFee;
-        if (key.fee.isDynamicSwapFee()) {
-            totalSwapFee = IBinDynamicFeeManager(address(key.hooks)).getFeeForSwapInSwapOut(
+        uint24 lpFee;
+        if (key.fee.isDynamicLPFee()) {
+            lpFee = IBinDynamicFeeManager(address(key.hooks)).getFeeForSwapInSwapOut(
                 msg.sender, key, swapForY, 0, amountOut
             );
-            if (totalSwapFee > SwapFeeLibrary.TEN_PERCENT_FEE) revert FeeTooLarge();
         } else {
-            // clear the top 4 bits since they may be flagged
-            totalSwapFee = key.fee.getInitialSwapFee();
+            lpFee = key.fee.getInitialLPFee();
         }
+        lpFee.validate(LPFeeLibrary.TEN_PERCENT_FEE);
 
         (amountIn, amountOutLeft, fee) = pools[id].getSwapIn(
-            BinPool.SwapViewParams({swapForY: swapForY, binStep: key.parameters.getBinStep(), fee: totalSwapFee}),
-            amountOut
+            BinPool.SwapViewParams({swapForY: swapForY, binStep: key.parameters.getBinStep(), lpFee: lpFee}), amountOut
         );
     }
 
@@ -214,18 +209,17 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         PoolId id = key.toId();
         _checkPoolInitialized(id);
 
-        uint24 totalSwapFee;
-        if (key.fee.isDynamicSwapFee()) {
-            totalSwapFee =
+        uint24 lpFee;
+        if (key.fee.isDynamicLPFee()) {
+            lpFee =
                 IBinDynamicFeeManager(address(key.hooks)).getFeeForSwapInSwapOut(msg.sender, key, swapForY, amountIn, 0);
-            if (totalSwapFee > SwapFeeLibrary.TEN_PERCENT_FEE) revert FeeTooLarge();
         } else {
-            totalSwapFee = key.fee.getInitialSwapFee();
+            lpFee = key.fee.getInitialLPFee();
         }
+        lpFee.validate(LPFeeLibrary.TEN_PERCENT_FEE);
 
         (amountInLeft, amountOut, fee) = pools[id].getSwapOut(
-            BinPool.SwapViewParams({swapForY: swapForY, binStep: key.parameters.getBinStep(), fee: totalSwapFee}),
-            amountIn
+            BinPool.SwapViewParams({swapForY: swapForY, binStep: key.parameters.getBinStep(), lpFee: lpFee}), amountIn
         );
     }
 
@@ -233,23 +227,13 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
     function mint(PoolKey memory key, IBinPoolManager.MintParams calldata params, bytes calldata hookData)
         external
         override
-        poolManagerMatch(address(key.poolManager))
         whenNotPaused
         returns (BalanceDelta delta, BinPool.MintArrays memory mintArray)
     {
         PoolId id = key.toId();
         _checkPoolInitialized(id);
 
-        IBinHooks hooks = IBinHooks(address(key.hooks));
-        if (key.parameters.shouldCall(HOOKS_BEFORE_MINT_OFFSET, hooks)) {
-            bytes4 selector = hooks.beforeMint(msg.sender, key, params, hookData);
-            if (key.parameters.isValidNoOpCall(HOOKS_NO_OP_OFFSET, selector)) {
-                // Sentinel return value used to signify that a NoOp occurred.
-                return (BalanceDeltaLibrary.MAXIMUM_DELTA, mintArray);
-            } else if (selector != IBinHooks.beforeMint.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
-        }
+        BinHooks.beforeMint(key, params, hookData);
 
         bytes32 feeForProtocol;
         bytes32 compositionFee;
@@ -258,11 +242,10 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
                 to: msg.sender,
                 liquidityConfigs: params.liquidityConfigs,
                 amountIn: params.amountIn,
-                binStep: key.parameters.getBinStep()
+                binStep: key.parameters.getBinStep(),
+                salt: params.salt
             })
         );
-
-        vault.accountPoolBalanceDelta(key, delta, msg.sender);
 
         unchecked {
             if (feeForProtocol > 0) {
@@ -272,73 +255,61 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         }
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
-        emit Mint(id, msg.sender, mintArray.ids, mintArray.amounts, compositionFee, feeForProtocol);
+        emit Mint(id, msg.sender, mintArray.ids, params.salt, mintArray.amounts, compositionFee, feeForProtocol);
 
-        if (key.parameters.shouldCall(HOOKS_AFTER_MINT_OFFSET, hooks)) {
-            if (hooks.afterMint(msg.sender, key, params, delta, hookData) != IBinHooks.afterMint.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
+        BalanceDelta hookDelta;
+        (delta, hookDelta) = BinHooks.afterMint(key, params, delta, hookData);
+
+        if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
+            vault.accountPoolBalanceDelta(key, hookDelta, address(key.hooks));
         }
+        vault.accountPoolBalanceDelta(key, delta, msg.sender);
     }
 
     /// @inheritdoc IBinPoolManager
     function burn(PoolKey memory key, IBinPoolManager.BurnParams memory params, bytes calldata hookData)
         external
         override
-        poolManagerMatch(address(key.poolManager))
         returns (BalanceDelta delta)
     {
         PoolId id = key.toId();
         _checkPoolInitialized(id);
 
-        IBinHooks hooks = IBinHooks(address(key.hooks));
-        if (key.parameters.shouldCall(HOOKS_BEFORE_BURN_OFFSET, hooks)) {
-            bytes4 selector = hooks.beforeBurn(msg.sender, key, params, hookData);
-            if (key.parameters.isValidNoOpCall(HOOKS_NO_OP_OFFSET, selector)) {
-                // Sentinel return value used to signify that a NoOp occurred.
-                return BalanceDeltaLibrary.MAXIMUM_DELTA;
-            } else if (selector != IBinHooks.beforeBurn.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
-        }
+        BinHooks.beforeBurn(key, params, hookData);
 
         uint256[] memory binIds;
         bytes32[] memory amountRemoved;
-        (delta, binIds, amountRemoved) =
-            pools[id].burn(BinPool.BurnParams({from: msg.sender, ids: params.ids, amountsToBurn: params.amountsToBurn}));
-
-        vault.accountPoolBalanceDelta(key, delta, msg.sender);
+        (delta, binIds, amountRemoved) = pools[id].burn(
+            BinPool.BurnParams({
+                from: msg.sender,
+                ids: params.ids,
+                amountsToBurn: params.amountsToBurn,
+                salt: params.salt
+            })
+        );
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
-        emit Burn(id, msg.sender, binIds, amountRemoved);
+        emit Burn(id, msg.sender, binIds, params.salt, amountRemoved);
 
-        if (key.parameters.shouldCall(HOOKS_AFTER_BURN_OFFSET, hooks)) {
-            if (hooks.afterBurn(msg.sender, key, params, delta, hookData) != IBinHooks.afterBurn.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
+        BalanceDelta hookDelta;
+        (delta, hookDelta) = BinHooks.afterBurn(key, params, delta, hookData);
+
+        if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
+            vault.accountPoolBalanceDelta(key, hookDelta, address(key.hooks));
         }
+        vault.accountPoolBalanceDelta(key, delta, msg.sender);
     }
 
     function donate(PoolKey memory key, uint128 amount0, uint128 amount1, bytes calldata hookData)
         external
         override
-        poolManagerMatch(address(key.poolManager))
         whenNotPaused
         returns (BalanceDelta delta, uint24 binId)
     {
         PoolId id = key.toId();
         _checkPoolInitialized(id);
 
-        IBinHooks hooks = IBinHooks(address(key.hooks));
-        if (key.parameters.shouldCall(HOOKS_BEFORE_DONATE_OFFSET, hooks)) {
-            bytes4 selector = hooks.beforeDonate(msg.sender, key, amount0, amount1, hookData);
-            if (key.parameters.isValidNoOpCall(HOOKS_NO_OP_OFFSET, selector)) {
-                // Sentinel return value used to signify that a NoOp occurred.
-                return (BalanceDeltaLibrary.MAXIMUM_DELTA, binId);
-            } else if (selector != IBinHooks.beforeDonate.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
-        }
+        BinHooks.beforeDonate(key, amount0, amount1, hookData);
 
         (delta, binId) = pools[id].donate(key.parameters.getBinStep(), amount0, amount1);
 
@@ -347,19 +318,7 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
         emit Donate(id, msg.sender, delta.amount0(), delta.amount1(), binId);
 
-        if (key.parameters.shouldCall(HOOKS_AFTER_DONATE_OFFSET, hooks)) {
-            if (hooks.afterDonate(msg.sender, key, amount0, amount1, hookData) != IBinHooks.afterDonate.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
-        }
-    }
-
-    function setProtocolFee(PoolKey memory key) external override {
-        (bool success, uint16 newProtocolFee) = _fetchProtocolFee(key);
-        if (!success) revert ProtocolFeeControllerCallFailedOrInvalidResult();
-        PoolId id = key.toId();
-        pools[id].setProtocolFee(newProtocolFee);
-        emit ProtocolFeeUpdated(id, newProtocolFee);
+        BinHooks.afterDonate(key, amount0, amount1, hookData);
     }
 
     /// @inheritdoc IBinPoolManager
@@ -371,30 +330,20 @@ contract BinPoolManager is IBinPoolManager, Fees, Extsload {
     }
 
     /// @inheritdoc IPoolManager
-    function updateDynamicSwapFee(PoolKey memory key, uint24 newDynamicSwapFee) external override {
-        if (!key.fee.isDynamicSwapFee() || msg.sender != address(key.hooks)) revert UnauthorizedDynamicSwapFeeUpdate();
-        if (newDynamicSwapFee.isSwapFeeTooLarge(SwapFeeLibrary.TEN_PERCENT_FEE)) revert FeeTooLarge();
+    function updateDynamicLPFee(PoolKey memory key, uint24 newDynamicLPFee) external override {
+        if (!key.fee.isDynamicLPFee() || msg.sender != address(key.hooks)) revert UnauthorizedDynamicLPFeeUpdate();
+        newDynamicLPFee.validate(LPFeeLibrary.TEN_PERCENT_FEE);
 
         PoolId id = key.toId();
-        pools[id].setSwapFee(newDynamicSwapFee);
-        emit DynamicSwapFeeUpdated(id, newDynamicSwapFee);
+        pools[id].setLPFee(newDynamicLPFee);
+        emit DynamicLPFeeUpdated(id, newDynamicLPFee);
+    }
+
+    function _setProtocolFee(PoolId id, uint24 newProtocolFee) internal override {
+        pools[id].setProtocolFee(newProtocolFee);
     }
 
     function _checkPoolInitialized(PoolId id) internal view {
         if (pools[id].isNotInitialized()) revert PoolNotInitialized();
-    }
-
-    function _validateHookNoOp(PoolKey memory key) internal pure {
-        // if no-op is active for hook, there must be a before* hook active too
-        if (key.parameters.hasOffsetEnabled(HOOKS_NO_OP_OFFSET)) {
-            if (
-                !key.parameters.hasOffsetEnabled(HOOKS_BEFORE_MINT_OFFSET)
-                    && !key.parameters.hasOffsetEnabled(HOOKS_BEFORE_BURN_OFFSET)
-                    && !key.parameters.hasOffsetEnabled(HOOKS_BEFORE_SWAP_OFFSET)
-                    && !key.parameters.hasOffsetEnabled(HOOKS_BEFORE_DONATE_OFFSET)
-            ) {
-                revert Hooks.NoOpHookMissingBeforeCall();
-            }
-        }
     }
 }

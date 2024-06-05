@@ -3,24 +3,28 @@ pragma solidity ^0.8.24;
 
 import {Currency} from "../types/Currency.sol";
 import {IProtocolFeeController} from "./IProtocolFeeController.sol";
+import {PoolId} from "../types/PoolId.sol";
+import {PoolKey} from "../types/PoolKey.sol";
 
-interface IFees {
-    /// @notice Thrown when the protocol fee denominator is less than 4. Also thrown when the static or dynamic fee on a pool exceeds the upper limit.
+interface IProtocolFees {
+    /// @notice Thrown when the protocol fee exceeds the upper limit.
     error FeeTooLarge();
     /// @notice Thrown when not enough gas is provided to look up the protocol fee
     error ProtocolFeeCannotBeFetched();
-    /// @notice Thrown when user not authorized to collect protocol fee
-    error InvalidProtocolFeeCollector();
-    /// @notice Thrown when the call to fetch the protocol fee reverts or returns invalid data.
-    error ProtocolFeeControllerCallFailedOrInvalidResult();
+    /// @notice Thrown when user not authorized to set or collect protocol fee
+    error InvalidCaller();
+
+    /// @notice Emitted when protocol fee is updated
+    /// @dev The event is emitted even if the updated protocolFee is the same as previous protocolFee
+    event ProtocolFeeUpdated(PoolId indexed id, uint24 protocolFee);
 
     event ProtocolFeeControllerUpdated(address protocolFeeController);
 
-    /// @notice Returns the minimum denominator for the protocol fee, which restricts it to a maximum of 25%
-    function MIN_PROTOCOL_FEE_DENOMINATOR() external view returns (uint8);
-
     /// @notice Given a currency address, returns the protocol fees accrued in that currency
     function protocolFeesAccrued(Currency) external view returns (uint256);
+
+    /// @notice Sets the protocol's swap fee for the given pool
+    function setProtocolFee(PoolKey memory key, uint24 newProtocolFee) external;
 
     /// @notice Update the protocol fee controller, called by the owner
     function setProtocolFeeController(IProtocolFeeController controller) external;

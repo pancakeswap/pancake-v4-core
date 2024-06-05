@@ -7,6 +7,8 @@ import {Encoded} from "./Encoded.sol";
 library ParametersHelper {
     using Encoded for bytes32;
 
+    error UnusedBitsNonZero();
+
     uint256 internal constant OFFSET_HOOK = 0;
 
     /**
@@ -18,5 +20,11 @@ library ParametersHelper {
      */
     function getHooksRegistrationBitmap(bytes32 params) internal pure returns (uint16 bitmap) {
         bitmap = params.decodeUint16(OFFSET_HOOK);
+    }
+
+    function checkUnusedBitsAllZero(bytes32 params, uint256 mostSignificantUnUsedBitOffset) internal pure {
+        if ((uint256(params) >> (mostSignificantUnUsedBitOffset)) != 0) {
+            revert UnusedBitsNonZero();
+        }
     }
 }

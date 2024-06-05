@@ -5,7 +5,7 @@ pragma solidity ^0.8.24;
 import {SafeCast} from "../../libraries/SafeCast.sol";
 
 import {FullMath} from "./FullMath.sol";
-import {UnsafeMath} from "./UnsafeMath.sol";
+import {UnsafeMath} from "../../libraries/math/UnsafeMath.sol";
 import {FixedPoint96} from "./FixedPoint96.sol";
 
 /// @title Functions based on Q64.96 sqrt price and liquidity
@@ -56,7 +56,13 @@ library SqrtPriceMath {
                 uint256 product = amount * sqrtPX96;
                 // if the product overflows, we know the denominator underflows
                 // in addition, we must check that the denominator does not underflow
-                if (product / amount != sqrtPX96 || numerator1 <= product) revert PriceOverflow();
+                // equivalent: if (product / amount != sqrtPX96 || numerator1 <= product) revert PriceOverflow();
+                assembly ("memory-safe") {
+                    if iszero(and(eq(div(product, amount), sqrtPX96), gt(numerator1, product))) {
+                        mstore(0, 0xf5c787f1) // selector for PriceOverflow()
+                        revert(0x1c, 0x04)
+                    }
+                }
                 uint256 denominator = numerator1 - product;
                 return FullMath.mulDivRoundingUp(numerator1, sqrtPX96, denominator).toUint160();
             }
@@ -95,7 +101,13 @@ library SqrtPriceMath {
                     : FullMath.mulDivRoundingUp(amount, FixedPoint96.Q96, liquidity)
             );
 
-            if (sqrtPX96 <= quotient) revert NotEnoughLiquidity();
+            // equivalent: if (sqrtPX96 <= quotient) revert NotEnoughLiquidity();
+            assembly ("memory-safe") {
+                if iszero(gt(sqrtPX96, quotient)) {
+                    mstore(0, 0x4323a555) // selector for NotEnoughLiquidity()
+                    revert(0x1c, 0x04)
+                }
+            }
             // always fits 160 bits
             unchecked {
                 return uint160(sqrtPX96 - quotient);
@@ -115,7 +127,13 @@ library SqrtPriceMath {
         pure
         returns (uint160 sqrtQX96)
     {
-        if (sqrtPX96 == 0 || liquidity == 0) revert InvalidPriceOrLiquidity();
+        // equivalent: if (sqrtPX96 == 0 || liquidity == 0) revert InvalidPriceOrLiquidity();
+        assembly ("memory-safe") {
+            if or(iszero(sqrtPX96), iszero(liquidity)) {
+                mstore(0, 0x4f2461b8) // selector for InvalidPriceOrLiquidity()
+                revert(0x1c, 0x04)
+            }
+        }
 
         // round to make sure that we don't pass the target price
         return zeroForOne
@@ -135,7 +153,13 @@ library SqrtPriceMath {
         pure
         returns (uint160 sqrtQX96)
     {
-        if (sqrtPX96 == 0 || liquidity == 0) revert InvalidPriceOrLiquidity();
+        // equivalent: if (sqrtPX96 == 0 || liquidity == 0) revert InvalidPriceOrLiquidity();
+        assembly ("memory-safe") {
+            if or(iszero(sqrtPX96), iszero(liquidity)) {
+                mstore(0, 0x4f2461b8) // selector for InvalidPriceOrLiquidity()
+                revert(0x1c, 0x04)
+            }
+        }
 
         // round to make sure that we pass the target price
         return zeroForOne
@@ -159,14 +183,33 @@ library SqrtPriceMath {
         unchecked {
             if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
 
+            // equivalent: if (sqrtRatioAX96 == 0) revert InvalidPrice();
+            assembly ("memory-safe") {
+                if iszero(sqrtRatioAX96) {
+                    mstore(0, 0x00bfc921) // selector for InvalidPrice()
+                    revert(0x1c, 0x04)
+                }
+            }
+
             uint256 numerator1 = uint256(liquidity) << FixedPoint96.RESOLUTION;
             uint256 numerator2 = sqrtRatioBX96 - sqrtRatioAX96;
-
-            if (sqrtRatioAX96 == 0) revert InvalidPrice();
 
             return roundUp
                 ? UnsafeMath.divRoundingUp(FullMath.mulDivRoundingUp(numerator1, numerator2, sqrtRatioBX96), sqrtRatioAX96)
                 : FullMath.mulDiv(numerator1, numerator2, sqrtRatioBX96) / sqrtRatioAX96;
+        }
+    }
+
+    /// @notice Equivalent to: `a >= b ? a - b : b - a`
+    function absDiff(uint160 a, uint160 b) internal pure returns (uint256 res) {
+        assembly ("memory-safe") {
+            let diff := sub(a, b)
+            // mask = 0 if a >= b else -1 (all 1s)
+            let mask := sar(255, diff)
+            // if a >= b, res = a - b = 0 ^ (a - b)
+            // if a < b, res = b - a = ~~(b - a) = ~(-(b - a) - 1) = ~(a - b - 1) = (-1) ^ (a - b - 1)
+            // either way, res = mask ^ (a - b + mask)
+            res := xor(mask, add(mask, diff))
         }
     }
 
@@ -182,11 +225,24 @@ library SqrtPriceMath {
         pure
         returns (uint256 amount1)
     {
-        if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
-
-        return roundUp
-            ? FullMath.mulDivRoundingUp(liquidity, sqrtRatioBX96 - sqrtRatioAX96, FixedPoint96.Q96)
-            : FullMath.mulDiv(liquidity, sqrtRatioBX96 - sqrtRatioAX96, FixedPoint96.Q96);
+        uint256 numerator = absDiff(sqrtRatioAX96, sqrtRatioBX96);
+        uint256 denominator = FixedPoint96.Q96;
+        uint256 _liquidity;
+        assembly ("memory-safe") {
+            // avoid implicit upcasting
+            _liquidity := liquidity
+        }
+        /**
+         * Equivalent to:
+         *   amount1 = roundUp
+         *       ? FullMath.mulDivRoundingUp(liquidity, sqrtRatioBX96 - sqrtRatioAX96, FixedPoint96.Q96)
+         *       : FullMath.mulDiv(liquidity, sqrtRatioBX96 - sqrtRatioAX96, FixedPoint96.Q96);
+         * Cannot overflow because `type(uint128).max * type(uint160).max >> 96 < (1 << 192)`.
+         */
+        amount1 = FullMath.mulDiv(_liquidity, numerator, denominator);
+        assembly ("memory-safe") {
+            amount1 := add(amount1, and(gt(mulmod(_liquidity, numerator, denominator), 0), roundUp))
+        }
     }
 
     /// @notice Helper that gets signed currency0 delta
@@ -201,8 +257,8 @@ library SqrtPriceMath {
     {
         unchecked {
             return liquidity < 0
-                ? -getAmount0Delta(sqrtRatioAX96, sqrtRatioBX96, uint128(-liquidity), false).toInt256()
-                : getAmount0Delta(sqrtRatioAX96, sqrtRatioBX96, uint128(liquidity), true).toInt256();
+                ? getAmount0Delta(sqrtRatioAX96, sqrtRatioBX96, uint128(-liquidity), false).toInt256()
+                : -getAmount0Delta(sqrtRatioAX96, sqrtRatioBX96, uint128(liquidity), true).toInt256();
         }
     }
 
@@ -218,8 +274,8 @@ library SqrtPriceMath {
     {
         unchecked {
             return liquidity < 0
-                ? -getAmount1Delta(sqrtRatioAX96, sqrtRatioBX96, uint128(-liquidity), false).toInt256()
-                : getAmount1Delta(sqrtRatioAX96, sqrtRatioBX96, uint128(liquidity), true).toInt256();
+                ? getAmount1Delta(sqrtRatioAX96, sqrtRatioBX96, uint128(-liquidity), false).toInt256()
+                : -getAmount1Delta(sqrtRatioAX96, sqrtRatioBX96, uint128(liquidity), true).toInt256();
         }
     }
 }

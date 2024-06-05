@@ -4,15 +4,15 @@ pragma solidity ^0.8.24;
 import {Currency} from "../../types/Currency.sol";
 import {PoolKey} from "../../types/PoolKey.sol";
 import {CLPool} from "../libraries/CLPool.sol";
-import {ICLHooks} from "./ICLHooks.sol";
-import {IFees} from "../../interfaces/IFees.sol";
+import {IHooks} from "../../interfaces/IHooks.sol";
+import {IProtocolFees} from "../../interfaces/IProtocolFees.sol";
 import {BalanceDelta} from "../../types/BalanceDelta.sol";
 import {PoolId} from "../../types/PoolId.sol";
 import {CLPosition} from "../libraries/CLPosition.sol";
 import {IPoolManager} from "../../interfaces/IPoolManager.sol";
 import {IExtsload} from "../../interfaces/IExtsload.sol";
 
-interface ICLPoolManager is IFees, IPoolManager, IExtsload {
+interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @notice PoolManagerMismatch is thrown when pool manager specified in the pool key does not match current contract
     error PoolManagerMismatch();
     /// @notice Pools are limited to type(int16).max tickSpacing in #initialize, to prevent overflow
@@ -21,12 +21,14 @@ interface ICLPoolManager is IFees, IPoolManager, IExtsload {
     error TickSpacingTooSmall();
     /// @notice Error thrown when add liquidity is called when paused()
     error PoolPaused();
+    /// @notice Thrown when trying to swap amount of 0
+    error SwapAmountCannotBeZero();
 
     /// @notice Emitted when a new pool is initialized
     /// @param id The abi encoded hash of the pool key struct for the new pool
     /// @param currency0 The first currency of the pool by address sort order
     /// @param currency1 The second currency of the pool by address sort order
-    /// @param fee The fee collected upon every swap in the pool, denominated in hundredths of a bip
+    /// @param fee The lp fee collected upon every swap in the pool, denominated in hundredths of a bip
     /// @param tickSpacing The minimum number of ticks between initialized ticks
     /// @param hooks The hooks contract address for the pool, or address(0) if none
     event Initialize(
@@ -35,7 +37,7 @@ interface ICLPoolManager is IFees, IPoolManager, IExtsload {
         Currency indexed currency1,
         uint24 fee,
         int24 tickSpacing,
-        ICLHooks hooks
+        IHooks hooks
     );
 
     /// @notice Emitted when a liquidity position is modified
@@ -43,9 +45,10 @@ interface ICLPoolManager is IFees, IPoolManager, IExtsload {
     /// @param sender The address that modified the pool
     /// @param tickLower The lower tick of the position
     /// @param tickUpper The upper tick of the position
+    /// @param salt The value used to create a unique liquidity position
     /// @param liquidityDelta The amount of liquidity that was added or removed
     event ModifyLiquidity(
-        PoolId indexed id, address indexed sender, int24 tickLower, int24 tickUpper, int256 liquidityDelta
+        PoolId indexed id, address indexed sender, int24 tickLower, int24 tickUpper, bytes32 salt, int256 liquidityDelta
     );
 
     /// @notice Emitted for swaps between currency0 and currency1
@@ -56,8 +59,8 @@ interface ICLPoolManager is IFees, IPoolManager, IExtsload {
     /// @param sqrtPriceX96 The sqrt(price) of the pool after the swap, as a Q64.96
     /// @param liquidity The liquidity of the pool after the swap
     /// @param tick The log base 1.0001 of the price of the pool after the swap
-    /// @param fee The fee collected upon every swap in the pool, denominated in hundredths of a bip
-    /// @param protocolFee Protocol fee from the swap, and it is only on the input currency
+    /// @param fee The fee collected upon every swap in the pool (including protocol fee and LP fee), denominated in hundredths of a bip
+    /// @param protocolFee Protocol fee from the swap, also denominated in hundredths of a bip
     event Swap(
         PoolId indexed id,
         address indexed sender,
@@ -67,7 +70,7 @@ interface ICLPoolManager is IFees, IPoolManager, IExtsload {
         uint128 liquidity,
         int24 tick,
         uint24 fee,
-        uint256 protocolFee
+        uint24 protocolFee
     );
 
     /// @notice Emitted when donate happen
@@ -88,19 +91,19 @@ interface ICLPoolManager is IFees, IPoolManager, IExtsload {
     function getSlot0(PoolId id)
         external
         view
-        returns (uint160 sqrtPriceX96, int24 tick, uint16 protocolFee, uint24 swapFee);
+        returns (uint160 sqrtPriceX96, int24 tick, uint24 protocolFee, uint24 lpFee);
 
     /// @notice Get the current value of liquidity of the given pool
     function getLiquidity(PoolId id) external view returns (uint128 liquidity);
 
     /// @notice Get the current value of liquidity for the specified pool and position
-    function getLiquidity(PoolId id, address owner, int24 tickLower, int24 tickUpper)
+    function getLiquidity(PoolId id, address owner, int24 tickLower, int24 tickUpper, bytes32 salt)
         external
         view
         returns (uint128 liquidity);
 
     /// @notice Get the position struct for a specified pool and position
-    function getPosition(PoolId id, address owner, int24 tickLower, int24 tickUpper)
+    function getPosition(PoolId id, address owner, int24 tickLower, int24 tickUpper, bytes32 salt)
         external
         view
         returns (CLPosition.Info memory position);
@@ -116,11 +119,13 @@ interface ICLPoolManager is IFees, IPoolManager, IExtsload {
         int24 tickUpper;
         // how to modify the liquidity
         int256 liquidityDelta;
+        // a value to set if you want unique liquidity positions at the same range
+        bytes32 salt;
     }
 
     /// @notice Modify the position for the given pool
-    /// @return delta The balance delta of the liquidity change
-    /// @return feeDelta The balance delta of the fees generated in the liquidity range
+    /// @return delta The total balance delta of the caller of modifyLiquidity.
+    /// @return feeDelta The balance delta of the fees generated in the liquidity range.
     function modifyLiquidity(PoolKey memory key, ModifyLiquidityParams memory params, bytes calldata hookData)
         external
         returns (BalanceDelta delta, BalanceDelta feeDelta);
@@ -132,6 +137,13 @@ interface ICLPoolManager is IFees, IPoolManager, IExtsload {
     }
 
     /// @notice Swap against the given pool
+    /// @param key The pool to swap in
+    /// @param params The parameters for swapping
+    /// @param hookData Any data to pass to the callback
+    /// @return delta The balance delta of the address swapping
+    /// @dev Swapping on low liquidity pools may cause unexpected swap amounts when liquidity available is less than amountSpecified.
+    /// Additionally note that if interacting with hooks that have the BEFORE_SWAP_RETURNS_DELTA_FLAG or AFTER_SWAP_RETURNS_DELTA_FLAG
+    /// the hook may alter the swap input/output. Integrators should perform checks on the returned swapDelta.
     function swap(PoolKey memory key, SwapParams memory params, bytes calldata hookData)
         external
         returns (BalanceDelta);

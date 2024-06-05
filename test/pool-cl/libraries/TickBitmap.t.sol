@@ -23,6 +23,19 @@ contract TickBitmapTest is Test, GasSnapshot {
         }
     }
 
+    function testFuzz_compress(int24 tick, int24 tickSpacing) public pure {
+        tickSpacing = int24(bound(tickSpacing, 1, type(int24).max));
+        int24 compressed = tick / tickSpacing;
+        if (tick < 0 && tick % tickSpacing != 0) compressed--;
+        assertEq(TickBitmap.compress(tick, tickSpacing), compressed);
+    }
+
+    function testFuzz_position(int24 tick) public pure {
+        (int16 wordPos, uint8 bitPos) = TickBitmap.position(tick);
+        assertEq(wordPos, tick >> 8);
+        assertEq(bitPos, uint8(int8(tick % 256)));
+    }
+
     function test_isInitialized_isFalseAtFirst() public {
         assertEq(isInitialized(1), false);
     }
@@ -95,6 +108,22 @@ contract TickBitmapTest is Test, GasSnapshot {
         snapStart("flipTick_gasCostOfFlippingATickThatResultsInDeletingAWord");
         flipTick(SOLO_INITIALIZED_TICK_IN_WORD);
         snapEnd();
+    }
+
+    function testFuzz_flipTick(int24 tick, int24 tickSpacing) public {
+        tickSpacing = int24(bound(tickSpacing, 1, type(int24).max));
+
+        if (tick % tickSpacing != 0) {
+            vm.expectRevert(abi.encodeWithSelector(TickBitmap.TickMisaligned.selector, tick, tickSpacing));
+            bitmap.flipTick(tick, tickSpacing);
+        } else {
+            bool initialized = isInitialized(tick, tickSpacing);
+            bitmap.flipTick(tick, tickSpacing);
+            assertEq(isInitialized(tick, tickSpacing), !initialized);
+            // flip again
+            bitmap.flipTick(tick, tickSpacing);
+            assertEq(isInitialized(tick, tickSpacing), initialized);
+        }
     }
 
     function test_nextInitializedTickWithinOneWord_lteFalse_returnsTickToRightIfAtInitializedTick() public {
@@ -279,6 +308,14 @@ contract TickBitmapTest is Test, GasSnapshot {
                 assertTrue(!isInitialized(i));
             }
             assertEq(isInitialized(next), initialized);
+        }
+    }
+
+    function isInitialized(int24 tick, int24 tickSpacing) internal view returns (bool) {
+        unchecked {
+            if (tick % tickSpacing != 0) return false;
+            (int16 wordPos, uint8 bitPos) = TickBitmap.position(tick / tickSpacing);
+            return bitmap[wordPos] & (1 << bitPos) != 0;
         }
     }
 

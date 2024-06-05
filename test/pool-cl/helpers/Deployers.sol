@@ -8,7 +8,7 @@ import {IHooks} from "../../../src/interfaces/IHooks.sol";
 import {ICLPoolManager} from "../../../src/pool-cl/interfaces/ICLPoolManager.sol";
 import {CLPoolManager} from "../../../src/pool-cl/CLPoolManager.sol";
 import {PoolId, PoolIdLibrary} from "../../../src/types/PoolId.sol";
-import {SwapFeeLibrary} from "../../../src/libraries/SwapFeeLibrary.sol";
+import {LPFeeLibrary} from "../../../src/libraries/LPFeeLibrary.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {Constants} from "./Constants.sol";
 import {SortTokens} from "../../helpers/SortTokens.sol";
@@ -16,7 +16,7 @@ import {Vault} from "../../../src/Vault.sol";
 import {IVault} from "../../../src/interfaces/IVault.sol";
 
 contract Deployers {
-    using SwapFeeLibrary for uint24;
+    using LPFeeLibrary for uint24;
     using PoolIdLibrary for PoolKey;
 
     bytes constant ZERO_BYTES = new bytes(0);
@@ -58,7 +58,7 @@ contract Deployers {
             hooks,
             manager,
             fee,
-            fee.isDynamicSwapFee()
+            fee.isDynamicLPFee()
                 ? bytes32(uint256((60 << 16) | 0x00ff))
                 : bytes32(uint256(((fee / 100 * 2) << 16) | 0x00ff))
         );

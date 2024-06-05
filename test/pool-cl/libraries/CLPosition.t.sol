@@ -16,7 +16,7 @@ contract CLPositionTest is Test, GasSnapshot {
     CLPool.State public pool;
 
     function test_get_emptyPosition() public {
-        CLPosition.Info memory info = pool.positions.get(address(this), 1, 2);
+        CLPosition.Info memory info = pool.positions.get(address(this), 1, 2, 0);
         assertEq(info.liquidity, 0);
         assertEq(info.feeGrowthInside0LastX128, 0);
         assertEq(info.feeGrowthInside1LastX128, 0);
@@ -27,7 +27,7 @@ contract CLPositionTest is Test, GasSnapshot {
         uint256 feeGrowthInside0X128,
         uint256 feeGrowthInside1X128
     ) public {
-        CLPosition.Info storage info = pool.positions.get(address(this), 1, 2);
+        CLPosition.Info storage info = pool.positions.get(address(this), 1, 2, 0);
 
         if (liquidityDelta == 0) {
             vm.expectRevert(CLPosition.CannotUpdateEmptyPosition.selector);
@@ -44,7 +44,7 @@ contract CLPositionTest is Test, GasSnapshot {
     }
 
     function test_set_updateNonEmptyPosition() public {
-        CLPosition.Info storage info = pool.positions.get(address(this), 1, 2);
+        CLPosition.Info storage info = pool.positions.get(address(this), 1, 2, 0);
 
         // init
         {
@@ -89,5 +89,16 @@ contract CLPositionTest is Test, GasSnapshot {
             assertEq(info.feeGrowthInside0LastX128, 20 * FixedPoint128.Q128);
             assertEq(info.feeGrowthInside1LastX128, 15 * FixedPoint128.Q128);
         }
+    }
+
+    function test_MixFuzz(address owner, int24 tickLower, int24 tickUpper, bytes32 salt, int128 liquidityDelta)
+        public
+    {
+        liquidityDelta = int128(bound(liquidityDelta, 1, type(int128).max));
+        CLPosition.Info storage info = pool.positions.get(owner, tickLower, tickUpper, salt);
+        info.update(liquidityDelta, 0, 0);
+
+        bytes32 key = keccak256(abi.encodePacked(owner, tickLower, tickUpper, salt));
+        assertEq(pool.positions[key].liquidity, uint128(liquidityDelta));
     }
 }

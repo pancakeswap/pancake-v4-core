@@ -9,12 +9,14 @@ import {Currency, CurrencyLibrary} from "../../../src/types/Currency.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../../../src/types/BalanceDelta.sol";
 import {BaseCLTestHook} from "./BaseCLTestHook.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "../../../src/types/BeforeSwapDelta.sol";
+import {CurrencySettlement} from "../../helpers/CurrencySettlement.sol";
 
 /// @notice CL hook which does a callback
 contract CLSkipCallbackHook is BaseCLTestHook {
     error InvalidAction();
 
-    using CurrencyLibrary for Currency;
+    using CurrencySettlement for Currency;
     using Hooks for bytes32;
 
     IVault public immutable vault;
@@ -41,7 +43,10 @@ contract CLSkipCallbackHook is BaseCLTestHook {
                 afterSwap: true,
                 beforeDonate: true,
                 afterDonate: true,
-                noOp: false
+                befreSwapReturnsDelta: true,
+                afterSwapReturnsDelta: true,
+                afterAddLiquidityReturnsDelta: true,
+                afterRemoveLiquidityReturnsDelta: true
             })
         );
     }
@@ -84,38 +89,12 @@ contract CLSkipCallbackHook is BaseCLTestHook {
     function modifyPositionCallback(bytes memory rawData) private returns (bytes memory) {
         ModifyPositionCallbackData memory data = abi.decode(rawData, (ModifyPositionCallbackData));
 
-        (BalanceDelta delta, BalanceDelta feeDelta) = poolManager.modifyLiquidity(data.key, data.params, data.hookData);
+        (BalanceDelta delta,) = poolManager.modifyLiquidity(data.key, data.params, data.hookData);
 
-        // For now assume to always settle feeDelta in the same way as delta
-        BalanceDelta totalDelta = delta + feeDelta;
-
-        if (delta.amount0() > 0) {
-            if (data.key.currency0.isNative()) {
-                vault.settle{value: uint128(delta.amount0())}(data.key.currency0);
-            } else {
-                IERC20(Currency.unwrap(data.key.currency0)).transferFrom(
-                    data.sender, address(vault), uint128(delta.amount0())
-                );
-                vault.settle(data.key.currency0);
-            }
-        }
-        if (delta.amount1() > 0) {
-            if (data.key.currency1.isNative()) {
-                vault.settle{value: uint128(delta.amount1())}(data.key.currency1);
-            } else {
-                IERC20(Currency.unwrap(data.key.currency1)).transferFrom(
-                    data.sender, address(vault), uint128(delta.amount1())
-                );
-                vault.settle(data.key.currency1);
-            }
-        }
-
-        if (delta.amount0() < 0) {
-            vault.take(data.key.currency0, data.sender, uint128(-delta.amount0()));
-        }
-        if (delta.amount1() < 0) {
-            vault.take(data.key.currency1, data.sender, uint128(-delta.amount1()));
-        }
+        if (delta.amount0() < 0) data.key.currency0.settle(vault, data.sender, uint128(-delta.amount0()), false);
+        if (delta.amount0() > 0) data.key.currency0.take(vault, data.sender, uint128(delta.amount0()), false);
+        if (delta.amount1() < 0) data.key.currency1.settle(vault, data.sender, uint128(-delta.amount1()), false);
+        if (delta.amount1() > 0) data.key.currency1.take(vault, data.sender, uint128(delta.amount1()), false);
 
         return abi.encode(delta);
     }
@@ -155,53 +134,31 @@ contract CLSkipCallbackHook is BaseCLTestHook {
 
         BalanceDelta delta = poolManager.swap(data.key, data.params, data.hookData);
         if (data.params.zeroForOne) {
-            if (delta.amount0() > 0) {
-                if (data.testSettings.settleUsingTransfer) {
-                    if (data.key.currency0.isNative()) {
-                        vault.settle{value: uint128(delta.amount0())}(data.key.currency0);
-                    } else {
-                        IERC20(Currency.unwrap(data.key.currency0)).transferFrom(
-                            data.sender, address(vault), uint128(delta.amount0())
-                        );
-                        vault.settle(data.key.currency0);
-                    }
-                } else {
-                    // the received hook on this transfer will burn the tokens
-                    vault.transferFrom(data.sender, address(this), data.key.currency0, uint128(delta.amount0()));
-                    vault.burn(address(this), data.key.currency0, uint128(delta.amount0()));
-                }
-            }
-            if (delta.amount1() < 0) {
-                if (data.testSettings.withdrawTokens) {
-                    vault.take(data.key.currency1, data.sender, uint128(-delta.amount1()));
-                } else {
-                    vault.mint(data.sender, data.key.currency1, uint128(-delta.amount1()));
-                }
-            }
-        } else {
-            if (delta.amount1() > 0) {
-                if (data.testSettings.settleUsingTransfer) {
-                    if (data.key.currency1.isNative()) {
-                        vault.settle{value: uint128(delta.amount1())}(data.key.currency1);
-                    } else {
-                        IERC20(Currency.unwrap(data.key.currency1)).transferFrom(
-                            data.sender, address(vault), uint128(delta.amount1())
-                        );
-                        vault.settle(data.key.currency1);
-                    }
-                } else {
-                    // the received hook on this transfer will burn the tokens
-                    vault.transferFrom(data.sender, address(this), data.key.currency1, uint128(delta.amount1()));
-                    vault.burn(address(this), data.key.currency1, uint128(delta.amount1()));
-                }
-            }
             if (delta.amount0() < 0) {
-                if (data.testSettings.withdrawTokens) {
-                    vault.take(data.key.currency0, data.sender, uint128(-delta.amount0()));
+                bool burn = !data.testSettings.settleUsingTransfer;
+                if (burn) {
+                    vault.transferFrom(data.sender, address(this), data.key.currency0, uint128(-delta.amount0()));
+                    data.key.currency0.settle(vault, address(this), uint128(-delta.amount0()), burn);
                 } else {
-                    vault.mint(data.sender, data.key.currency0, uint128(-delta.amount0()));
+                    data.key.currency0.settle(vault, data.sender, uint128(-delta.amount0()), burn);
                 }
             }
+
+            bool claims = !data.testSettings.withdrawTokens;
+            if (delta.amount1() > 0) data.key.currency1.take(vault, data.sender, uint128(delta.amount1()), claims);
+        } else {
+            if (delta.amount1() < 0) {
+                bool burn = !data.testSettings.settleUsingTransfer;
+                if (burn) {
+                    vault.transferFrom(data.sender, address(this), data.key.currency1, uint128(-delta.amount1()));
+                    data.key.currency1.settle(vault, address(this), uint128(-delta.amount1()), burn);
+                } else {
+                    data.key.currency1.settle(vault, data.sender, uint128(-delta.amount1()), burn);
+                }
+            }
+
+            bool claims = !data.testSettings.withdrawTokens;
+            if (delta.amount0() > 0) data.key.currency0.take(vault, data.sender, uint128(delta.amount0()), claims);
         }
 
         return abi.encode(delta);
@@ -237,26 +194,9 @@ contract CLSkipCallbackHook is BaseCLTestHook {
         DonateCallbackData memory data = abi.decode(rawData, (DonateCallbackData));
 
         BalanceDelta delta = poolManager.donate(data.key, data.amount0, data.amount1, data.hookData);
-        if (delta.amount0() > 0) {
-            if (data.key.currency0.isNative()) {
-                vault.settle{value: uint128(delta.amount0())}(data.key.currency0);
-            } else {
-                IERC20(Currency.unwrap(data.key.currency0)).transferFrom(
-                    data.sender, address(vault), uint128(delta.amount0())
-                );
-                vault.settle(data.key.currency0);
-            }
-        }
-        if (delta.amount1() > 0) {
-            if (data.key.currency1.isNative()) {
-                vault.settle{value: uint128(delta.amount1())}(data.key.currency1);
-            } else {
-                IERC20(Currency.unwrap(data.key.currency1)).transferFrom(
-                    data.sender, address(vault), uint128(delta.amount1())
-                );
-                vault.settle(data.key.currency1);
-            }
-        }
+
+        if (delta.amount0() < 0) data.key.currency0.settle(vault, data.sender, uint128(-delta.amount0()), false);
+        if (delta.amount1() < 0) data.key.currency1.settle(vault, data.sender, uint128(-delta.amount1()), false);
 
         return abi.encode(delta);
     }
@@ -305,9 +245,9 @@ contract CLSkipCallbackHook is BaseCLTestHook {
         ICLPoolManager.ModifyLiquidityParams calldata,
         BalanceDelta,
         bytes calldata
-    ) external override returns (bytes4) {
+    ) external override returns (bytes4, BalanceDelta) {
         hookCounterCallbackCount++;
-        return CLSkipCallbackHook.afterAddLiquidity.selector;
+        return (CLSkipCallbackHook.afterAddLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
     }
 
     function beforeRemoveLiquidity(
@@ -326,27 +266,27 @@ contract CLSkipCallbackHook is BaseCLTestHook {
         ICLPoolManager.ModifyLiquidityParams calldata,
         BalanceDelta,
         bytes calldata
-    ) external override returns (bytes4) {
+    ) external override returns (bytes4, BalanceDelta) {
         hookCounterCallbackCount++;
-        return CLSkipCallbackHook.afterRemoveLiquidity.selector;
+        return (CLSkipCallbackHook.afterRemoveLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
     }
 
     function beforeSwap(address, PoolKey calldata, ICLPoolManager.SwapParams calldata, bytes calldata)
         external
         override
-        returns (bytes4)
+        returns (bytes4, BeforeSwapDelta, uint24)
     {
         hookCounterCallbackCount++;
-        return CLSkipCallbackHook.beforeSwap.selector;
+        return (CLSkipCallbackHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
 
     function afterSwap(address, PoolKey calldata, ICLPoolManager.SwapParams calldata, BalanceDelta, bytes calldata)
         external
         override
-        returns (bytes4)
+        returns (bytes4, int128)
     {
         hookCounterCallbackCount++;
-        return CLSkipCallbackHook.afterSwap.selector;
+        return (CLSkipCallbackHook.afterSwap.selector, 0);
     }
 
     function beforeDonate(address, PoolKey calldata, uint256, uint256, bytes calldata)

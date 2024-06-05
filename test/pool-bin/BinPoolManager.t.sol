@@ -4,9 +4,9 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
-import {SwapFeeLibrary} from "../../src/libraries/SwapFeeLibrary.sol";
+import {LPFeeLibrary} from "../../src/libraries/LPFeeLibrary.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
-import {IFees} from "../../src/interfaces/IFees.sol";
+import {IProtocolFees} from "../../src/interfaces/IProtocolFees.sol";
 import {IPoolManager} from "../../src/interfaces/IPoolManager.sol";
 import {IBinPoolManager} from "../../src/pool-bin/interfaces/IBinPoolManager.sol";
 import {IProtocolFeeController} from "../../src/interfaces/IProtocolFeeController.sol";
@@ -25,7 +25,7 @@ import {PackedUint128Math} from "../../src/pool-bin/libraries/math/PackedUint128
 import {SafeCast} from "../../src/pool-bin/libraries/math/SafeCast.sol";
 import {BinPoolParametersHelper} from "../../src/pool-bin/libraries/BinPoolParametersHelper.sol";
 import {Constants} from "../../src/pool-bin/libraries/Constants.sol";
-import {IBinHooks} from "../../src/pool-bin/interfaces/IBinHooks.sol";
+import "../../src/pool-bin/interfaces/IBinHooks.sol";
 import {BinFeeManagerHook} from "./helpers/BinFeeManagerHook.sol";
 import {IHooks} from "../../src/interfaces/IHooks.sol";
 import {IBinHooks} from "../../src/pool-bin/interfaces/IBinHooks.sol";
@@ -33,8 +33,9 @@ import {BinSwapHelper} from "./helpers/BinSwapHelper.sol";
 import {BinLiquidityHelper} from "./helpers/BinLiquidityHelper.sol";
 import {BinDonateHelper} from "./helpers/BinDonateHelper.sol";
 import {BinTestHelper} from "./helpers/BinTestHelper.sol";
-import {BinNoOpTestHook} from "./helpers/BinNoOpTestHook.sol";
 import {Hooks} from "../../src/libraries/Hooks.sol";
+import {ParametersHelper} from "../../src/libraries/math/ParametersHelper.sol";
+import {BinPosition} from "../../src/pool-bin/libraries/BinPosition.sol";
 
 contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     using PoolIdLibrary for PoolKey;
@@ -56,17 +57,18 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         Currency indexed currency1,
         uint24 fee,
         uint16 binStep,
-        IBinHooks hooks
+        IHooks hooks
     );
     event Mint(
         PoolId indexed id,
         address indexed sender,
         uint256[] ids,
+        bytes32 salt,
         bytes32[] amounts,
         bytes32 compositionFee,
         bytes32 pFees
     );
-    event Burn(PoolId indexed id, address indexed sender, uint256[] ids, bytes32[] amounts);
+    event Burn(PoolId indexed id, address indexed sender, uint256[] ids, bytes32 salt, bytes32[] amounts);
     event Swap(
         PoolId indexed id,
         address indexed sender,
@@ -74,12 +76,12 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         int128 amount1,
         uint24 activeId,
         uint24 fee,
-        bytes32 pFees
+        uint24 pFees
     );
     event Donate(PoolId indexed id, address indexed sender, int128 amount0, int128 amount1, uint24 binId);
-    event ProtocolFeeUpdated(PoolId indexed id, uint16 protocolFees);
+    event ProtocolFeeUpdated(PoolId indexed id, uint24 protocolFees);
     event SetMaxBinStep(uint16 maxBinStep);
-    event DynamicSwapFeeUpdated(PoolId indexed id, uint24 dynamicSwapFee);
+    event DynamicLPFeeUpdated(PoolId indexed id, uint24 dynamicSwapFee);
 
     Vault public vault;
     BinPoolManager public poolManager;
@@ -150,9 +152,68 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         });
 
         vm.expectEmit();
-        emit Initialize(key.toId(), key.currency0, key.currency1, key.fee, binStep, IBinHooks(address(mockHooks)));
+        emit Initialize(key.toId(), key.currency0, key.currency1, key.fee, binStep, IHooks(address(mockHooks)));
 
         poolManager.initialize(key, activeId, new bytes(0));
+    }
+
+    function test_FuzzInitializePoolUnusedBits(uint256 randomOneBitOffset) external {
+        randomOneBitOffset = bound(randomOneBitOffset, BinPoolParametersHelper.OFFSET_MOST_SIGNIFICANT_UNUSED_BITS, 255);
+
+        uint16 bitMap = 0x0008; // after mint call
+        MockBinHooks mockHooks = new MockBinHooks();
+        mockHooks.setHooksRegistrationBitmap(bitMap);
+
+        key = PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            // hooks: hook,
+            hooks: IHooks(address(mockHooks)),
+            poolManager: IPoolManager(address(poolManager)),
+            fee: uint24(3000), // 3000 = 0.3%
+            parameters: bytes32(uint256(bitMap) | (1 << randomOneBitOffset)).setBinStep(1)
+        });
+
+        vm.expectRevert(abi.encodeWithSelector(ParametersHelper.UnusedBitsNonZero.selector));
+        poolManager.initialize(key, activeId, new bytes(0));
+    }
+
+    function testInitializeHookValidation() public {
+        uint16 bitMap = 0x0008; // after mint call
+        MockBinHooks mockHooks = new MockBinHooks();
+        mockHooks.setHooksRegistrationBitmap(bitMap);
+
+        // hook config
+        {
+            key = PoolKey({
+                currency0: currency0,
+                currency1: currency1,
+                // hooks: hook,
+                hooks: IHooks(address(mockHooks)),
+                poolManager: IPoolManager(address(poolManager)),
+                fee: uint24(3000), // 3000 = 0.3%
+                parameters: bytes32(uint256(bitMap - 1)).setBinStep(10)
+            });
+            vm.expectRevert(abi.encodeWithSelector(Hooks.HookConfigValidationError.selector));
+            poolManager.initialize(key, activeId, new bytes(0));
+        }
+
+        // hook permission
+        {
+            bitMap = uint16(1 << HOOKS_AFTER_BURN_RETURNS_DELTA_OFFSET);
+            mockHooks.setHooksRegistrationBitmap(bitMap);
+            key = PoolKey({
+                currency0: currency0,
+                currency1: currency1,
+                // hooks: hook,
+                hooks: IHooks(address(mockHooks)),
+                poolManager: IPoolManager(address(poolManager)),
+                fee: uint24(3000), // 3000 = 0.3%
+                parameters: bytes32(uint256(bitMap)).setBinStep(10)
+            });
+            vm.expectRevert(abi.encodeWithSelector(Hooks.HookPermissionsValidationError.selector));
+            poolManager.initialize(key, activeId, new bytes(0));
+        }
     }
 
     function testInitializeSamePool() public {
@@ -163,7 +224,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     }
 
     function testInitializeDynamicFeeTooLarge(uint24 dynamicSwapFee) public {
-        dynamicSwapFee = uint24(bound(dynamicSwapFee, SwapFeeLibrary.TEN_PERCENT_FEE + 1, type(uint24).max));
+        dynamicSwapFee = uint24(bound(dynamicSwapFee, LPFeeLibrary.TEN_PERCENT_FEE + 1, type(uint24).max));
 
         uint16 bitMap = 0x0040; // 0000 0000 0100 0000 (before swap call)
         BinFeeManagerHook binFeeManagerHook = new BinFeeManagerHook(poolManager);
@@ -174,19 +235,37 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             currency1: currency1,
             hooks: IHooks(address(binFeeManagerHook)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: SwapFeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000), // 3000 = 0.3%
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             parameters: bytes32(uint256(bitMap)).setBinStep(10)
         });
 
         binFeeManagerHook.setFee(dynamicSwapFee);
 
         vm.prank(address(binFeeManagerHook));
-        vm.expectRevert(IFees.FeeTooLarge.selector);
-        poolManager.updateDynamicSwapFee(key, dynamicSwapFee);
+        vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
+        poolManager.updateDynamicLPFee(key, dynamicSwapFee);
+    }
+
+    function testInitializeInvalidFee() public {
+        uint16 bitMap = 0x0040; // 0000 0000 0100 0000 (before swap call)
+        BinFeeManagerHook binFeeManagerHook = new BinFeeManagerHook(poolManager);
+        binFeeManagerHook.setHooksRegistrationBitmap(bitMap);
+
+        key = PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            hooks: IHooks(address(binFeeManagerHook)),
+            poolManager: IPoolManager(address(poolManager)),
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG + 1,
+            parameters: bytes32(uint256(bitMap)).setBinStep(10)
+        });
+
+        vm.expectRevert(LPFeeLibrary.FeeTooLarge.selector);
+        poolManager.initialize(key, 10, new bytes(0));
     }
 
     function testInitializeSwapFeeTooLarge() public {
-        uint24 swapFee = SwapFeeLibrary.TEN_PERCENT_FEE + 1;
+        uint24 swapFee = LPFeeLibrary.TEN_PERCENT_FEE + 1;
 
         key = PoolKey({
             currency0: currency0,
@@ -197,7 +276,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             parameters: poolParam.setBinStep(1) // binStep
         });
 
-        vm.expectRevert(IFees.FeeTooLarge.selector);
+        vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
         poolManager.initialize(key, activeId, "");
     }
 
@@ -227,77 +306,6 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         poolManager.initialize(key, activeId, "");
     }
 
-    function testInitialize_NoOpMissingBeforeCall() public {
-        // 0000 0100 0000 0000 // only noOp
-        uint16 bitMap = 0x0400;
-
-        BinNoOpTestHook noOpHook = new BinNoOpTestHook();
-        noOpHook.setHooksRegistrationBitmap(bitMap);
-
-        key = PoolKey({
-            currency0: Currency.wrap(makeAddr("token0")),
-            currency1: Currency.wrap(makeAddr("token1")),
-            hooks: IHooks(address(noOpHook)),
-            poolManager: IPoolManager(address(poolManager)),
-            fee: uint24(3000),
-            parameters: bytes32(uint256(bitMap)).setBinStep(1)
-        });
-
-        // no op permission set, but no before call
-        vm.expectRevert(Hooks.NoOpHookMissingBeforeCall.selector);
-        poolManager.initialize(key, activeId, "");
-    }
-
-    function testNoOp_Gas() public {
-        // 0000 0101 0101 0100 // noOp, beforeMint, beforeBurn, beforeSwap, beforeDonate
-        uint16 bitMap = 0x0554;
-
-        // pre-req create pool
-        BinNoOpTestHook noOpHook = new BinNoOpTestHook();
-        noOpHook.setHooksRegistrationBitmap(bitMap);
-        key = PoolKey({
-            currency0: Currency.wrap(makeAddr("token0")),
-            currency1: Currency.wrap(makeAddr("token1")),
-            hooks: IHooks(address(noOpHook)),
-            poolManager: IPoolManager(address(poolManager)),
-            fee: uint24(3000),
-            parameters: bytes32(uint256(bitMap)).setBinStep(1)
-        });
-
-        snapStart("BinPoolManagerTest#testNoOpGas_Initialize");
-        poolManager.initialize(key, activeId, "");
-        snapEnd();
-
-        BalanceDelta delta;
-
-        // Action 1: mint, params doesn't matter for noOp
-        IBinPoolManager.MintParams memory mintParams;
-        snapStart("BinPoolManagerTest#testNoOpGas_Mint");
-        delta = binLiquidityHelper.mint{value: 1 ether}(key, mintParams, "");
-        snapEnd();
-        assertTrue(delta == BalanceDeltaLibrary.MAXIMUM_DELTA);
-
-        // Action 2: Burn, params doesn't matter for noOp
-        IBinPoolManager.BurnParams memory burnParams;
-        snapStart("BinPoolManagerTest#testNoOpGas_Burn");
-        delta = binLiquidityHelper.burn(key, burnParams, "");
-        snapEnd();
-        assertTrue(delta == BalanceDeltaLibrary.MAXIMUM_DELTA);
-
-        // Action 3: Swap
-        BinSwapHelper.TestSettings memory testSettings;
-        snapStart("BinPoolManagerTest#testNoOpGas_Swap");
-        delta = binSwapHelper.swap(key, false, 1e17, testSettings, "");
-        snapEnd();
-        assertTrue(delta == BalanceDeltaLibrary.MAXIMUM_DELTA);
-
-        // Action 4: Donate
-        snapStart("BinPoolManagerTest#testNoOpGas_Donate");
-        delta = binDonateHelper.donate(key, 10 ether, 10 ether, "");
-        snapEnd();
-        assertTrue(delta == BalanceDeltaLibrary.MAXIMUM_DELTA);
-    }
-
     function testGasMintOneBin() public {
         poolManager.initialize(key, activeId, new bytes(0));
 
@@ -312,7 +320,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         vm.expectEmit();
         bytes32 compositionFee = uint128(0).encode(uint128(0));
         bytes32 pFee = uint128(0).encode(uint128(0));
-        emit Mint(key.toId(), address(binLiquidityHelper), ids, amounts, compositionFee, pFee);
+        emit Mint(key.toId(), address(binLiquidityHelper), ids, 0, amounts, compositionFee, pFee);
 
         snapStart("BinPoolManagerTest#testGasMintOneBin-1");
         binLiquidityHelper.mint(key, mintParams, "");
@@ -361,12 +369,208 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         bytes32 compositionFee = uint128(0).encode(uint128(0));
         bytes32 pFee = uint128(0).encode(uint128(0));
         vm.expectEmit();
-        emit Mint(key.toId(), address(binLiquidityHelper), ids, amounts, compositionFee, pFee);
+        emit Mint(key.toId(), address(binLiquidityHelper), ids, 0, amounts, compositionFee, pFee);
 
         // 1 ether as add 1 ether in native currency
         snapStart("BinPoolManagerTest#testMintNativeCurrency");
         binLiquidityHelper.mint{value: 1 ether}(key, mintParams, "");
         snapEnd();
+    }
+
+    function testMintAndBurnWithSalt() public {
+        bytes32 salt = bytes32(uint256(0x1234));
+        poolManager.initialize(key, activeId, new bytes(0));
+
+        token0.mint(address(this), 10 ether);
+        token1.mint(address(this), 10 ether);
+        (IBinPoolManager.MintParams memory mintParams, uint24[] memory binIds) =
+            _getMultipleBinMintParams(activeId, 2 ether, 2 ether, 5, 5, salt);
+        binLiquidityHelper.mint(key, mintParams, "");
+
+        // liquidity added with salt 0x1234  not salt 0
+        for (uint256 i = 0; i < binIds.length; i++) {
+            (uint128 binReserveX, uint128 binReserveY) = poolManager.getBin(key.toId(), binIds[i]);
+
+            // make sure the liquidity is added to the correct bin
+            if (binIds[i] < activeId) {
+                assertEq(binReserveX, 0 ether);
+                assertEq(binReserveY, 0.4 ether);
+            } else if (binIds[i] > activeId) {
+                assertEq(binReserveX, 0.4 ether);
+                assertEq(binReserveY, 0 ether);
+            } else {
+                assertEq(binReserveX, 0.4 ether);
+                assertEq(binReserveY, 0.4 ether);
+            }
+
+            BinPosition.Info memory position =
+                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt);
+            BinPosition.Info memory position0 =
+                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], 0);
+            assertTrue(position.share != 0);
+            // position with salt = 0
+            assertTrue(position0.share == 0);
+        }
+
+        // burn liquidity with salt 0x1234
+        IBinPoolManager.BurnParams memory burnParams =
+            _getMultipleBinBurnLiquidityParams(key, poolManager, binIds, address(binLiquidityHelper), 100, salt);
+        binLiquidityHelper.burn(key, burnParams, "");
+
+        for (uint256 i = 0; i < binIds.length; i++) {
+            (uint128 binReserveX, uint128 binReserveY) = poolManager.getBin(key.toId(), binIds[i]);
+
+            // make sure the liquidity is added to the correct bin
+            assertEq(binReserveX, 0 ether);
+            assertEq(binReserveY, 0 ether);
+
+            BinPosition.Info memory position =
+                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt);
+            BinPosition.Info memory position0 =
+                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], 0);
+            assertTrue(position.share == 0);
+            assertTrue(position0.share == 0);
+        }
+    }
+
+    function testMintMixWithAndWithoutSalt() public {
+        bytes32 salt0 = bytes32(0);
+        bytes32 salt1 = bytes32(uint256(0x1234));
+        bytes32 salt2 = bytes32(uint256(0x5678));
+        poolManager.initialize(key, activeId, new bytes(0));
+
+        token0.mint(address(this), 30 ether);
+        token1.mint(address(this), 30 ether);
+
+        (IBinPoolManager.MintParams memory mintParams, uint24[] memory binIds) =
+            _getMultipleBinMintParams(activeId, 2 ether, 2 ether, 5, 5, salt1);
+        binLiquidityHelper.mint(key, mintParams, "");
+
+        // liquidity added with salt 0x1234  not salt 0
+        for (uint256 i = 0; i < binIds.length; i++) {
+            (uint128 binReserveX, uint128 binReserveY) = poolManager.getBin(key.toId(), binIds[i]);
+
+            // make sure the liquidity is added to the correct bin
+            if (binIds[i] < activeId) {
+                assertEq(binReserveX, 0 ether);
+                assertEq(binReserveY, 0.4 ether);
+            } else if (binIds[i] > activeId) {
+                assertEq(binReserveX, 0.4 ether);
+                assertEq(binReserveY, 0 ether);
+            } else {
+                assertEq(binReserveX, 0.4 ether);
+                assertEq(binReserveY, 0.4 ether);
+            }
+
+            BinPosition.Info memory position0 =
+                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt0);
+            BinPosition.Info memory position1 =
+                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt1);
+            BinPosition.Info memory position2 =
+                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt2);
+
+            // only position with salt 0x1234 should have share
+            assertTrue(position0.share == 0);
+            assertTrue(position1.share != 0);
+            assertTrue(position2.share == 0);
+        }
+
+        {
+            (mintParams, binIds) = _getMultipleBinMintParams(activeId, 2 ether, 2 ether, 5, 5, salt2);
+            binLiquidityHelper.mint(key, mintParams, "");
+
+            for (uint256 i = 0; i < binIds.length; i++) {
+                (uint128 binReserveX, uint128 binReserveY) = poolManager.getBin(key.toId(), binIds[i]);
+
+                // make sure the liquidity is added to the correct bin
+                if (binIds[i] < activeId) {
+                    assertEq(binReserveX, 0 ether);
+                    assertEq(binReserveY, 0.4 ether * 2);
+                } else if (binIds[i] > activeId) {
+                    assertEq(binReserveX, 0.4 ether * 2);
+                    assertEq(binReserveY, 0 ether);
+                } else {
+                    assertEq(binReserveX, 0.4 ether * 2);
+                    assertEq(binReserveY, 0.4 ether * 2);
+                }
+
+                BinPosition.Info memory position0 =
+                    poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt0);
+                BinPosition.Info memory position1 =
+                    poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt1);
+                BinPosition.Info memory position2 =
+                    poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt2);
+
+                // only position with salt 0 should be empty
+                assertTrue(position0.share == 0);
+                assertTrue(position1.share != 0);
+                assertTrue(position1.share == position2.share);
+            }
+        }
+
+        {
+            (mintParams, binIds) = _getMultipleBinMintParams(activeId, 2 ether, 2 ether, 5, 5, salt0);
+            binLiquidityHelper.mint(key, mintParams, "");
+
+            for (uint256 i = 0; i < binIds.length; i++) {
+                (uint128 binReserveX, uint128 binReserveY) = poolManager.getBin(key.toId(), binIds[i]);
+
+                // make sure the liquidity is added to the correct bin
+                if (binIds[i] < activeId) {
+                    assertEq(binReserveX, 0 ether);
+                    assertEq(binReserveY, 0.4 ether * 3);
+                } else if (binIds[i] > activeId) {
+                    assertEq(binReserveX, 0.4 ether * 3);
+                    assertEq(binReserveY, 0 ether);
+                } else {
+                    assertEq(binReserveX, 0.4 ether * 3);
+                    assertEq(binReserveY, 0.4 ether * 3);
+                }
+
+                BinPosition.Info memory position0 =
+                    poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt0);
+                BinPosition.Info memory position1 =
+                    poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt1);
+                BinPosition.Info memory position2 =
+                    poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt2);
+
+                assertTrue(position0.share != 0);
+                assertTrue(position1.share == position0.share);
+                assertTrue(position1.share == position2.share);
+            }
+        }
+
+        // burning liquidity with salt 0x1234 should not impact position0 & position2
+        IBinPoolManager.BurnParams memory burnParams =
+            _getMultipleBinBurnLiquidityParams(key, poolManager, binIds, address(binLiquidityHelper), 100, salt1);
+        binLiquidityHelper.burn(key, burnParams, "");
+
+        for (uint256 i = 0; i < binIds.length; i++) {
+            (uint128 binReserveX, uint128 binReserveY) = poolManager.getBin(key.toId(), binIds[i]);
+
+            // make sure the liquidity is added to the correct bin
+            if (binIds[i] < activeId) {
+                assertEq(binReserveX, 0 ether);
+                assertEq(binReserveY, 0.4 ether * 2);
+            } else if (binIds[i] > activeId) {
+                assertEq(binReserveX, 0.4 ether * 2);
+                assertEq(binReserveY, 0 ether);
+            } else {
+                assertEq(binReserveX, 0.4 ether * 2);
+                assertEq(binReserveY, 0.4 ether * 2);
+            }
+
+            BinPosition.Info memory position0 =
+                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt0);
+            BinPosition.Info memory position1 =
+                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt1);
+            BinPosition.Info memory position2 =
+                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt2);
+
+            assertTrue(position0.share != 0);
+            assertTrue(position1.share == 0);
+            assertTrue(position0.share == position2.share);
+        }
     }
 
     function testGasBurnOneBin() public {
@@ -388,7 +592,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         ids[0] = activeId;
         amounts[0] = uint128(1e18).encode(uint128(1e18));
         vm.expectEmit();
-        emit Burn(key.toId(), address(binLiquidityHelper), ids, amounts);
+        emit Burn(key.toId(), address(binLiquidityHelper), ids, 0, amounts);
 
         snapStart("BinPoolManagerTest#testGasBurnOneBin");
         binLiquidityHelper.burn(key, burnParams, "");
@@ -457,7 +661,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         ids[0] = activeId;
         amounts[0] = uint128(1e18).encode(uint128(1e18));
         vm.expectEmit();
-        emit Burn(key.toId(), address(binLiquidityHelper), ids, amounts);
+        emit Burn(key.toId(), address(binLiquidityHelper), ids, 0, amounts);
 
         snapStart("BinPoolManagerTest#testBurnNativeCurrency");
         binLiquidityHelper.burn(key, burnParams, "");
@@ -479,8 +683,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         BinSwapHelper.TestSettings memory testSettings =
             BinSwapHelper.TestSettings({withdrawTokens: true, settleUsingTransfer: true});
         vm.expectEmit();
-        bytes32 pFee = uint128(0).encode(uint128(0));
-        emit Swap(key.toId(), address(binSwapHelper), 1 ether, -((1 ether * 997) / 1000), activeId, key.fee, pFee);
+        emit Swap(key.toId(), address(binSwapHelper), -1 ether, (1 ether * 997) / 1000, activeId, key.fee, 0);
 
         snapStart("BinPoolManagerTest#testGasSwapSingleBin");
         binSwapHelper.swap(key, true, 1 ether, testSettings, "");
@@ -544,7 +747,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         binLiquidityHelper.mint(key, mintParams, "");
 
         vm.expectEmit();
-        emit Donate(key.toId(), address(binDonateHelper), 10 ether, 10 ether, activeId);
+        emit Donate(key.toId(), address(binDonateHelper), -10 ether, -10 ether, activeId);
 
         snapStart("BinPoolManagerTest#testGasDonate");
         binDonateHelper.donate(key, 10 ether, 10 ether, "");
@@ -649,35 +852,48 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         assertEq(ativeIdExtsload, activeIdLoad);
     }
 
+    function testSetProtocolFeePoolNotOwner() public {
+        MockProtocolFeeController feeController = new MockProtocolFeeController();
+        poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
+
+        uint24 protocolFee = feeController.protocolFeeForPool(key);
+
+        vm.expectRevert(IProtocolFees.InvalidCaller.selector);
+        poolManager.setProtocolFee(key, protocolFee);
+    }
+
     function testSetProtocolFeePoolNotInitialized() public {
         MockProtocolFeeController feeController = new MockProtocolFeeController();
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
 
+        uint24 protocolFee = feeController.protocolFeeForPool(key);
+
         vm.expectRevert(PoolNotInitialized.selector);
-        poolManager.setProtocolFee(key);
+        vm.prank(address(feeController));
+        poolManager.setProtocolFee(key, protocolFee);
     }
 
     function testSetProtocolFee() public {
         // initialize the pool and asset protocolFee is 0
         poolManager.initialize(key, activeId, new bytes(0));
-        (, uint16 protocolFee,) = poolManager.getSlot0(key.toId());
+        (, uint24 protocolFee,) = poolManager.getSlot0(key.toId());
         assertEq(protocolFee, 0);
 
         // set up feeController
         MockProtocolFeeController feeController = new MockProtocolFeeController();
-        uint16 newSwapFee = _getSwapFee(10, 10); // 10%
-        feeController.setProtocolFeeForPool(key, newSwapFee);
+        uint24 newProtocolFee = _getSwapFee(1000, 1000); // 0.1%
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
 
         // Call setProtocolFee, verify event and state updated
         vm.expectEmit();
-        emit ProtocolFeeUpdated(key.toId(), newSwapFee);
+        emit ProtocolFeeUpdated(key.toId(), newProtocolFee);
         snapStart("BinPoolManagerTest#testSetProtocolFee");
-        poolManager.setProtocolFee(key);
+        vm.prank(address(feeController));
+        poolManager.setProtocolFee(key, newProtocolFee);
         snapEnd();
 
         (, protocolFee,) = poolManager.getSlot0(key.toId());
-        assertEq(protocolFee, newSwapFee);
+        assertEq(protocolFee, newProtocolFee);
     }
 
     function testFuzz_SetMaxBinStep(uint16 binStep) public {
@@ -702,7 +918,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         poolManager.setMaxBinStep(100);
     }
 
-    function testUpdateDynamicSwapFee_FeeTooLarge() public {
+    function testUpdateDynamicLPFee_FeeTooLarge() public {
         uint16 bitMap = 0x0004; // 0000 0000 0000 0100 (before mint call)
         BinFeeManagerHook binFeeManagerHook = new BinFeeManagerHook(poolManager);
         binFeeManagerHook.setHooksRegistrationBitmap(bitMap);
@@ -712,18 +928,18 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             currency1: currency1,
             hooks: IHooks(address(binFeeManagerHook)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: SwapFeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000), // 3000 = 0.3%
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             parameters: bytes32(uint256(bitMap)).setBinStep(10)
         });
 
-        binFeeManagerHook.setFee(SwapFeeLibrary.TEN_PERCENT_FEE + 1);
+        binFeeManagerHook.setFee(LPFeeLibrary.TEN_PERCENT_FEE + 1);
 
-        vm.expectRevert(IFees.FeeTooLarge.selector);
+        vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
         vm.prank(address(binFeeManagerHook));
-        poolManager.updateDynamicSwapFee(key, SwapFeeLibrary.TEN_PERCENT_FEE + 1);
+        poolManager.updateDynamicLPFee(key, LPFeeLibrary.TEN_PERCENT_FEE + 1);
     }
 
-    function testUpdateDynamicSwapFee_FeeNotDynamic() public {
+    function testUpdateDynamicLPFee_FeeNotDynamic() public {
         key = PoolKey({
             currency0: currency0,
             currency1: currency1,
@@ -733,12 +949,12 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             parameters: poolParam
         });
 
-        vm.expectRevert(IPoolManager.UnauthorizedDynamicSwapFeeUpdate.selector);
-        poolManager.updateDynamicSwapFee(key, 3000);
+        vm.expectRevert(IPoolManager.UnauthorizedDynamicLPFeeUpdate.selector);
+        poolManager.updateDynamicLPFee(key, 3000);
     }
 
-    function testFuzzUpdateDynamicSwapFee(uint24 _swapFee) public {
-        _swapFee = uint24(bound(_swapFee, 0, SwapFeeLibrary.TEN_PERCENT_FEE));
+    function testFuzzUpdateDynamicLPFee(uint24 _lpFee) public {
+        _lpFee = uint24(bound(_lpFee, 0, LPFeeLibrary.TEN_PERCENT_FEE));
 
         uint16 bitMap = 0x0004; // 0000 0000 0000 0100 (before mint call)
         BinFeeManagerHook binFeeManagerHook = new BinFeeManagerHook(poolManager);
@@ -749,23 +965,28 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             currency1: currency1,
             hooks: IHooks(address(binFeeManagerHook)),
             poolManager: IPoolManager(address(poolManager)),
-            fee: SwapFeeLibrary.DYNAMIC_FEE_FLAG + uint24(3000), // 3000 = 0.3%
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             parameters: bytes32(uint256(bitMap)).setBinStep(10)
         });
         poolManager.initialize(key, activeId, new bytes(0));
 
-        binFeeManagerHook.setFee(_swapFee);
+        binFeeManagerHook.setFee(_lpFee);
 
         vm.expectEmit();
-        emit DynamicSwapFeeUpdated(key.toId(), _swapFee);
+        emit DynamicLPFeeUpdated(key.toId(), _lpFee);
 
-        snapStart("BinPoolManagerTest#testFuzzUpdateDynamicSwapFee");
         vm.prank(address(binFeeManagerHook));
-        poolManager.updateDynamicSwapFee(key, _swapFee);
-        snapEnd();
+        if (_lpFee != 0) {
+            // temp fix to only record gas if _lpFee !=0. todo use snapLastCall to make this part of code easier to read
+            snapStart("BinPoolManagerTest#testFuzzUpdateDynamicLPFee");
+            poolManager.updateDynamicLPFee(key, _lpFee);
+            snapEnd();
+        } else {
+            poolManager.updateDynamicLPFee(key, _lpFee);
+        }
 
         (,, uint24 swapFee) = poolManager.getSlot0(key.toId());
-        assertEq(swapFee, _swapFee);
+        assertEq(swapFee, _lpFee);
     }
 
     function testSwap_WhenPaused() public {
@@ -857,7 +1078,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         return true;
     }
 
-    function _getSwapFee(uint16 fee0, uint16 fee1) internal pure returns (uint16) {
-        return fee0 + (fee1 << 8);
+    function _getSwapFee(uint24 fee0, uint24 fee1) internal pure returns (uint24) {
+        return fee0 + (fee1 << 12);
     }
 }

@@ -5,14 +5,15 @@ import {IVault} from "../interfaces/IVault.sol";
 import {PoolId, PoolIdLibrary} from "../types/PoolId.sol";
 import {PoolKey} from "../types/PoolKey.sol";
 import {BalanceDelta} from "../types/BalanceDelta.sol";
-import {Fees} from "../Fees.sol";
-import {SwapFeeLibrary} from "../libraries/SwapFeeLibrary.sol";
+import {ProtocolFees} from "../ProtocolFees.sol";
+import {LPFeeLibrary} from "../libraries/LPFeeLibrary.sol";
+import {ProtocolFeeLibrary} from "../libraries/ProtocolFeeLibrary.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
 /**
  * @dev A MockFeePoolManager meant to test Fees functionality
  */
-contract MockFeePoolManager is Fees {
+contract MockFeePoolManager is ProtocolFees {
     using PoolIdLibrary for PoolKey;
     using FixedPointMathLib for uint256;
 
@@ -20,15 +21,15 @@ contract MockFeePoolManager is Fees {
     mapping(PoolId id => Slot0) public pools;
 
     struct Slot0 {
-        uint16 protocolFee;
+        uint24 protocolFee;
     }
 
-    constructor(IVault vault, uint256 controllerGasLimit) Fees(vault, controllerGasLimit) {}
+    constructor(IVault vault, uint256 controllerGasLimit) ProtocolFees(vault, controllerGasLimit) {}
 
     function initialize(PoolKey memory key, bytes calldata) external {
         PoolId id = key.toId();
 
-        (, uint16 protocolFee) = _fetchProtocolFee(key);
+        (, uint24 protocolFee) = _fetchProtocolFee(key);
 
         pools[id] = Slot0({protocolFee: protocolFee});
     }
@@ -59,24 +60,28 @@ contract MockFeePoolManager is Fees {
         Slot0 memory slot0 = pools[id];
 
         // Similar to uni-v4 logic (deduct protocolFee portion first)
-        uint16 protocolFee = isSwap ? slot0.protocolFee : 0;
+        uint24 protocolFee = isSwap ? slot0.protocolFee : 0;
 
         if (protocolFee > 0) {
-            if ((protocolFee % 256) > 0) {
-                protocolFee0 = amt0Fee / (protocolFee % 256);
+            if ((protocolFee % 4096) > 0) {
+                protocolFee0 = amt0Fee * (protocolFee % 4096) / ProtocolFeeLibrary.PIPS_DENOMINATOR;
                 amt0Fee -= protocolFee0;
                 protocolFeesAccrued[key.currency0] += protocolFee0;
             }
 
-            if ((protocolFee >> 8) > 0) {
-                protocolFee1 = amt1Fee / (protocolFee >> 8);
+            if ((protocolFee >> 12) > 0) {
+                protocolFee1 = amt1Fee * (protocolFee >> 12) / ProtocolFeeLibrary.PIPS_DENOMINATOR;
                 amt1Fee -= protocolFee1;
                 protocolFeesAccrued[key.currency1] += protocolFee1;
             }
         }
     }
 
-    function getProtocolFee(PoolKey memory key) external view returns (uint16) {
+    function getProtocolFee(PoolKey memory key) external view returns (uint24) {
         return pools[key.toId()].protocolFee;
+    }
+
+    function _setProtocolFee(PoolId id, uint24 newProtocolFee) internal override {
+        pools[id].protocolFee = newProtocolFee;
     }
 }

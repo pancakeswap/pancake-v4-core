@@ -10,7 +10,7 @@ import {BinHelper} from "../../../src/pool-bin/libraries/BinHelper.sol";
 import {BinPoolParametersHelper} from "../../../src/pool-bin/libraries/BinPoolParametersHelper.sol";
 import {PriceHelper} from "../../../src/pool-bin/libraries/PriceHelper.sol";
 import {FeeHelper} from "../../../src/pool-bin/libraries/FeeHelper.sol";
-import {SwapFeeLibrary} from "../../../src/libraries/SwapFeeLibrary.sol";
+import {LPFeeLibrary} from "../../../src/libraries/LPFeeLibrary.sol";
 
 contract BinHelperTest is BinTestHelper {
     using BinHelper for bytes32;
@@ -165,7 +165,7 @@ contract BinHelperTest is BinTestHelper {
         amountXIn = uint128(bound(amountXIn, 1, type(uint128).max));
         amountYIn = uint128(bound(amountYIn, 1, type(uint128).max));
         price = uint256(bound(price, 1, type(uint256).max / amountXIn));
-        fee = uint24(bound(fee, 0, SwapFeeLibrary.TEN_PERCENT_FEE));
+        fee = uint24(bound(fee, 0, LPFeeLibrary.TEN_PERCENT_FEE));
 
         ///@dev temp fix for "The `vm.assume` cheatcode rejected too many inputs"
         ///     dont see a clear way to rewrite this with bound
@@ -202,7 +202,7 @@ contract BinHelperTest is BinTestHelper {
 
         (amountXIn, amountYIn) = amountsIn.decode();
 
-        bytes32 compositionFees = binReserves.getCompositionFees(fee, amountsIn, totalSupply, shares);
+        (bytes32 compositionFees,) = binReserves.getCompositionFees(0, fee, amountsIn, totalSupply, shares);
 
         uint256 binC = reserveX | reserveY == 0 ? 0 : (uint256(reserveY) << 128) / (uint256(reserveX) + reserveY);
         uint256 userC = amountXIn | amountYIn == 0 ? 0 : (uint256(amountYIn) << 128) / (uint256(amountXIn) + amountYIn);
@@ -229,7 +229,7 @@ contract BinHelperTest is BinTestHelper {
         uint128 amountIn,
         uint24 fee
     ) external {
-        fee = uint24(bound(fee, 0, SwapFeeLibrary.TEN_PERCENT_FEE));
+        fee = uint24(bound(fee, 0, LPFeeLibrary.TEN_PERCENT_FEE));
 
         uint24 activeId = uint24(uint256(int256(uint256(ID_ONE)) + deltaId));
         uint256 price = PriceHelper.getPriceFromId(activeId, DEFAULT_BIN_STEP);
@@ -281,7 +281,7 @@ contract BinHelperTest is BinTestHelper {
         uint128 amountIn,
         uint24 fee
     ) external {
-        fee = uint24(bound(fee, 0, SwapFeeLibrary.TEN_PERCENT_FEE));
+        fee = uint24(bound(fee, 0, LPFeeLibrary.TEN_PERCENT_FEE));
 
         uint24 activeId = uint24(uint256(int256(uint256(ID_ONE)) + deltaId));
         uint256 price = PriceHelper.getPriceFromId(activeId, DEFAULT_BIN_STEP);

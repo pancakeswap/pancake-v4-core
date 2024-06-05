@@ -17,7 +17,5 @@ contract FakePoolManager is IPoolManager {
         vault.accountPoolBalanceDelta(poolKey, toBalanceDelta(delta0, delta1), msg.sender);
     }
 
-    function setProtocolFee(PoolKey memory key) external override {}
-
-    function updateDynamicSwapFee(PoolKey memory key, uint24 newDynamicSwapFee) external override {}
+    function updateDynamicLPFee(PoolKey memory key, uint24 newDynamicSwapFee) external override {}
 }

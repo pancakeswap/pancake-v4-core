@@ -12,17 +12,16 @@ import {Currency, CurrencyLibrary} from "./types/Currency.sol";
 import {BalanceDelta} from "./types/BalanceDelta.sol";
 import {ILockCallback} from "./interfaces/ILockCallback.sol";
 import {SafeCast} from "./libraries/SafeCast.sol";
+import {VaultReserves} from "./libraries/VaultReserves.sol";
 import {VaultToken} from "./VaultToken.sol";
 
 contract Vault is IVault, VaultToken, Ownable {
     using SafeCast for *;
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
+    using VaultReserves for Currency;
 
     mapping(address => bool) public override isPoolManagerRegistered;
-
-    /// @dev keep track of the reserves of the whole vault
-    mapping(Currency currency => uint256) public override reservesOfVault;
 
     /// @dev keep track of each pool manager's reserves
     mapping(IPoolManager poolManager => mapping(Currency currency => uint256 reserve)) public reservesOfPoolManager;
@@ -104,102 +103,75 @@ contract Vault is IVault, VaultToken, Ownable {
     /// @inheritdoc IVault
     function take(Currency currency, address to, uint256 amount) external override isLocked {
         unchecked {
-            SettlementGuard.accountDelta(msg.sender, currency, amount.toInt128());
+            SettlementGuard.accountDelta(msg.sender, currency, -(amount.toInt128()));
             currency.transfer(to, amount);
         }
-        if (!currency.isNative()) reservesOfVault[currency] -= amount;
     }
 
     /// @inheritdoc IVault
     function mint(address to, Currency currency, uint256 amount) external override isLocked {
         unchecked {
-            SettlementGuard.accountDelta(msg.sender, currency, amount.toInt128());
+            SettlementGuard.accountDelta(msg.sender, currency, -(amount.toInt128()));
             _mint(to, currency, amount);
         }
+    }
+
+    function sync(Currency currency) public returns (uint256 balance) {
+        balance = currency.balanceOfSelf();
+        currency.setVaultReserves(balance);
     }
 
     /// @inheritdoc IVault
     function settle(Currency currency) external payable override isLocked returns (uint256 paid) {
         if (!currency.isNative()) {
             if (msg.value > 0) revert SettleNonNativeCurrencyWithValue();
-            uint256 reservesBefore = reservesOfVault[currency];
-            reservesOfVault[currency] = currency.balanceOfSelf();
-            paid = reservesOfVault[currency] - reservesBefore;
+            uint256 reservesBefore = currency.getVaultReserves();
+            uint256 reservesNow = sync(currency);
+            paid = reservesNow - reservesBefore;
         } else {
             paid = msg.value;
         }
 
-        // subtraction must be safe
-        SettlementGuard.accountDelta(msg.sender, currency, -(paid.toInt128()));
-    }
-
-    function settleAndMintRefund(Currency currency, address to)
-        external
-        payable
-        override
-        isLocked
-        returns (uint256 paid, uint256 refund)
-    {
-        if (!currency.isNative()) {
-            if (msg.value > 0) revert SettleNonNativeCurrencyWithValue();
-            uint256 reservesBefore = reservesOfVault[currency];
-            reservesOfVault[currency] = currency.balanceOfSelf();
-            paid = reservesOfVault[currency] - reservesBefore;
-        } else {
-            paid = msg.value;
-        }
-
-        int256 currentDelta = SettlementGuard.getCurrencyDelta(msg.sender, currency);
-        if (currentDelta >= 0) {
-            uint256 currentDeltaUint256 = currentDelta.toUint256();
-            if (paid > currentDeltaUint256) {
-                // msg.sender owes vault but paid more than than whats owed
-                refund = paid - currentDeltaUint256;
-                paid = currentDeltaUint256;
-            }
-        }
-
-        SettlementGuard.accountDelta(msg.sender, currency, -(paid.toInt128()));
-        if (refund > 0) _mint(to, currency, refund);
+        SettlementGuard.accountDelta(msg.sender, currency, paid.toInt128());
     }
 
     /// @inheritdoc IVault
     function settleFor(Currency currency, address target, uint256 amount) external isLocked {
         /// @notice settle all outstanding debt if amount is 0
-        /// It will revert if target has negative delta
-        if (amount == 0) amount = SettlementGuard.getCurrencyDelta(target, currency).toUint256();
+        /// It will revert if target has positive delta
         unchecked {
-            SettlementGuard.accountDelta(msg.sender, currency, amount.toInt128());
-            SettlementGuard.accountDelta(target, currency, -(amount.toInt128()));
+            if (amount == 0) amount = (-SettlementGuard.getCurrencyDelta(target, currency)).toUint256();
+            SettlementGuard.accountDelta(msg.sender, currency, -(amount.toInt128()));
+            SettlementGuard.accountDelta(target, currency, amount.toInt128());
         }
     }
 
     /// @inheritdoc IVault
     function burn(address from, Currency currency, uint256 amount) external override isLocked {
-        SettlementGuard.accountDelta(msg.sender, currency, -(amount.toInt128()));
+        SettlementGuard.accountDelta(msg.sender, currency, amount.toInt128());
         _burnFrom(from, currency, amount);
     }
 
     /// @inheritdoc IVault
     function collectFee(Currency currency, uint256 amount, address recipient) external {
         reservesOfPoolManager[IPoolManager(msg.sender)][currency] -= amount;
-        if (!currency.isNative()) reservesOfVault[currency] -= amount;
-
         currency.transfer(recipient, amount);
+    }
+
+    /// @inheritdoc IVault
+    function reservesOfVault(Currency currency) external view returns (uint256 amount) {
+        return currency.getVaultReserves();
     }
 
     function _accountDeltaOfPoolManager(IPoolManager poolManager, Currency currency, int128 delta) internal {
         if (delta == 0) return;
 
         if (delta >= 0) {
-            reservesOfPoolManager[poolManager][currency] += uint128(delta);
+            /// @dev arithmetic underflow make sure trader can't withdraw too much from poolManager
+            reservesOfPoolManager[poolManager][currency] -= uint128(delta);
         } else {
-            /// @dev arithmetic underflow is possible in following two cases:
-            /// 1. delta == type(int128).min
-            /// This occurs when withdrawing amount is too large
-            /// 2. reservesOfPoolManager[poolManager][currency] < delta0
-            /// This occurs when insufficient balance in pool
-            reservesOfPoolManager[poolManager][currency] -= uint128(-delta);
+            /// @dev arithmetic overflow make sure trader won't deposit too much into poolManager
+            reservesOfPoolManager[poolManager][currency] += uint128(-delta);
         }
     }
 }

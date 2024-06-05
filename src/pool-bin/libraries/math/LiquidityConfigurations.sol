@@ -79,7 +79,7 @@ library LiquidityConfigurations {
 
         (uint128 x1, uint128 x2) = amountsIn.decode();
 
-        assembly {
+        assembly ("memory-safe") {
             x1 := div(mul(x1, distributionX), PRECISION)
             x2 := div(mul(x2, distributionY), PRECISION)
         }
