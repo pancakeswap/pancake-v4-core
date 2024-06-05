@@ -136,8 +136,9 @@ library BinHelper {
             //   y <<= Constants.SCALE_OFFSET;
             //   liquidity += y;
             //   if (liquidity < y) revert BinHelper__LiquidityOverflow();
+            uint8 offset = Constants.SCALE_OFFSET;
             assembly ("memory-safe") {
-                y := shl(128, y)
+                y := shl(offset, y)
                 liquidity := add(liquidity, y)
 
                 // Check for overflow: if liquidity < y, revert with error
