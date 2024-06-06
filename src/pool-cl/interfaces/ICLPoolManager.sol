@@ -11,6 +11,7 @@ import {PoolId} from "../../types/PoolId.sol";
 import {CLPosition} from "../libraries/CLPosition.sol";
 import {IPoolManager} from "../../interfaces/IPoolManager.sol";
 import {IExtsload} from "../../interfaces/IExtsload.sol";
+import {Tick} from "../libraries/Tick.sol";
 
 interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @notice PoolManagerMismatch is thrown when pool manager specified in the pool key does not match current contract
@@ -101,6 +102,18 @@ interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload {
         external
         view
         returns (uint128 liquidity);
+
+    /// @notice Get the tick info about a specific tick in the pool
+    function getPoolTickInfo(PoolId id, int24 tick) external view returns (Tick.Info memory);
+
+    /// @notice Get the tick bitmap info about a specific range (a word range) in the pool
+    function getPoolBitmapInfo(PoolId id, int16 word) external view returns (uint256 tickBitmap);
+
+    /// @notice Get the fee growth global for the given pool
+    function getFeeGrowthGlobals(PoolId id)
+        external
+        view
+        returns (uint256 feeGrowthGlobal0x128, uint256 feeGrowthGlobal1x128);
 
     /// @notice Get the position struct for a specified pool and position
     function getPosition(PoolId id, address owner, int24 tickLower, int24 tickUpper, bytes32 salt)
