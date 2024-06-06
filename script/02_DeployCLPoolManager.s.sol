@@ -25,7 +25,7 @@ contract DeployCLPoolManagerScript is BaseScript {
         console.log("CLPoolManager contract deployed at ", address(clPoolManager));
 
         console.log("Registering CLPoolManager");
-        IVault(address(vault)).registerPoolManager(address(clPoolManager));
+        IVault(address(vault)).registerApp(address(clPoolManager));
 
         vm.stopBroadcast();
     }

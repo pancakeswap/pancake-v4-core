@@ -26,7 +26,7 @@ import {NoIsolate} from "../helpers/NoIsolate.sol";
 contract VaultTest is Test, NoIsolate, GasSnapshot {
     using PoolIdLibrary for PoolKey;
 
-    event PoolManagerRegistered(address indexed poolManager);
+    event AppRegistered(address indexed app);
     event LockAcquired();
 
     Vault public vault;
@@ -50,8 +50,8 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
 
         fakePoolManager = new FakePoolManager(vault);
         fakePoolManager2 = new FakePoolManager(vault);
-        vault.registerPoolManager(address(fakePoolManager));
-        vault.registerPoolManager(address(fakePoolManager2));
+        vault.registerApp(address(fakePoolManager));
+        vault.registerApp(address(fakePoolManager2));
 
         currency0 = Currency.wrap(address(new ERC20PresetFixedSupply("C0", "C0", 100 ether, address(this))));
         currency1 = Currency.wrap(address(new ERC20PresetFixedSupply("C1", "C1", 100 ether, address(this))));
@@ -82,29 +82,29 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
     }
 
     function testRegisterPoolManager() public {
-        assertEq(vault.isPoolManagerRegistered(address(unRegPoolManager)), false);
-        assertEq(vault.isPoolManagerRegistered(address(fakePoolManager)), true);
+        assertEq(vault.isAppRegistered(address(unRegPoolManager)), false);
+        assertEq(vault.isAppRegistered(address(fakePoolManager)), true);
 
         vm.expectEmit();
-        emit PoolManagerRegistered(address(unRegPoolManager));
+        emit AppRegistered(address(unRegPoolManager));
         snapStart("VaultTest#registerPoolManager");
-        vault.registerPoolManager(address(unRegPoolManager));
+        vault.registerApp(address(unRegPoolManager));
         snapEnd();
 
-        assertEq(vault.isPoolManagerRegistered(address(unRegPoolManager)), true);
-        assertEq(vault.isPoolManagerRegistered(address(fakePoolManager)), true);
+        assertEq(vault.isAppRegistered(address(unRegPoolManager)), true);
+        assertEq(vault.isAppRegistered(address(fakePoolManager)), true);
     }
 
     function testAccountPoolBalanceDeltaFromUnregistedPoolManager() public {
         PoolKey memory key = PoolKey(currency0, currency1, IHooks(address(0)), unRegPoolManager, 0x0, 0x0);
         FakePoolManagerRouter unRegPoolManagerRouter = new FakePoolManagerRouter(vault, key);
-        vm.expectRevert(IVault.PoolManagerUnregistered.selector);
+        vm.expectRevert(IVault.AppUnregistered.selector);
         vm.prank(address(unRegPoolManagerRouter));
         vault.lock(hex"01");
     }
 
     function testAccountPoolBalanceDeltaFromArbitraryAddr() public {
-        vm.expectRevert(IVault.NotFromPoolManager.selector);
+        vm.expectRevert(IVault.AppUnregistered.selector);
         vm.prank(address(fakePoolManagerRouter));
         vault.lock(hex"10");
     }
@@ -122,13 +122,13 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
 
         vm.expectRevert(abi.encodeWithSelector(IVault.NoLocker.selector));
         vm.prank(address(fakePoolManager));
-        vault.accountPoolBalanceDelta(key, delta, address(this));
+        vault.accountAppBalanceDelta(key, delta, address(this));
     }
 
     function testLockNotSettled() public {
         // router => vault.lock
         // vault.lock => periphery.lockAcquired
-        // periphery.lockAcquired => FakePoolManager.XXX => vault.accountPoolBalanceDelta
+        // periphery.lockAcquired => FakePoolManager.XXX => vault.accountAppBalanceDelta
 
         vm.expectRevert(IVault.CurrencyNotSettled.selector);
         vm.prank(address(fakePoolManagerRouter));
@@ -138,7 +138,7 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
     function testLockNotSettled2() public noIsolate {
         // router => vault.lock
         // vault.lock => periphery.lockAcquired
-        // periphery.lockAcquired => FakePoolManager.XXX => vault.accountPoolBalanceDelta
+        // periphery.lockAcquired => FakePoolManager.XXX => vault.accountAppBalanceDelta
 
         vault.sync(currency0);
         vault.sync(currency1);
@@ -152,7 +152,7 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
     function testLockNotSettled3() public noIsolate {
         // router => vault.lock
         // vault.lock => periphery.lockAcquired
-        // periphery.lockAcquired => FakePoolManager.XXX => vault.accountPoolBalanceDelta
+        // periphery.lockAcquired => FakePoolManager.XXX => vault.accountAppBalanceDelta
 
         vault.sync(currency0);
         vault.sync(currency1);
@@ -167,7 +167,7 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
     function testLockNotSettled4() public noIsolate {
         // router => vault.lock
         // vault.lock => periphery.lockAcquired
-        // periphery.lockAcquired => FakePoolManager.XXX => vault.accountPoolBalanceDelta
+        // periphery.lockAcquired => FakePoolManager.XXX => vault.accountAppBalanceDelta
 
         vault.sync(currency0);
         vault.sync(currency1);
@@ -182,9 +182,9 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
     function testNotCorrectPoolManager() public {
         // router => vault.lock
         // vault.lock => periphery.lockAcquired
-        // periphery.lockAcquired => FakePoolManager.XXX => vault.accountPoolBalanceDelta
+        // periphery.lockAcquired => FakePoolManager.XXX => vault.accountAppBalanceDelta
 
-        vm.expectRevert(IVault.NotFromPoolManager.selector);
+        vm.expectRevert();
         vm.prank(address(fakePoolManagerRouter));
         vault.lock(hex"06");
     }
@@ -192,7 +192,7 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
     function testLockSettledWhenAddLiquidity() public noIsolate {
         // router => vault.lock
         // vault.lock => periphery.lockAcquired
-        // periphery.lockAcquired => FakePoolManager.XXX => vault.accountPoolBalanceDelta
+        // periphery.lockAcquired => FakePoolManager.XXX => vault.accountAppBalanceDelta
 
         // Sync first, so reservesOfVault can be called
         vault.sync(currency0);
@@ -202,8 +202,8 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
         assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 0 ether);
         assertEq(vault.reservesOfVault(currency0), 0 ether);
         assertEq(vault.reservesOfVault(currency1), 0 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey.poolManager, currency0), 0 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey.poolManager, currency1), 0 ether);
+        assertEq(vault.reservesOfApp(address(poolKey.poolManager), currency0), 0 ether);
+        assertEq(vault.reservesOfApp(address(poolKey.poolManager), currency1), 0 ether);
 
         currency0.transfer(address(vault), 10 ether);
         currency1.transfer(address(vault), 10 ether);
@@ -212,8 +212,8 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
         assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 10 ether);
         assertEq(vault.reservesOfVault(currency0), 0 ether);
         assertEq(vault.reservesOfVault(currency1), 0 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey.poolManager, currency0), 0 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey.poolManager, currency1), 0 ether);
+        assertEq(vault.reservesOfApp(address(poolKey.poolManager), currency0), 0 ether);
+        assertEq(vault.reservesOfApp(address(poolKey.poolManager), currency1), 0 ether);
 
         vm.prank(address(fakePoolManagerRouter));
         snapStart("VaultTest#lockSettledWhenAddLiquidity");
@@ -224,14 +224,14 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
         assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 10 ether);
         assertEq(vault.reservesOfVault(currency0), 10 ether);
         assertEq(vault.reservesOfVault(currency1), 10 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey.poolManager, currency0), 10 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey.poolManager, currency1), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey.poolManager), currency0), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey.poolManager), currency1), 10 ether);
     }
 
     function testLockSettledWhenSwap() public noIsolate {
         // router => vault.lock
         // vault.lock => periphery.lockAcquired
-        // periphery.lockAcquired => FakePoolManager.XXX => vault.accountPoolBalanceDelta
+        // periphery.lockAcquired => FakePoolManager.XXX => vault.accountAppBalanceDelta
 
         vault.sync(currency0);
         vault.sync(currency1);
@@ -243,8 +243,8 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
 
         assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 10 ether);
         assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 10 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey.poolManager, currency0), 10 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey.poolManager, currency1), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey.poolManager), currency0), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey.poolManager), currency1), 10 ether);
 
         currency0.transfer(address(vault), 3 ether);
         vm.prank(address(fakePoolManagerRouter));
@@ -254,8 +254,8 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
 
         assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 13 ether);
         assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 7 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey.poolManager, currency0), 13 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey.poolManager, currency1), 7 ether);
+        assertEq(vault.reservesOfApp(address(poolKey.poolManager), currency0), 13 ether);
+        assertEq(vault.reservesOfApp(address(poolKey.poolManager), currency1), 7 ether);
 
         assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(fakePoolManagerRouter)), 3 ether);
     }
@@ -278,7 +278,7 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
     function testLockWhenMoreThanOnePoolManagers() public noIsolate {
         // router => vault.lock
         // vault.lock => periphery.lockAcquired
-        // periphery.lockAcquired => FakePoolManager.XXX => vault.accountPoolBalanceDelta
+        // periphery.lockAcquired => FakePoolManager.XXX => vault.accountAppBalanceDelta
 
         vault.sync(currency0);
         vault.sync(currency1);
@@ -294,10 +294,10 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
 
         assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 20 ether);
         assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 20 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey.poolManager, currency0), 10 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey.poolManager, currency1), 10 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey2.poolManager, currency0), 10 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey2.poolManager, currency1), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey.poolManager), currency0), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey.poolManager), currency1), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey2.poolManager), currency0), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey2.poolManager), currency1), 10 ether);
 
         currency0.transfer(address(vault), 3 ether);
         vm.prank(address(fakePoolManagerRouter));
@@ -307,10 +307,10 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
 
         assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 23 ether);
         assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 17 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey.poolManager, currency0), 13 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey.poolManager, currency1), 7 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey2.poolManager, currency0), 10 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey2.poolManager, currency1), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey.poolManager), currency0), 13 ether);
+        assertEq(vault.reservesOfApp(address(poolKey.poolManager), currency1), 7 ether);
+        assertEq(vault.reservesOfApp(address(poolKey2.poolManager), currency0), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey2.poolManager), currency1), 10 ether);
 
         assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(fakePoolManagerRouter)), 3 ether);
     }
@@ -455,7 +455,7 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
     function testLockInSufficientBalanceWhenMoreThanOnePoolManagers() public noIsolate {
         // router => vault.lock
         // vault.lock => periphery.lockAcquired
-        // periphery.lockAcquired => FakePoolManager.XXX => vault.accountPoolBalanceDelta
+        // periphery.lockAcquired => FakePoolManager.XXX => vault.accountAppBalanceDelta
 
         // ensure vault tload the currency in reserve first
         vault.sync(currency0);
@@ -475,10 +475,10 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
         assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 20 ether);
         assertEq(vault.reservesOfVault(currency0), 20 ether);
         assertEq(vault.reservesOfVault(currency1), 20 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey.poolManager, currency0), 10 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey.poolManager, currency1), 10 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey2.poolManager, currency0), 10 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey2.poolManager, currency1), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey.poolManager), currency0), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey.poolManager), currency1), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey2.poolManager), currency0), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey2.poolManager), currency1), 10 ether);
 
         assertEq(currency0.balanceOfSelf(), 80 ether);
         currency0.transfer(address(vault), 15 ether);
@@ -491,7 +491,7 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
     function testLockFlashloanCrossMoreThanOnePoolManagers() public noIsolate {
         // router => vault.lock
         // vault.lock => periphery.lockAcquired
-        // periphery.lockAcquired => FakePoolManager.XXX => vault.accountPoolBalanceDelta
+        // periphery.lockAcquired => FakePoolManager.XXX => vault.accountAppBalanceDelta
 
         // ensure vault tload the currency in reserve first
         vault.sync(currency0);
@@ -511,10 +511,10 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
         assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 20 ether);
         assertEq(vault.reservesOfVault(currency0), 20 ether);
         assertEq(vault.reservesOfVault(currency1), 20 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey.poolManager, currency0), 10 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey.poolManager, currency1), 10 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey2.poolManager, currency0), 10 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey2.poolManager, currency1), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey.poolManager), currency0), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey.poolManager), currency1), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey2.poolManager), currency0), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey2.poolManager), currency1), 10 ether);
 
         vm.prank(address(fakePoolManagerRouter));
         snapStart("VaultTest#lockSettledWhenFlashloan");
@@ -532,7 +532,7 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
 
         // before collectFee assert
         assertEq(vault.reservesOfVault(currency0), 10 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey.poolManager, currency0), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey.poolManager), currency0), 10 ether);
         assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(fakePoolManager)), 0 ether);
 
         // collectFee
@@ -543,7 +543,7 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
 
         // after collectFee assert
         assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 0 ether);
-        assertEq(vault.reservesOfPoolManager(poolKey.poolManager, currency0), 0 ether);
+        assertEq(vault.reservesOfApp(address(poolKey.poolManager), currency0), 0 ether);
         assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(fakePoolManager)), 10 ether);
     }
 
@@ -604,7 +604,7 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
             vault.lock(hex"21");
 
             assertEq(CurrencyLibrary.NATIVE.balanceOf(address(vault)), 10 ether);
-            assertEq(vault.reservesOfPoolManager(fakePoolManager, CurrencyLibrary.NATIVE), 10 ether);
+            assertEq(vault.reservesOfApp(address(fakePoolManager), CurrencyLibrary.NATIVE), 10 ether);
         }
     }
 
@@ -654,7 +654,7 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
             vault.lock(hex"17");
 
             assertEq(CurrencyLibrary.NATIVE.balanceOf(address(vault)), 0);
-            assertEq(vault.reservesOfPoolManager(fakePoolManager, CurrencyLibrary.NATIVE), 0);
+            assertEq(vault.reservesOfApp(address(fakePoolManager), CurrencyLibrary.NATIVE), 0);
         }
     }
 

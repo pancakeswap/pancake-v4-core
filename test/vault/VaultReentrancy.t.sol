@@ -167,7 +167,7 @@ contract VaultReentrancyTest is Test, TokenFixture {
         uint256 nonzeroDeltaCount = vault.getUnsettledDeltasCount();
         assertLe(nonzeroDeltaCount, 0);
 
-        vault.registerPoolManager(makeAddr("poolManager"));
+        vault.registerApp(makeAddr("poolManager"));
 
         for (uint256 i = 0; i < count; i++) {
             // alternately:
@@ -223,7 +223,7 @@ contract VaultReentrancyTest is Test, TokenFixture {
             } else if (i % 6 == 5) {
                 // accountPoolBalanceDelta
                 vm.prank(makeAddr("poolManager"));
-                vault.accountPoolBalanceDelta(
+                vault.accountAppBalanceDelta(
                     PoolKey({
                         currency0: currency0,
                         currency1: currency1,

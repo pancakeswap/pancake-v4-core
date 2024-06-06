@@ -5,17 +5,13 @@ import {Currency} from "../types/Currency.sol";
 import {PoolId} from "../types/PoolId.sol";
 import {PoolKey} from "../types/PoolKey.sol";
 import {BalanceDelta} from "../types/BalanceDelta.sol";
-import {IPoolManager} from "./IPoolManager.sol";
 import {IVaultToken} from "./IVaultToken.sol";
 
 interface IVault is IVaultToken {
-    event PoolManagerRegistered(address indexed poolManager);
+    event AppRegistered(address indexed app);
 
-    /// @notice Thrown when a function is not called by a pool manager
-    error NotFromPoolManager();
-
-    /// @notice Thrown when a pool manager is not registered
-    error PoolManagerUnregistered();
+    /// @notice Thrown when a app is not registered
+    error AppUnregistered();
 
     /// @notice Thrown when a currency is not netted out after a lock
     error CurrencyNotSettled();
@@ -30,16 +26,16 @@ interface IVault is IVaultToken {
     /// @notice Thrown when there is no locker
     error NoLocker();
 
-    function isPoolManagerRegistered(address poolManager) external returns (bool);
+    function isAppRegistered(address app) external returns (bool);
 
     /// @notice Returns the reserves for a currency thats sync in transient storage
     function reservesOfVault(Currency currency) external view returns (uint256);
 
     /// @notice Returns the reserves for a a given pool type and currency
-    function reservesOfPoolManager(IPoolManager poolManager, Currency currency) external view returns (uint256);
+    function reservesOfApp(address app, Currency currency) external view returns (uint256);
 
-    /// @notice enable or disable specific pool manager
-    function registerPoolManager(address poolManager) external;
+    /// @notice register an app so that it can perform accounting base on vault
+    function registerApp(address app) external;
 
     /// @notice Returns the locker who is locking the vault
     function getLocker() external view returns (address locker);
@@ -56,12 +52,18 @@ interface IVault is IVaultToken {
     /// @return The data returned by the call to `ILockCallback(msg.sender).lockCallback(data)`
     function lock(bytes calldata data) external returns (bytes memory);
 
-    /// @notice Called by the pool manager to account for a change in the pool balance,
-    /// typically after modifyLiquidity, swap, donate
+    /// @notice Called by registered app to account for a change in the pool balance,
+    /// convenient for AMM pool manager, typically after modifyLiquidity, swap, donate
     /// @param key The key for the pool
     /// @param delta The change in the pool's balance
     /// @param settler The address whose delta will be updated
-    function accountPoolBalanceDelta(PoolKey memory key, BalanceDelta delta, address settler) external;
+    function accountAppBalanceDelta(PoolKey memory key, BalanceDelta delta, address settler) external;
+
+    /// @notice This works as a general accounting mechanism for non-dex app
+    /// @param currency The currency to update
+    /// @param delta The change in the balance
+    /// @param settler The address whose delta will be updated
+    function accountAppBalanceDelta(Currency currency, int128 delta, address settler) external;
 
     /// @notice Called by the user to net out some value owed to the user
     /// @dev Can also be used as a mechanism for _free_ flash loans
@@ -79,7 +81,7 @@ interface IVault is IVaultToken {
     /// @param amount The amount to settle. 0 to settle all outstanding debt
     function settleFor(Currency currency, address target, uint256 amount) external;
 
-    /// @notice Called by pool manager to collect any fee related
+    /// @notice Called by app to collect any fee related
     /// @dev no restriction on caller, underflow happen if caller collect more than the reserve
     function collectFee(Currency currency, uint256 amount, address recipient) external;
 

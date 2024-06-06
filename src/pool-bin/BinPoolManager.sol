@@ -168,10 +168,10 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         (delta, hookDelta) = BinHooks.afterSwap(key, swapForY, amountIn, delta, hookData, beforeSwapDelta);
 
         if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
-            vault.accountPoolBalanceDelta(key, hookDelta, address(key.hooks));
+            vault.accountAppBalanceDelta(key, hookDelta, address(key.hooks));
         }
 
-        vault.accountPoolBalanceDelta(key, delta, msg.sender);
+        vault.accountAppBalanceDelta(key, delta, msg.sender);
     }
 
     /// @inheritdoc IBinPoolManager
@@ -261,9 +261,9 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         (delta, hookDelta) = BinHooks.afterMint(key, params, delta, hookData);
 
         if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
-            vault.accountPoolBalanceDelta(key, hookDelta, address(key.hooks));
+            vault.accountAppBalanceDelta(key, hookDelta, address(key.hooks));
         }
-        vault.accountPoolBalanceDelta(key, delta, msg.sender);
+        vault.accountAppBalanceDelta(key, delta, msg.sender);
     }
 
     /// @inheritdoc IBinPoolManager
@@ -295,9 +295,9 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         (delta, hookDelta) = BinHooks.afterBurn(key, params, delta, hookData);
 
         if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
-            vault.accountPoolBalanceDelta(key, hookDelta, address(key.hooks));
+            vault.accountAppBalanceDelta(key, hookDelta, address(key.hooks));
         }
-        vault.accountPoolBalanceDelta(key, delta, msg.sender);
+        vault.accountAppBalanceDelta(key, delta, msg.sender);
     }
 
     function donate(PoolKey memory key, uint128 amount0, uint128 amount1, bytes calldata hookData)
@@ -313,7 +313,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
 
         (delta, binId) = pools[id].donate(key.parameters.getBinStep(), amount0, amount1);
 
-        vault.accountPoolBalanceDelta(key, delta, msg.sender);
+        vault.accountAppBalanceDelta(key, delta, msg.sender);
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
         emit Donate(id, msg.sender, delta.amount0(), delta.amount1(), binId);

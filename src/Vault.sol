@@ -4,7 +4,6 @@ pragma solidity ^0.8.24;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IVault, IVaultToken} from "./interfaces/IVault.sol";
-import {IPoolManager} from "./interfaces/IPoolManager.sol";
 import {PoolId, PoolIdLibrary} from "./types/PoolId.sol";
 import {PoolKey} from "./types/PoolKey.sol";
 import {SettlementGuard} from "./libraries/SettlementGuard.sol";
@@ -21,20 +20,14 @@ contract Vault is IVault, VaultToken, Ownable {
     using CurrencyLibrary for Currency;
     using VaultReserves for Currency;
 
-    mapping(address => bool) public override isPoolManagerRegistered;
+    mapping(address => bool) public override isAppRegistered;
 
-    /// @dev keep track of each pool manager's reserves
-    mapping(IPoolManager poolManager => mapping(Currency currency => uint256 reserve)) public reservesOfPoolManager;
+    /// @dev keep track of each app's reserves
+    mapping(address => mapping(Currency currency => uint256 reserve)) public reservesOfApp;
 
-    /// @notice only poolManager is allowed to call swap or modifyLiquidity, donate
-    /// @param poolManager The address specified in PoolKey
-    modifier onlyPoolManager(address poolManager) {
-        /// @dev Make sure:
-        /// 1. the pool manager specified in PoolKey is the caller
-        /// 2. the pool manager has been registered
-        if (poolManager != msg.sender) revert NotFromPoolManager();
-
-        if (!isPoolManagerRegistered[msg.sender]) revert PoolManagerUnregistered();
+    /// @notice only registered app is allowed to perform accounting
+    modifier onlyRegisteredApp() {
+        if (!isAppRegistered[msg.sender]) revert AppUnregistered();
 
         _;
     }
@@ -46,10 +39,10 @@ contract Vault is IVault, VaultToken, Ownable {
     }
 
     /// @inheritdoc IVault
-    function registerPoolManager(address poolManager) external override onlyOwner {
-        isPoolManagerRegistered[poolManager] = true;
+    function registerApp(address app) external override onlyOwner {
+        isAppRegistered[app] = true;
 
-        emit PoolManagerRegistered(poolManager);
+        emit AppRegistered(app);
     }
 
     /// @inheritdoc IVault
@@ -82,22 +75,33 @@ contract Vault is IVault, VaultToken, Ownable {
     }
 
     /// @inheritdoc IVault
-    function accountPoolBalanceDelta(PoolKey memory key, BalanceDelta delta, address settler)
+    function accountAppBalanceDelta(PoolKey memory key, BalanceDelta delta, address settler)
         external
         override
         isLocked
-        onlyPoolManager(address(key.poolManager))
+        onlyRegisteredApp
     {
         int128 delta0 = delta.amount0();
         int128 delta1 = delta.amount1();
 
-        // keep track on each pool manager
-        _accountDeltaOfPoolManager(key.poolManager, key.currency0, delta0);
-        _accountDeltaOfPoolManager(key.poolManager, key.currency1, delta1);
+        // keep track of the balance on app level
+        _accountDeltaForApp(msg.sender, key.currency0, delta0);
+        _accountDeltaForApp(msg.sender, key.currency1, delta1);
 
-        // keep track of the balance for the whole vault
+        // keep track of the balance on vault level
         SettlementGuard.accountDelta(settler, key.currency0, delta0);
         SettlementGuard.accountDelta(settler, key.currency1, delta1);
+    }
+
+    /// @inheritdoc IVault
+    function accountAppBalanceDelta(Currency currency, int128 delta, address settler)
+        external
+        override
+        isLocked
+        onlyRegisteredApp
+    {
+        _accountDeltaForApp(msg.sender, currency, delta);
+        SettlementGuard.accountDelta(settler, currency, delta);
     }
 
     /// @inheritdoc IVault
@@ -154,7 +158,7 @@ contract Vault is IVault, VaultToken, Ownable {
 
     /// @inheritdoc IVault
     function collectFee(Currency currency, uint256 amount, address recipient) external {
-        reservesOfPoolManager[IPoolManager(msg.sender)][currency] -= amount;
+        reservesOfApp[msg.sender][currency] -= amount;
         currency.transfer(recipient, amount);
     }
 
@@ -163,15 +167,15 @@ contract Vault is IVault, VaultToken, Ownable {
         return currency.getVaultReserves();
     }
 
-    function _accountDeltaOfPoolManager(IPoolManager poolManager, Currency currency, int128 delta) internal {
+    function _accountDeltaForApp(address app, Currency currency, int128 delta) internal {
         if (delta == 0) return;
 
         if (delta >= 0) {
-            /// @dev arithmetic underflow make sure trader can't withdraw too much from poolManager
-            reservesOfPoolManager[poolManager][currency] -= uint128(delta);
+            /// @dev arithmetic underflow make sure trader can't withdraw too much from app
+            reservesOfApp[app][currency] -= uint128(delta);
         } else {
-            /// @dev arithmetic overflow make sure trader won't deposit too much into poolManager
-            reservesOfPoolManager[poolManager][currency] += uint128(-delta);
+            /// @dev arithmetic overflow make sure trader won't deposit too much into app
+            reservesOfApp[app][currency] += uint128(-delta);
         }
     }
 }
