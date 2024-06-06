@@ -34,7 +34,7 @@ interface IVault is IVaultToken {
     /// @notice Returns the reserves for a a given pool type and currency
     function reservesOfApp(address app, Currency currency) external view returns (uint256);
 
-    /// @notice register a app so that it can perform accounting base on vault
+    /// @notice register an app so that it can perform accounting base on vault
     function registerApp(address app) external;
 
     /// @notice Returns the locker who is locking the vault
