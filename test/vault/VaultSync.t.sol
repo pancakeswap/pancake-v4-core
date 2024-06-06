@@ -25,7 +25,7 @@ contract VaultSyncTest is Test, TokenFixture, GasSnapshot, NoIsolate {
 
         vault = new Vault();
         fakePoolManager = new FakePoolManager(vault);
-        vault.registerPoolManager(address(fakePoolManager));
+        vault.registerApp(address(fakePoolManager));
 
         PoolKey memory key = PoolKey({
             currency0: currency0,

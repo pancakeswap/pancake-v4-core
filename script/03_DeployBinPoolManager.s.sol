@@ -25,7 +25,7 @@ contract DeployBinPoolManagerScript is BaseScript {
         console.log("BinPoolManager contract deployed at ", address(binPoolManager));
 
         console.log("Registering BinPoolManager");
-        IVault(address(vault)).registerPoolManager(address(binPoolManager));
+        IVault(address(vault)).registerApp(address(binPoolManager));
 
         vm.stopBroadcast();
     }

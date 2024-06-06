@@ -58,7 +58,7 @@ contract BinHookReturnsFeeTest is Test, BinTestHelper {
     function setUp() public {
         vault = new Vault();
         poolManager = new BinPoolManager(IVault(address(vault)), 500000);
-        vault.registerPoolManager(address(poolManager));
+        vault.registerApp(address(poolManager));
 
         // initializeTokens
         token0 = new MockERC20("TestA", "A", 18);
