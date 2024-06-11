@@ -525,6 +525,12 @@ library BinPool {
     }
 
     function checkPoolInitialized(State storage self) internal view {
-        if (self.slot0.activeId == 0) revert PoolNotInitialized();
+        if (self.slot0.activeId == 0) {
+            // revert PoolNotInitialized();
+            assembly ("memory-safe") {
+                mstore(0x00, 0x486aa307)
+                revert(0x1c, 0x04)
+            }
+        }
     }
 }
