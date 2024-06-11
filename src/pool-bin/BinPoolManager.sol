@@ -134,7 +134,8 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         if (amountIn == 0) revert InsufficientAmountIn();
 
         PoolId id = key.toId();
-        _checkPoolInitialized(id);
+        BinPool.State storage pool = pools[id];
+        pool.checkPoolInitialized();
 
         (uint128 amountToSwap, BeforeSwapDelta beforeSwapDelta, uint24 lpFeeOverride) =
             BinHooks.beforeSwap(key, swapForY, amountIn, hookData);
@@ -142,7 +143,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         /// @dev fix stack too deep
         {
             BinPool.SwapState memory state;
-            (delta, state) = pools[id].swap(
+            (delta, state) = pool.swap(
                 BinPool.SwapParams({
                     swapForY: swapForY,
                     binStep: key.parameters.getBinStep(),
@@ -182,7 +183,8 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         returns (uint128 amountIn, uint128 amountOutLeft, uint128 fee)
     {
         PoolId id = key.toId();
-        _checkPoolInitialized(id);
+        BinPool.State storage pool = pools[id];
+        pool.checkPoolInitialized();
 
         uint24 lpFee;
         if (key.fee.isDynamicLPFee()) {
@@ -194,7 +196,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         }
         lpFee.validate(LPFeeLibrary.TEN_PERCENT_FEE);
 
-        (amountIn, amountOutLeft, fee) = pools[id].getSwapIn(
+        (amountIn, amountOutLeft, fee) = pool.getSwapIn(
             BinPool.SwapViewParams({swapForY: swapForY, binStep: key.parameters.getBinStep(), lpFee: lpFee}), amountOut
         );
     }
@@ -207,7 +209,8 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         returns (uint128 amountInLeft, uint128 amountOut, uint128 fee)
     {
         PoolId id = key.toId();
-        _checkPoolInitialized(id);
+        BinPool.State storage pool = pools[id];
+        pool.checkPoolInitialized();
 
         uint24 lpFee;
         if (key.fee.isDynamicLPFee()) {
@@ -218,7 +221,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         }
         lpFee.validate(LPFeeLibrary.TEN_PERCENT_FEE);
 
-        (amountInLeft, amountOut, fee) = pools[id].getSwapOut(
+        (amountInLeft, amountOut, fee) = pool.getSwapOut(
             BinPool.SwapViewParams({swapForY: swapForY, binStep: key.parameters.getBinStep(), lpFee: lpFee}), amountIn
         );
     }
@@ -231,13 +234,14 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         returns (BalanceDelta delta, BinPool.MintArrays memory mintArray)
     {
         PoolId id = key.toId();
-        _checkPoolInitialized(id);
+        BinPool.State storage pool = pools[id];
+        pool.checkPoolInitialized();
 
         BinHooks.beforeMint(key, params, hookData);
 
         bytes32 feeForProtocol;
         bytes32 compositionFee;
-        (delta, feeForProtocol, mintArray, compositionFee) = pools[id].mint(
+        (delta, feeForProtocol, mintArray, compositionFee) = pool.mint(
             BinPool.MintParams({
                 to: msg.sender,
                 liquidityConfigs: params.liquidityConfigs,
@@ -273,13 +277,14 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         returns (BalanceDelta delta)
     {
         PoolId id = key.toId();
-        _checkPoolInitialized(id);
+        BinPool.State storage pool = pools[id];
+        pool.checkPoolInitialized();
 
         BinHooks.beforeBurn(key, params, hookData);
 
         uint256[] memory binIds;
         bytes32[] memory amountRemoved;
-        (delta, binIds, amountRemoved) = pools[id].burn(
+        (delta, binIds, amountRemoved) = pool.burn(
             BinPool.BurnParams({
                 from: msg.sender,
                 ids: params.ids,
@@ -307,11 +312,12 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         returns (BalanceDelta delta, uint24 binId)
     {
         PoolId id = key.toId();
-        _checkPoolInitialized(id);
+        BinPool.State storage pool = pools[id];
+        pool.checkPoolInitialized();
 
         BinHooks.beforeDonate(key, amount0, amount1, hookData);
 
-        (delta, binId) = pools[id].donate(key.parameters.getBinStep(), amount0, amount1);
+        (delta, binId) = pool.donate(key.parameters.getBinStep(), amount0, amount1);
 
         vault.accountAppBalanceDelta(key, delta, msg.sender);
 
@@ -341,9 +347,5 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
 
     function _setProtocolFee(PoolId id, uint24 newProtocolFee) internal override {
         pools[id].setProtocolFee(newProtocolFee);
-    }
-
-    function _checkPoolInitialized(PoolId id) internal view {
-        if (pools[id].isNotInitialized()) revert PoolNotInitialized();
     }
 }
