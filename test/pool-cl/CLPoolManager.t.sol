@@ -2830,14 +2830,38 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         emit DynamicLPFeeUpdated(key.toId(), _swapFee);
 
         vm.prank(address(clFeeManagerHook));
-        if (_swapFee != 0) {
-            // temp fix to only record gas if _swapFee !=0. todo use snapLastCall to make this part of code easier to read
-            snapStart("CLPoolManagerTest#testFuzzUpdateDynamicLPFee");
-            poolManager.updateDynamicLPFee(key, _swapFee);
-            snapEnd();
-        } else {
-            poolManager.updateDynamicLPFee(key, _swapFee);
-        }
+        poolManager.updateDynamicLPFee(key, _swapFee);
+
+        (,,, uint24 swapFee) = poolManager.getSlot0(key.toId());
+        assertEq(swapFee, _swapFee);
+    }
+
+    function testGasUpdateDynamicLPFee() public {
+        uint24 _swapFee = LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE / 2;
+
+        uint16 bitMap = 0x0010; // 0000 0000 0001 0000 (before swap call)
+        clFeeManagerHook.setHooksRegistrationBitmap(bitMap);
+
+        PoolKey memory key = PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
+            hooks: IHooks(address(clFeeManagerHook)),
+            poolManager: poolManager,
+            parameters: bytes32(uint256((10 << 16) | clFeeManagerHook.getHooksRegistrationBitmap()))
+        });
+
+        poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
+
+        clFeeManagerHook.setFee(_swapFee);
+
+        vm.expectEmit();
+        emit DynamicLPFeeUpdated(key.toId(), _swapFee);
+
+        vm.prank(address(clFeeManagerHook));
+        snapStart("CLPoolManagerTest#testFuzzUpdateDynamicLPFee");
+        poolManager.updateDynamicLPFee(key, _swapFee);
+        snapEnd();
 
         (,,, uint24 swapFee) = poolManager.getSlot0(key.toId());
         assertEq(swapFee, _swapFee);
