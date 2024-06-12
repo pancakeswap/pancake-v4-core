@@ -542,4 +542,14 @@ contract TickTest is Test, GasSnapshot {
         // max liquidity at every tick is less than the cap
         assertGe(type(uint128).max, uint256(maxLiquidityPerTick) * numTicks);
     }
+
+    function test_fuzz_tickSpacingToMaxLiquidityPerTick(int24 tickSpacing) public pure {
+        vm.assume(tickSpacing > 0);
+        // v3 math
+        int24 minTick = (TickMath.MIN_TICK / tickSpacing) * tickSpacing;
+        int24 maxTick = (TickMath.MAX_TICK / tickSpacing) * tickSpacing;
+        uint24 numTicks = uint24((maxTick - minTick) / tickSpacing) + 1;
+        // assert that the result is the same as the v3 math
+        assertEq(type(uint128).max / numTicks, Tick.tickSpacingToMaxLiquidityPerTick(tickSpacing));
+    }
 }
