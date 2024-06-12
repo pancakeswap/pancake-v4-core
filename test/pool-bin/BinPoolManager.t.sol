@@ -901,6 +901,16 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
         vm.expectEmit();
         emit SetMaxBinStep(binStep);
+        poolManager.setMaxBinStep(binStep);
+
+        assertEq(poolManager.MAX_BIN_STEP(), binStep);
+    }
+
+    function testGas_SetMaxBinStep() public {
+        uint16 binStep = 10;
+
+        vm.expectEmit();
+        emit SetMaxBinStep(binStep);
         snapStart("BinPoolManagerTest#testFuzz_SetMaxBinStep");
         poolManager.setMaxBinStep(binStep);
         snapEnd();
@@ -976,14 +986,38 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         emit DynamicLPFeeUpdated(key.toId(), _lpFee);
 
         vm.prank(address(binFeeManagerHook));
-        if (_lpFee != 0) {
-            // temp fix to only record gas if _lpFee !=0. todo use snapLastCall to make this part of code easier to read
-            snapStart("BinPoolManagerTest#testFuzzUpdateDynamicLPFee");
-            poolManager.updateDynamicLPFee(key, _lpFee);
-            snapEnd();
-        } else {
-            poolManager.updateDynamicLPFee(key, _lpFee);
-        }
+        poolManager.updateDynamicLPFee(key, _lpFee);
+
+        (,, uint24 swapFee) = poolManager.getSlot0(key.toId());
+        assertEq(swapFee, _lpFee);
+    }
+
+    function testGasUpdateDynamicLPFee() public {
+        uint24 _lpFee = LPFeeLibrary.TEN_PERCENT_FEE / 2;
+
+        uint16 bitMap = 0x0004; // 0000 0000 0000 0100 (before mint call)
+        BinFeeManagerHook binFeeManagerHook = new BinFeeManagerHook(poolManager);
+        binFeeManagerHook.setHooksRegistrationBitmap(bitMap);
+
+        key = PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            hooks: IHooks(address(binFeeManagerHook)),
+            poolManager: IPoolManager(address(poolManager)),
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
+            parameters: bytes32(uint256(bitMap)).setBinStep(10)
+        });
+        poolManager.initialize(key, activeId, new bytes(0));
+
+        binFeeManagerHook.setFee(_lpFee);
+
+        vm.expectEmit();
+        emit DynamicLPFeeUpdated(key.toId(), _lpFee);
+
+        vm.prank(address(binFeeManagerHook));
+        snapStart("BinPoolManagerTest#testFuzzUpdateDynamicLPFee");
+        poolManager.updateDynamicLPFee(key, _lpFee);
+        snapEnd();
 
         (,, uint24 swapFee) = poolManager.getSlot0(key.toId());
         assertEq(swapFee, _lpFee);
