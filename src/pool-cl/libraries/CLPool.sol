@@ -462,19 +462,25 @@ library CLPool {
     }
 
     function setProtocolFee(State storage self, uint24 protocolFee) internal {
-        if (self.isNotInitialized()) revert PoolNotInitialized();
+        self.checkPoolInitialized();
 
         self.slot0.protocolFee = protocolFee;
     }
 
     /// @notice Only dynamic fee pools may update the lp fee.
     function setLPFee(State storage self, uint24 lpFee) internal {
-        if (self.isNotInitialized()) revert PoolNotInitialized();
+        self.checkPoolInitialized();
 
         self.slot0.lpFee = lpFee;
     }
 
-    function isNotInitialized(State storage self) internal view returns (bool) {
-        return self.slot0.sqrtPriceX96 == 0;
+    function checkPoolInitialized(State storage self) internal view {
+        if (self.slot0.sqrtPriceX96 == 0) {
+            // revert PoolNotInitialized();
+            assembly ("memory-safe") {
+                mstore(0x00, 0x486aa307)
+                revert(0x1c, 0x04)
+            }
+        }
     }
 }

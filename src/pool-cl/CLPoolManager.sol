@@ -130,11 +130,12 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         if (paused() && params.liquidityDelta > 0) revert PoolPaused();
 
         PoolId id = key.toId();
-        _checkPoolInitialized(id);
+        CLPool.State storage pool = pools[id];
+        pool.checkPoolInitialized();
 
         CLHooks.beforeModifyLiquidity(key, params, hookData);
 
-        (delta, feeDelta) = pools[id].modifyLiquidity(
+        (delta, feeDelta) = pool.modifyLiquidity(
             CLPool.ModifyLiquidityParams({
                 owner: msg.sender,
                 tickLower: params.tickLower,
@@ -167,12 +168,13 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         if (params.amountSpecified == 0) revert SwapAmountCannotBeZero();
 
         PoolId id = key.toId();
-        _checkPoolInitialized(id);
+        CLPool.State storage pool = pools[id];
+        pool.checkPoolInitialized();
 
         (int256 amountToSwap, BeforeSwapDelta beforeSwapDelta, uint24 lpFeeOverride) =
             CLHooks.beforeSwap(key, params, hookData);
         CLPool.SwapState memory state;
-        (delta, state) = pools[id].swap(
+        (delta, state) = pool.swap(
             CLPool.SwapParams({
                 tickSpacing: key.parameters.getTickSpacing(),
                 zeroForOne: params.zeroForOne,
@@ -221,12 +223,13 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         returns (BalanceDelta delta)
     {
         PoolId id = key.toId();
-        _checkPoolInitialized(id);
+        CLPool.State storage pool = pools[id];
+        pool.checkPoolInitialized();
 
         CLHooks.beforeDonate(key, amount0, amount1, hookData);
 
         int24 tick;
-        (delta, tick) = pools[id].donate(amount0, amount1);
+        (delta, tick) = pool.donate(amount0, amount1);
         vault.accountAppBalanceDelta(key, delta, msg.sender);
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
@@ -263,10 +266,6 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
 
     function _setProtocolFee(PoolId id, uint24 newProtocolFee) internal override {
         pools[id].setProtocolFee(newProtocolFee);
-    }
-
-    function _checkPoolInitialized(PoolId id) internal view {
-        if (pools[id].isNotInitialized()) revert PoolNotInitialized();
     }
 
     /// @notice not accept ether
