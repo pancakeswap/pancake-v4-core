@@ -17,7 +17,6 @@ import {PoolId, PoolIdLibrary} from "../../src/types/PoolId.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../../src/types/BalanceDelta.sol";
 import {BinPoolManager} from "../../src/pool-bin/BinPoolManager.sol";
 import {MockBinHooks} from "../../src/test/pool-bin/MockBinHooks.sol";
-import {MockFeeManagerHook} from "../../src/test/fee/MockFeeManagerHook.sol";
 import {MockProtocolFeeController} from "../../src/test/fee/MockProtocolFeeController.sol";
 import {BinPool} from "../../src/pool-bin/libraries/BinPool.sol";
 import {LiquidityConfigurations} from "../../src/pool-bin/libraries/math/LiquidityConfigurations.sol";
@@ -811,12 +810,6 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
         vm.expectRevert(PoolNotInitialized.selector);
         binSwapHelper.swap(key, true, 1 ether, testSettings, "");
-
-        vm.expectRevert(PoolNotInitialized.selector);
-        poolManager.getSwapIn(key, true, 1 ether);
-
-        vm.expectRevert(PoolNotInitialized.selector);
-        poolManager.getSwapOut(key, true, 1 ether);
     }
 
     function testDonatePoolNotInitialized() public {

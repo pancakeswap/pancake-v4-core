@@ -5,13 +5,12 @@ import {IBinPoolManager} from "../../../src/pool-bin/interfaces/IBinPoolManager.
 import {IBinHooks} from "../../../src/pool-bin/interfaces/IBinHooks.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {IHooks} from "../../../src/interfaces/IHooks.sol";
-import {IBinDynamicFeeManager} from "../../../src/pool-bin/interfaces/IBinDynamicFeeManager.sol";
 import {PoolId, PoolIdLibrary} from "../../../src/types/PoolId.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {BaseBinTestHook} from "./BaseBinTestHook.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "../../../src/types/BeforeSwapDelta.sol";
 
-contract BinFeeManagerHook is BaseBinTestHook, IBinDynamicFeeManager {
+contract BinFeeManagerHook is BaseBinTestHook {
     using PoolIdLibrary for PoolKey;
 
     uint16 bitmap;
@@ -35,10 +34,6 @@ contract BinFeeManagerHook is BaseBinTestHook, IBinDynamicFeeManager {
     }
 
     function getFee(address, PoolKey calldata) external view returns (uint24) {
-        return fee;
-    }
-
-    function getFeeForSwapInSwapOut(address, PoolKey calldata, bool, uint128, uint128) external view returns (uint24) {
         return fee;
     }
 
