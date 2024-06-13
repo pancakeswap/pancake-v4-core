@@ -86,7 +86,7 @@ contract BinReturnsDeltaHook is BaseBinTestHook {
         return (this.afterBurn.selector, toBalanceDelta(hookDelta0, hookDelta1));
     }
 
-    function beforeSwap(address, PoolKey calldata key, bool swapForY, uint128, bytes calldata data)
+    function beforeSwap(address, PoolKey calldata key, bool swapForY, int128, bytes calldata data)
         external
         override
         returns (bytes4, BeforeSwapDelta, uint24)
@@ -120,7 +120,7 @@ contract BinReturnsDeltaHook is BaseBinTestHook {
         return (this.beforeSwap.selector, toBeforeSwapDelta(hookDeltaSpecified, hookDeltaUnspecified), 0);
     }
 
-    function afterSwap(address, PoolKey calldata key, bool swapForY, uint128, BalanceDelta, bytes calldata data)
+    function afterSwap(address, PoolKey calldata key, bool swapForY, int128, BalanceDelta, bytes calldata data)
         external
         override
         returns (bytes4, int128)

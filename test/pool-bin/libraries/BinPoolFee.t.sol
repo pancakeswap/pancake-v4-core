@@ -267,7 +267,7 @@ contract BinPoolFeeTest is BinTestHelper {
         emit Swap(key.toId(), bob, -1e18, (1e18 * 997) / 1000, activeId, 3000, 0);
 
         // swap: 1e18 X for Y. pool is 0.3% fee
-        BalanceDelta delta = poolManager.swap(key, true, 1e18, "0x");
+        BalanceDelta delta = poolManager.swap(key, true, -int128(1e18), "0x");
         assertEq(delta.amount0(), -1e18, "test_Swap_NoFee::1");
         assertEq(delta.amount1(), (1e18 * 997) / 1000, "test_Swap_NoFee::2");
 
@@ -312,7 +312,7 @@ contract BinPoolFeeTest is BinTestHelper {
         assertEq(getSwapInAmtIn, 1e18);
 
         // verify 2% fee instead of whatever fee set on the pool
-        BalanceDelta delta = poolManager.swap(key, true, 1e18, "");
+        BalanceDelta delta = poolManager.swap(key, true, -int128(1e18), "");
         assertEq(delta.amount0(), -1e18, "test_Swap_WithDynamicFee::1");
         assertEq(delta.amount1(), (1e18 * 98) / 100, "test_Swap_WithDynamicFee::2");
 

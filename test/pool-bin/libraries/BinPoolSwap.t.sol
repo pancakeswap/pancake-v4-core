@@ -84,7 +84,7 @@ contract BinPoolSwapTest is BinTestHelper {
         // assertEq(delta2.amount1(), 1e18);
 
         // positive input = exactOut
-        BalanceDelta delta2 = poolManager.swapV2(key, true, int128(amountOut), "");
+        BalanceDelta delta2 = poolManager.swap(key, true, int128(amountOut), "");
         assertEq(delta2.amount0(), -int128(amountIn));
         assertEq(delta2.amount1(), 1e18);
     }
@@ -110,7 +110,7 @@ contract BinPoolSwapTest is BinTestHelper {
         // assertEq(delta2.amount0(), -int128(amountIn));
         // assertEq(delta2.amount1(), 1e18);
 
-        BalanceDelta delta2 = poolManager.swapV2(key, true, int128(amountOut), "");
+        BalanceDelta delta2 = poolManager.swap(key, true, int128(amountOut), "");
         assertEq(delta2.amount0(), -int128(amountIn));
         assertEq(delta2.amount1(), 1e18);
     }
@@ -136,7 +136,7 @@ contract BinPoolSwapTest is BinTestHelper {
         // Swap and verify protocol fee is 0.1%
         assertEq(poolManager.protocolFeesAccrued(key.currency0), 0);
         assertEq(poolManager.protocolFeesAccrued(key.currency1), 0);
-        poolManager.swap(key, true, amountIn, "");
+        poolManager.swap(key, true, -int128(amountIn), "");
         assertApproxEqRel(poolManager.protocolFeesAccrued(key.currency0), fee1 / 4, 0.001e18);
         assertEq(poolManager.protocolFeesAccrued(key.currency1), 0);
     }
@@ -161,7 +161,7 @@ contract BinPoolSwapTest is BinTestHelper {
         // Swap and verify protocol fee is 0.1%
         assertEq(poolManager.protocolFeesAccrued(key.currency0), 0);
         assertEq(poolManager.protocolFeesAccrued(key.currency1), 0);
-        poolManager.swap(key, true, amountIn, "");
+        poolManager.swap(key, true, -int128(amountIn), "");
 
         // should be very close to 1/4 of fee. add 0.1% approxEq due to math
         assertApproxEqRel(poolManager.protocolFeesAccrued(key.currency0), fee1 / 4, 0.001e18);
@@ -181,7 +181,7 @@ contract BinPoolSwapTest is BinTestHelper {
         // pool should have deep liqudiity to swap and result in 0 amountOut
         assertEq(amountOutLeft, 0, "TestFuzz_SwapInForY::1");
 
-        poolManager.swap(key, true, amountIn, "0x");
+        poolManager.swap(key, true, -int128(amountIn), "0x");
 
         // verify .getSwapIn match with swap result
         assertEq(vault.balanceDeltaOfPool(poolId).amount0(), -int128(amountIn), "TestFuzz_SwapInForY::2");
@@ -200,7 +200,7 @@ contract BinPoolSwapTest is BinTestHelper {
 
         assertEq(amountOutLeft, 0, "TestFuzz_SwapInForX::1");
 
-        poolManager.swap(key, false, amountIn, "0x");
+        poolManager.swap(key, false, -int128(amountIn), "0x");
 
         // verify .getSwapIn match with swap result
         assertEq(vault.balanceDeltaOfPool(poolId).amount0(), int128(amountOut), "TestFuzz_SwapInForX::2");
@@ -221,7 +221,7 @@ contract BinPoolSwapTest is BinTestHelper {
 
         assertEq(amountInLeft, 0, "TestFuzz_SwapOutForY::1");
 
-        poolManager.swap(key, true, amountIn, "0x");
+        poolManager.swap(key, true, -int128(amountIn), "0x");
 
         // verify .getSwapIn match with swap result
         assertEq(vault.balanceDeltaOfPool(poolId).amount0(), -int128(amountIn), "TestFuzz_SwapOutForY::2");
@@ -242,25 +242,25 @@ contract BinPoolSwapTest is BinTestHelper {
 
         assertEq(amountInLeft, 0, "TestFuzz_SwapOutForX::1");
 
-        poolManager.swap(key, false, amountIn, "0x");
+        poolManager.swap(key, false, -int128(amountIn), "0x");
 
         // verify .getSwapIn match with swap result
         assertEq(vault.balanceDeltaOfPool(poolId).amount0(), int128(amountOut), "TestFuzz_SwapOutForY::2");
         assertEq(vault.balanceDeltaOfPool(poolId).amount1(), -int128(amountIn), "TestFuzz_SwapOutForY::3");
     }
 
-    function test_revert_SwapInsufficientAmountIn() external {
+    function test_revert_SwapAmountSpecifiedIsZero() external {
         // Add liquidity of 1e18 on each side
         poolManager.initialize(key, activeId, new bytes(0));
         addLiquidity(key, poolManager, bob, activeId, 1e18, 1e18, 50, 50);
 
         uint128 amountIn = 0;
 
-        vm.expectRevert(IBinPoolManager.InsufficientAmountIn.selector);
-        poolManager.swap(key, true, amountIn, "0x");
+        vm.expectRevert(IBinPoolManager.AmountSpecifiedIsZero.selector);
+        poolManager.swap(key, true, -int128(amountIn), "0x");
 
-        vm.expectRevert(IBinPoolManager.InsufficientAmountIn.selector);
-        poolManager.swap(key, false, amountIn, "0x");
+        vm.expectRevert(IBinPoolManager.AmountSpecifiedIsZero.selector);
+        poolManager.swap(key, false, -int128(amountIn), "0x");
     }
 
     function test_revert_SwapInsufficientAmountOut() external {
@@ -270,11 +270,11 @@ contract BinPoolSwapTest is BinTestHelper {
 
         uint128 amountIn = 1;
 
-        vm.expectRevert(BinPool.BinPool__InsufficientAmountOut.selector);
-        poolManager.swap(key, true, amountIn, "0x");
+        vm.expectRevert(BinPool.BinPool__InsufficientAmountUnSpecified.selector);
+        poolManager.swap(key, true, -int128(amountIn), "0x");
 
-        vm.expectRevert(BinPool.BinPool__InsufficientAmountOut.selector);
-        poolManager.swap(key, false, amountIn, "0x");
+        vm.expectRevert(BinPool.BinPool__InsufficientAmountUnSpecified.selector);
+        poolManager.swap(key, false, -int128(amountIn), "0x");
     }
 
     function test_revert_SwapOutOfLiquidity() external {
@@ -286,10 +286,10 @@ contract BinPoolSwapTest is BinTestHelper {
         uint128 amountIn = 2e18;
 
         vm.expectRevert(BinPool.BinPool__OutOfLiquidity.selector);
-        poolManager.swap(key, true, amountIn, "0x");
+        poolManager.swap(key, true, -int128(amountIn), "0x");
 
         vm.expectRevert(BinPool.BinPool__OutOfLiquidity.selector);
-        poolManager.swap(key, false, amountIn, "0x");
+        poolManager.swap(key, false, -int128(amountIn), "0x");
     }
 
     function _getSwapFee(uint24 fee0, uint24 fee1) internal pure returns (uint24) {

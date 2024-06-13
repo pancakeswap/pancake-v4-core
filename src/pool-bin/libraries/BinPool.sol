@@ -41,9 +41,9 @@ library BinPool {
     error BinPool__BurnZeroAmount(uint24 id);
     error BinPool__ZeroAmountsOut(uint24 id);
     error BinPool__OutOfLiquidity();
-    error BinPool__InsufficientAmountIn();
-    error BinPool__InsufficientAmountOut();
     error BinPool__NoLiquidityToReceiveFees();
+    /// @dev if swap exactIn, x for y, unspecifiedToken = token y. if swap x for exact out y, unspecified token is x
+    error BinPool__InsufficientAmountUnSpecified();
 
     struct Slot0 {
         // the current activeId
@@ -192,6 +192,7 @@ library BinPool {
         bool swapForY;
         uint16 binStep;
         uint24 lpFeeOverride;
+        int128 amountSpecified; // negative for exactInput, positive for exactOutput
     }
 
     struct SwapState {
@@ -201,90 +202,7 @@ library BinPool {
         bytes32 feeForProtocol;
     }
 
-    function swap(State storage self, SwapParams memory params, uint128 amountIn)
-        internal
-        returns (BalanceDelta result, SwapState memory swapState)
-    {
-        Slot0 memory slot0Cache = self.slot0;
-        swapState.activeId = slot0Cache.activeId;
-        bool swapForY = params.swapForY;
-        swapState.protocolFee =
-            swapForY ? slot0Cache.protocolFee.getOneForZeroFee() : slot0Cache.protocolFee.getZeroForOneFee();
-
-        {
-            uint24 lpFee = params.lpFeeOverride.isOverride()
-                ? params.lpFeeOverride.removeOverrideAndValidate(LPFeeLibrary.TEN_PERCENT_FEE)
-                : slot0Cache.lpFee;
-
-            /// @dev swap fee includes protocolFee (charged first) and lpFee
-            swapState.swapFee = swapState.protocolFee == 0 ? lpFee : swapState.protocolFee.calculateSwapFee(lpFee);
-        }
-
-        /// @notice early return if hook has updated amountIn to 0
-        if (amountIn == 0) return (result, swapState);
-
-        bytes32 amountInLeft = swapForY ? amountIn.encodeFirst() : amountIn.encodeSecond();
-        bytes32 amountsOut;
-
-        while (true) {
-            bytes32 binReserves = self.reserveOfBin[swapState.activeId];
-            if (!binReserves.isEmpty(!swapForY)) {
-                /// given amountsLeft
-                (bytes32 amountsInWithFees, bytes32 amountsOutOfBin, bytes32 totalFee) = binReserves.getAmounts(
-                    swapState.swapFee, params.binStep, swapForY, swapState.activeId, amountInLeft
-                );
-
-                if (amountsInWithFees > 0) {
-                    amountInLeft = amountInLeft.sub(amountsInWithFees);
-                    amountsOut = amountsOut.add(amountsOutOfBin);
-
-                    /// @dev calc protocol fee for current bin, totalFee * protocolFee / (protocolFee + lpFee)
-                    bytes32 pFee = totalFee.getExternalFeeAmt(slot0Cache.protocolFee, swapState.swapFee);
-                    if (pFee != 0) {
-                        swapState.feeForProtocol = swapState.feeForProtocol.add(pFee);
-                        amountsInWithFees = amountsInWithFees.sub(pFee);
-                    }
-
-                    self.reserveOfBin[swapState.activeId] = binReserves.add(amountsInWithFees).sub(amountsOutOfBin);
-                }
-            }
-
-            if (amountInLeft == 0) {
-                break;
-            } else {
-                uint24 nextId = getNextNonEmptyBin(self, swapForY, swapState.activeId);
-                // Equivalent to: if (nextId == 0 || nextId == type(uint24).max) revert BinPool__OutOfLiquidity();
-                assembly ("memory-safe") {
-                    if or(iszero(nextId), eq(nextId, 0xffffff)) {
-                        mstore(0x00, 0x96aa65ad) // Selector BinPool__OutOfLiquidity()
-                        revert(0x1c, 0x04)
-                    }
-                }
-                swapState.activeId = nextId;
-            }
-        }
-
-        if (amountsOut == 0) revert BinPool__InsufficientAmountOut();
-
-        self.slot0.activeId = swapState.activeId;
-
-        if (swapForY) {
-            uint128 consumed = amountIn - amountInLeft.decodeX();
-            result = toBalanceDelta(-consumed.safeInt128(), amountsOut.decodeY().safeInt128());
-        } else {
-            uint128 consumed = amountIn - amountInLeft.decodeY();
-            result = toBalanceDelta(amountsOut.decodeX().safeInt128(), -(consumed.safeInt128()));
-        }
-    }
-
-    struct SwapParamsV2 {
-        bool swapForY;
-        uint16 binStep;
-        uint24 lpFeeOverride;
-        int128 amountSpecified; // negative for exactInput, positive for exactOutput
-    }
-
-    function swapV2(State storage self, SwapParamsV2 memory params)
+    function swap(State storage self, SwapParams memory params)
         internal
         returns (BalanceDelta result, SwapState memory swapState)
     {
@@ -365,7 +283,7 @@ library BinPool {
             }
         }
 
-        if (amountUnspecified == 0) revert BinPool__InsufficientAmountIn();
+        if (amountUnspecified == 0) revert BinPool__InsufficientAmountUnSpecified();
 
         self.slot0.activeId = swapState.activeId;
         if (exactInput) {

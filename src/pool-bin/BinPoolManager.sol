@@ -125,75 +125,26 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
     }
 
     /// @inheritdoc IBinPoolManager
-    function swap(PoolKey memory key, bool swapForY, uint128 amountIn, bytes calldata hookData)
+    function swap(PoolKey memory key, bool swapForY, int128 amountSpecified, bytes calldata hookData)
         external
         override
         whenNotPaused
         returns (BalanceDelta delta)
     {
-        if (amountIn == 0) revert InsufficientAmountIn();
-
-        PoolId id = key.toId();
-        BinPool.State storage pool = pools[id];
-        pool.checkPoolInitialized();
-
-        (uint128 amountToSwap, BeforeSwapDelta beforeSwapDelta, uint24 lpFeeOverride) =
-            BinHooks.beforeSwap(key, swapForY, amountIn, hookData);
-
-        /// @dev fix stack too deep
-        {
-            BinPool.SwapState memory state;
-            (delta, state) = pool.swap(
-                BinPool.SwapParams({
-                    swapForY: swapForY,
-                    binStep: key.parameters.getBinStep(),
-                    lpFeeOverride: lpFeeOverride
-                }),
-                amountToSwap
-            );
-
-            unchecked {
-                if (state.feeForProtocol > 0) {
-                    protocolFeesAccrued[key.currency0] += state.feeForProtocol.decodeX();
-                    protocolFeesAccrued[key.currency1] += state.feeForProtocol.decodeY();
-                }
-            }
-
-            /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
-            emit Swap(
-                id, msg.sender, delta.amount0(), delta.amount1(), state.activeId, state.swapFee, state.protocolFee
-            );
-        }
-
-        BalanceDelta hookDelta;
-        (delta, hookDelta) = BinHooks.afterSwap(key, swapForY, amountIn, delta, hookData, beforeSwapDelta);
-
-        if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
-            vault.accountAppBalanceDelta(key, hookDelta, address(key.hooks));
-        }
-
-        vault.accountAppBalanceDelta(key, delta, msg.sender);
-    }
-
-    function swapV2(PoolKey memory key, bool swapForY, int128 amountSpecified, bytes calldata hookData)
-        external
-        whenNotPaused
-        returns (BalanceDelta delta)
-    {
-        if (amountSpecified == 0) revert InsufficientAmountIn(); //todo: update error to InsufficientAmount
+        if (amountSpecified == 0) revert AmountSpecifiedIsZero();
 
         PoolId id = key.toId();
         BinPool.State storage pool = pools[id];
         pool.checkPoolInitialized();
 
         (int128 amountToSwap, BeforeSwapDelta beforeSwapDelta, uint24 lpFeeOverride) =
-            BinHooks.beforeSwapV2(key, swapForY, amountSpecified, hookData);
+            BinHooks.beforeSwap(key, swapForY, amountSpecified, hookData);
 
         /// @dev fix stack too deep
         {
             BinPool.SwapState memory state;
-            (delta, state) = pool.swapV2(
-                BinPool.SwapParamsV2({
+            (delta, state) = pool.swap(
+                BinPool.SwapParams({
                     swapForY: swapForY,
                     binStep: key.parameters.getBinStep(),
                     lpFeeOverride: lpFeeOverride,
@@ -215,7 +166,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         }
 
         BalanceDelta hookDelta;
-        (delta, hookDelta) = BinHooks.afterSwapV2(key, swapForY, amountSpecified, delta, hookData, beforeSwapDelta);
+        (delta, hookDelta) = BinHooks.afterSwap(key, swapForY, amountSpecified, delta, hookData, beforeSwapDelta);
 
         if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
             vault.accountAppBalanceDelta(key, hookDelta, address(key.hooks));

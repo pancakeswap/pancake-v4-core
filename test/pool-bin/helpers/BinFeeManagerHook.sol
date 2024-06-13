@@ -59,7 +59,7 @@ contract BinFeeManagerHook is BaseBinTestHook, IBinDynamicFeeManager {
         return IBinHooks.beforeMint.selector;
     }
 
-    function beforeSwap(address, PoolKey calldata key, bool, uint128, bytes calldata hookData)
+    function beforeSwap(address, PoolKey calldata key, bool, int128, bytes calldata hookData)
         external
         override
         returns (bytes4, BeforeSwapDelta, uint24)

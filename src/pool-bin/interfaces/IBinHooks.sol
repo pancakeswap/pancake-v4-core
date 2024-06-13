@@ -109,7 +109,7 @@ interface IBinHooks is IHooks {
     /// @param sender The initial msg.sender for the swap call
     /// @param key The key for the pool
     /// @param swapForY If true, indicate swap X for Y or if false, swap Y for X
-    /// @param amountIn Amount of tokenX or tokenY in
+    /// @param amountSpecified Amount of tokenX or tokenY, negative imply exactInput, positive imply exactOutput
     /// @param hookData Arbitrary data handed into the PoolManager by the swapper to be be passed on to the hook
     /// @return bytes4 The function selector for the hook
     /// @return BeforeSwapDelta The hook's delta in specified and unspecified currencies.
@@ -117,11 +117,7 @@ interface IBinHooks is IHooks {
     ///     1) the Pool has a dynamic fee,
     ///     2) the value's override flag is set to 1 i.e. vaule & OVERRIDE_FEE_FLAG = 0x400000 != 0
     ///     3) the value is less than or equal to the maximum fee (100_000) - 10%
-    function beforeSwap(address sender, PoolKey calldata key, bool swapForY, uint128 amountIn, bytes calldata hookData)
-        external
-        returns (bytes4, BeforeSwapDelta, uint24);
-
-    function beforeSwapV2(
+    function beforeSwap(
         address sender,
         PoolKey calldata key,
         bool swapForY,
@@ -133,21 +129,12 @@ interface IBinHooks is IHooks {
     /// @param sender The initial msg.sender for the swap call
     /// @param key The key for the pool
     /// @param swapForY If true, indicate swap X for Y or if false, swap Y for X
-    /// @param amountIn Amount of tokenX or tokenY in
-    /// @param delta The amount owed to the locker (positive) or owed to the pool (negtive)
+    /// @param amountSpecified Amount of tokenX or tokenY, negative imply exactInput, positive imply exactOutput
+    /// @param delta The amount owed to the locker or owed to the pool
     /// @param hookData Arbitrary data handed into the PoolManager by the swapper to be be passed on to the hook
     /// @return bytes4 The function selector for the hook
     /// @return int128 The hook's delta in unspecified currency
     function afterSwap(
-        address sender,
-        PoolKey calldata key,
-        bool swapForY,
-        uint128 amountIn,
-        BalanceDelta delta,
-        bytes calldata hookData
-    ) external returns (bytes4, int128);
-
-    function afterSwapV2(
         address sender,
         PoolKey calldata key,
         bool swapForY,

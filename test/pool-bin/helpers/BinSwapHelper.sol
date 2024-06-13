@@ -59,7 +59,7 @@ contract BinSwapHelper {
 
         CallbackData memory data = abi.decode(callbackData, (CallbackData));
 
-        BalanceDelta delta = binManager.swap(data.key, data.swapForY, data.amountIn, data.hookData);
+        BalanceDelta delta = binManager.swap(data.key, data.swapForY, -int128(data.amountIn), data.hookData);
 
         if (data.swapForY) {
             if (delta.amount0() < 0) {
