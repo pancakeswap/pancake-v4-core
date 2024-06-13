@@ -175,30 +175,30 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         vault.accountAppBalanceDelta(key, delta, msg.sender);
     }
 
-    function swapExactOut(PoolKey memory key, bool swapForY, uint128 amountOut, bytes calldata hookData)
+    function swapV2(PoolKey memory key, bool swapForY, int128 amountSpecified, bytes calldata hookData)
         external
         whenNotPaused
         returns (BalanceDelta delta)
     {
-        if (amountOut == 0) revert InsufficientAmountIn();
+        if (amountSpecified == 0) revert InsufficientAmountIn(); //todo: update error to InsufficientAmount
 
         PoolId id = key.toId();
         BinPool.State storage pool = pools[id];
         pool.checkPoolInitialized();
 
-        (uint128 amountToSwap, BeforeSwapDelta beforeSwapDelta, uint24 lpFeeOverride) =
-            BinHooks.beforeSwap(key, swapForY, amountOut, hookData);
+        (int128 amountToSwap, BeforeSwapDelta beforeSwapDelta, uint24 lpFeeOverride) =
+            BinHooks.beforeSwapV2(key, swapForY, amountSpecified, hookData);
 
         /// @dev fix stack too deep
         {
             BinPool.SwapState memory state;
-            (delta, state) = pool.swapExactOut(
-                BinPool.SwapParams({
+            (delta, state) = pool.swapV2(
+                BinPool.SwapParamsV2({
                     swapForY: swapForY,
                     binStep: key.parameters.getBinStep(),
-                    lpFeeOverride: lpFeeOverride
-                }),
-                amountToSwap
+                    lpFeeOverride: lpFeeOverride,
+                    amountSpecified: amountToSwap
+                })
             );
 
             unchecked {
@@ -215,7 +215,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         }
 
         BalanceDelta hookDelta;
-        (delta, hookDelta) = BinHooks.afterSwap(key, swapForY, amountOut, delta, hookData, beforeSwapDelta);
+        (delta, hookDelta) = BinHooks.afterSwapV2(key, swapForY, amountSpecified, delta, hookData, beforeSwapDelta);
 
         if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
             vault.accountAppBalanceDelta(key, hookDelta, address(key.hooks));

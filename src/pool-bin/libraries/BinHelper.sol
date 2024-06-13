@@ -216,7 +216,7 @@ library BinHelper {
         bytes32 binReserves,
         uint24 fee,
         uint16 binStep,
-        bool swapForY, // swap `swapForY` and `activeId` to avoid stack too deep
+        bool swapForY,
         uint24 activeId,
         bytes32 amountsOutLeft
     ) internal pure returns (bytes32 amountsInWithFees, bytes32 amountsOutOfBin, bytes32 totalFees) {

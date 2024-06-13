@@ -73,8 +73,18 @@ contract BinPoolSwapTest is BinTestHelper {
         // assertEq(delta.amount0(), -int128(amountIn));
         // assertEq(delta.amount1(), 1e18);
 
+        // negative input = exactIn
+        // BalanceDelta delta2 = poolManager.swapV2(key, true, -int128(amountIn), "");
+        // assertEq(delta2.amount0(), -int128(amountIn));
+        // assertEq(delta2.amount1(), 1e18);
+
         // verify swap return same result
-        BalanceDelta delta2 = poolManager.swapExactOut(key, true, amountOut, "");
+        // BalanceDelta delta2 = poolManager.swapExactOut(key, true, amountOut, "");
+        // assertEq(delta2.amount0(), -int128(amountIn));
+        // assertEq(delta2.amount1(), 1e18);
+
+        // positive input = exactOut
+        BalanceDelta delta2 = poolManager.swapV2(key, true, int128(amountOut), "");
         assertEq(delta2.amount0(), -int128(amountIn));
         assertEq(delta2.amount1(), 1e18);
     }
@@ -96,10 +106,11 @@ contract BinPoolSwapTest is BinTestHelper {
 
         // verify swap return same result
         // BalanceDelta delta = poolManager.swap(key, true, amountIn, "");
-        // assertEq(delta.amount0(), -int128(amountIn));
-        // assertEq(delta.amount1(), 1e18);
+        // BalanceDelta delta2 = poolManager.swapV2(key, true, -int128(amountIn), "");
+        // assertEq(delta2.amount0(), -int128(amountIn));
+        // assertEq(delta2.amount1(), 1e18);
 
-        BalanceDelta delta2 = poolManager.swapExactOut(key, true, amountOut, "");
+        BalanceDelta delta2 = poolManager.swapV2(key, true, int128(amountOut), "");
         assertEq(delta2.amount0(), -int128(amountIn));
         assertEq(delta2.amount1(), 1e18);
     }

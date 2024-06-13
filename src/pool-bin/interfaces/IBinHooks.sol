@@ -121,6 +121,14 @@ interface IBinHooks is IHooks {
         external
         returns (bytes4, BeforeSwapDelta, uint24);
 
+    function beforeSwapV2(
+        address sender,
+        PoolKey calldata key,
+        bool swapForY,
+        int128 amountSpecified,
+        bytes calldata hookData
+    ) external returns (bytes4, BeforeSwapDelta, uint24);
+
     /// @notice The hook called after a swap
     /// @param sender The initial msg.sender for the swap call
     /// @param key The key for the pool
@@ -135,6 +143,15 @@ interface IBinHooks is IHooks {
         PoolKey calldata key,
         bool swapForY,
         uint128 amountIn,
+        BalanceDelta delta,
+        bytes calldata hookData
+    ) external returns (bytes4, int128);
+
+    function afterSwapV2(
+        address sender,
+        PoolKey calldata key,
+        bool swapForY,
+        int128 amountSpecified,
         BalanceDelta delta,
         bytes calldata hookData
     ) external returns (bytes4, int128);

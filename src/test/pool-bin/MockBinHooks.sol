@@ -120,6 +120,30 @@ contract MockBinHooks is IBinHooks {
         return (returnValues[selector] == bytes4(0) ? selector : returnValues[selector], 0);
     }
 
+    function beforeSwapV2(address, PoolKey calldata, bool, int128, bytes calldata hookData)
+        external
+        override
+        returns (bytes4, BeforeSwapDelta, uint24)
+    {
+        beforeSwapData = hookData;
+        bytes4 selector = MockBinHooks.beforeSwap.selector;
+        return (
+            returnValues[selector] == bytes4(0) ? selector : returnValues[selector],
+            BeforeSwapDeltaLibrary.ZERO_DELTA,
+            0
+        );
+    }
+
+    function afterSwapV2(address, PoolKey calldata, bool, int128, BalanceDelta, bytes calldata hookData)
+        external
+        override
+        returns (bytes4, int128)
+    {
+        afterSwapData = hookData;
+        bytes4 selector = MockBinHooks.afterSwap.selector;
+        return (returnValues[selector] == bytes4(0) ? selector : returnValues[selector], 0);
+    }
+
     function beforeDonate(address, PoolKey calldata, uint256, uint256, bytes calldata hookData)
         external
         override
