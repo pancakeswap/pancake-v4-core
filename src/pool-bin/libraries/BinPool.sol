@@ -231,7 +231,7 @@ library BinPool {
         bytes32 amountsLeft = (swapForY == exactInput) ? amount.encodeFirst() : amount.encodeSecond();
 
         /// @dev Amount of token on the other side. In exactIn, refer to how much token out. In exactOut, refer to how much token in
-        bytes32 amountUnspecified;
+        bytes32 amountsUnspecified;
 
         while (true) {
             bytes32 binReserves = self.reserveOfBin[swapState.activeId];
@@ -246,14 +246,14 @@ library BinPool {
                     );
 
                     amountsLeft = amountsLeft.sub(amountsInWithFees);
-                    amountUnspecified = amountUnspecified.add(amountsOutOfBin);
+                    amountsUnspecified = amountsUnspecified.add(amountsOutOfBin);
                 } else {
                     (amountsInWithFees, amountsOutOfBin, totalFee) = binReserves.getAmountsIn(
                         swapState.swapFee, params.binStep, swapForY, swapState.activeId, amountsLeft
                     );
 
                     amountsLeft = amountsLeft.sub(amountsOutOfBin);
-                    amountUnspecified = amountUnspecified.add(amountsInWithFees);
+                    amountsUnspecified = amountsUnspecified.add(amountsInWithFees);
                 }
 
                 if (amountsInWithFees > 0) {
@@ -283,20 +283,20 @@ library BinPool {
             }
         }
 
-        if (amountUnspecified == 0) revert BinPool__InsufficientAmountUnSpecified();
+        if (amountsUnspecified == 0) revert BinPool__InsufficientAmountUnSpecified();
 
         self.slot0.activeId = swapState.activeId;
         if (exactInput) {
             if (swapForY) {
-                result = toBalanceDelta(-amount.safeInt128(), amountUnspecified.decodeY().safeInt128());
+                result = toBalanceDelta(-amount.safeInt128(), amountsUnspecified.decodeY().safeInt128());
             } else {
-                result = toBalanceDelta(amountUnspecified.decodeX().safeInt128(), -(amount.safeInt128()));
+                result = toBalanceDelta(amountsUnspecified.decodeX().safeInt128(), -(amount.safeInt128()));
             }
         } else {
             if (swapForY) {
-                result = toBalanceDelta(-amountUnspecified.decodeX().safeInt128(), amount.safeInt128());
+                result = toBalanceDelta(-amountsUnspecified.decodeX().safeInt128(), amount.safeInt128());
             } else {
-                result = toBalanceDelta(amount.safeInt128(), -(amountUnspecified.decodeY().safeInt128()));
+                result = toBalanceDelta(amount.safeInt128(), -(amountsUnspecified.decodeY().safeInt128()));
             }
         }
     }
