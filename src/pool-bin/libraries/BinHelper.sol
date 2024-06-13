@@ -212,6 +212,35 @@ library BinHelper {
         return isX ? binReserves.decodeX() == 0 : binReserves.decodeY() == 0;
     }
 
+    function getAmountsIn(
+        bytes32 binReserves,
+        uint24 fee,
+        uint16 binStep,
+        bool swapForY, // swap `swapForY` and `activeId` to avoid stack too deep
+        uint24 activeId,
+        bytes32 amountsOutLeft
+    ) internal pure returns (bytes32 amountsInWithFees, bytes32 amountsOutOfBin, bytes32 totalFees) {
+        uint256 price = activeId.getPriceFromId(binStep);
+        uint128 binReserveOut = binReserves.decode(!swapForY);
+        uint128 amountOutLeft128 = amountsOutLeft.decode(!swapForY);
+
+        // amountOutOfBin = if bin reserve has > amountOut, then amountOutOfBin = amountOut
+        uint128 amountOutOfBin = binReserveOut > amountOutLeft128 ? amountOutLeft128 : binReserveOut;
+
+        uint128 amountInWithoutFee = uint128(
+            swapForY
+                ? uint256(amountOutOfBin).shiftDivRoundUp(Constants.SCALE_OFFSET, price)
+                : uint256(amountOutOfBin).mulShiftRoundUp(price, Constants.SCALE_OFFSET)
+        );
+
+        uint128 feeAmount = amountInWithoutFee.getFeeAmount(fee);
+        uint128 amountIn = amountInWithoutFee + feeAmount;
+
+        (amountsInWithFees, amountsOutOfBin, totalFees) = swapForY
+            ? (amountIn.encodeFirst(), amountOutOfBin.encodeSecond(), feeAmount.encodeFirst())
+            : (amountIn.encodeSecond(), amountOutOfBin.encodeFirst(), feeAmount.encodeSecond());
+    }
+
     /// @dev Returns the amounts of tokens that will be added and removed from the bin during a swap
     ///     along with the fees that will be charged
     /// @param binReserves The reserves of the bin

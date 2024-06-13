@@ -175,6 +175,55 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         vault.accountAppBalanceDelta(key, delta, msg.sender);
     }
 
+    function swapExactOut(PoolKey memory key, bool swapForY, uint128 amountOut, bytes calldata hookData)
+        external
+        whenNotPaused
+        returns (BalanceDelta delta)
+    {
+        if (amountOut == 0) revert InsufficientAmountIn();
+
+        PoolId id = key.toId();
+        BinPool.State storage pool = pools[id];
+        pool.checkPoolInitialized();
+
+        (uint128 amountToSwap, BeforeSwapDelta beforeSwapDelta, uint24 lpFeeOverride) =
+            BinHooks.beforeSwap(key, swapForY, amountOut, hookData);
+
+        /// @dev fix stack too deep
+        {
+            BinPool.SwapState memory state;
+            (delta, state) = pool.swapExactOut(
+                BinPool.SwapParams({
+                    swapForY: swapForY,
+                    binStep: key.parameters.getBinStep(),
+                    lpFeeOverride: lpFeeOverride
+                }),
+                amountToSwap
+            );
+
+            unchecked {
+                if (state.feeForProtocol > 0) {
+                    protocolFeesAccrued[key.currency0] += state.feeForProtocol.decodeX();
+                    protocolFeesAccrued[key.currency1] += state.feeForProtocol.decodeY();
+                }
+            }
+
+            /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
+            emit Swap(
+                id, msg.sender, delta.amount0(), delta.amount1(), state.activeId, state.swapFee, state.protocolFee
+            );
+        }
+
+        BalanceDelta hookDelta;
+        (delta, hookDelta) = BinHooks.afterSwap(key, swapForY, amountOut, delta, hookData, beforeSwapDelta);
+
+        if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
+            vault.accountAppBalanceDelta(key, hookDelta, address(key.hooks));
+        }
+
+        vault.accountAppBalanceDelta(key, delta, msg.sender);
+    }
+
     /// @inheritdoc IBinPoolManager
     function getSwapIn(PoolKey memory key, bool swapForY, uint128 amountOut)
         external

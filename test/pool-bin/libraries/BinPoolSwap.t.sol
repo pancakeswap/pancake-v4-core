@@ -69,9 +69,14 @@ contract BinPoolSwapTest is BinTestHelper {
         assertEq(fee2, fee1);
 
         // verify swap return same result
-        BalanceDelta delta = poolManager.swap(key, true, amountIn, "");
-        assertEq(delta.amount0(), -int128(amountIn));
-        assertEq(delta.amount1(), 1e18);
+        // BalanceDelta delta = poolManager.swap(key, true, amountIn, "");
+        // assertEq(delta.amount0(), -int128(amountIn));
+        // assertEq(delta.amount1(), 1e18);
+
+        // verify swap return same result
+        BalanceDelta delta2 = poolManager.swapExactOut(key, true, amountOut, "");
+        assertEq(delta2.amount0(), -int128(amountIn));
+        assertEq(delta2.amount1(), 1e18);
     }
 
     function test_GetSwapInAndSwapOutMultipleBin() public {
@@ -90,9 +95,13 @@ contract BinPoolSwapTest is BinTestHelper {
         assertEq(fee2, fee1);
 
         // verify swap return same result
-        BalanceDelta delta = poolManager.swap(key, true, amountIn, "");
-        assertEq(delta.amount0(), -int128(amountIn));
-        assertEq(delta.amount1(), 1e18);
+        // BalanceDelta delta = poolManager.swap(key, true, amountIn, "");
+        // assertEq(delta.amount0(), -int128(amountIn));
+        // assertEq(delta.amount1(), 1e18);
+
+        BalanceDelta delta2 = poolManager.swapExactOut(key, true, amountOut, "");
+        assertEq(delta2.amount0(), -int128(amountIn));
+        assertEq(delta2.amount1(), 1e18);
     }
 
     function test_SwapSingleBinWithProtocolFee() public {
