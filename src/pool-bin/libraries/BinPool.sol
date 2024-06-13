@@ -228,7 +228,7 @@ library BinPool {
         uint128 amount = params.amountSpecified > 0 ? uint128(params.amountSpecified) : uint128(-params.amountSpecified);
 
         /// @dev Amount of token left. In exactIn, refer to how much input left. In exactOut, refer to how much output left
-        bytes32 amountLeft = (swapForY == exactInput) ? amount.encodeFirst() : amount.encodeSecond();
+        bytes32 amountsLeft = (swapForY == exactInput) ? amount.encodeFirst() : amount.encodeSecond();
 
         /// @dev Amount of token on the other side. In exactIn, refer to how much token out. In exactOut, refer to how much token in
         bytes32 amountUnspecified;
@@ -242,17 +242,17 @@ library BinPool {
 
                 if (exactInput) {
                     (amountsInWithFees, amountsOutOfBin, totalFee) = binReserves.getAmounts(
-                        swapState.swapFee, params.binStep, swapForY, swapState.activeId, amountLeft
+                        swapState.swapFee, params.binStep, swapForY, swapState.activeId, amountsLeft
                     );
 
-                    amountLeft = amountLeft.sub(amountsInWithFees);
+                    amountsLeft = amountsLeft.sub(amountsInWithFees);
                     amountUnspecified = amountUnspecified.add(amountsOutOfBin);
                 } else {
                     (amountsInWithFees, amountsOutOfBin, totalFee) = binReserves.getAmountsIn(
-                        swapState.swapFee, params.binStep, swapForY, swapState.activeId, amountLeft
+                        swapState.swapFee, params.binStep, swapForY, swapState.activeId, amountsLeft
                     );
 
-                    amountLeft = amountLeft.sub(amountsOutOfBin);
+                    amountsLeft = amountsLeft.sub(amountsOutOfBin);
                     amountUnspecified = amountUnspecified.add(amountsInWithFees);
                 }
 
@@ -268,7 +268,7 @@ library BinPool {
                 }
             }
 
-            if (amountLeft == 0) {
+            if (amountsLeft == 0) {
                 break;
             } else {
                 uint24 nextId = getNextNonEmptyBin(self, swapForY, swapState.activeId);
