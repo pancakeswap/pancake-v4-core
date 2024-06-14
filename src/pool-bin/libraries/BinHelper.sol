@@ -238,11 +238,9 @@ library BinHelper {
         // amountOutOfBin = if bin reserve has > amountOut, then amountOutOfBin = amountOut
         uint128 amountOutOfBin = binReserveOut > amountOutLeft128 ? amountOutLeft128 : binReserveOut;
 
-        uint128 amountInWithoutFee = uint128(
-            swapForY
-                ? uint256(amountOutOfBin).shiftDivRoundUp(Constants.SCALE_OFFSET, price)
-                : uint256(amountOutOfBin).mulShiftRoundUp(price, Constants.SCALE_OFFSET)
-        );
+        uint128 amountInWithoutFee = swapForY
+            ? uint256(amountOutOfBin).shiftDivRoundUp(Constants.SCALE_OFFSET, price).safe128()
+            : uint256(amountOutOfBin).mulShiftRoundUp(price, Constants.SCALE_OFFSET).safe128();
 
         uint128 feeAmount = amountInWithoutFee.getFeeAmount(fee);
         uint128 amountIn = amountInWithoutFee + feeAmount;
