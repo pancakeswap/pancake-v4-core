@@ -336,5 +336,48 @@ contract BinHelperTest is BinTestHelper {
         assertGe(amountsOutOfBin.decode(!swapForY), amountOutWithFeesAmountInSub1, "test_GetAmounts::4");
     }
 
-    //todo: add getAmountsIn fuzzing test
+    function testFuzz_GetAmountsIn(
+        uint128 binReserveX,
+        uint128 binReserveY,
+        bool swapForY,
+        int16 deltaId,
+        uint128 amountOut,
+        uint24 fee
+    ) external {
+        fee = uint24(bound(fee, 0, LPFeeLibrary.TEN_PERCENT_FEE));
+
+        uint24 activeId = uint24(uint256(int256(uint256(ID_ONE)) + deltaId));
+        uint256 price = PriceHelper.getPriceFromId(activeId, DEFAULT_BIN_STEP);
+
+        {
+            // calculate max amountIn
+            uint256 maxAmountIn = swapForY
+                ? uint256(binReserveY).shiftDivRoundUp(Constants.SCALE_OFFSET, price)
+                : uint256(binReserveX).mulShiftRoundUp(price, Constants.SCALE_OFFSET);
+            if (maxAmountIn > type(uint128).max) return;
+
+            uint128 maxFee = FeeHelper.getFeeAmount(uint128(maxAmountIn), fee);
+            if (maxAmountIn > type(uint128).max - maxFee) return;
+        }
+
+        bytes32 reserves = binReserveX.encode(binReserveY);
+        
+        (bytes32 amountsInToBin, bytes32 amountsOutOfBin, bytes32 totalFees) =
+            reserves.getAmountsIn(fee, DEFAULT_BIN_STEP, swapForY, activeId, amountOut.encode(!swapForY));
+
+        // 1. verify amountOutOfBin must be less than or equal to amountOut intended 
+        assertLe(amountsOutOfBin.decode(!swapForY), amountOut, "test_GetAmounts::1");
+
+        // 2. verify amountIn is greater than or equal to amountInWithoutFee
+        uint256 amountInWithoutFee = swapForY
+            ? uint256(amountsOutOfBin.decodeY()).shiftDivRoundUp(Constants.SCALE_OFFSET, price)
+            : uint256(amountsOutOfBin.decodeX()).mulShiftRoundUp(price, Constants.SCALE_OFFSET);
+        uint256 amountIn = amountsInToBin.decode(swapForY);
+        assertGe(amountIn, amountInWithoutFee, "test_GetAmounts::2");
+
+        // 3. Add fee to amountInWithoutFee and it should equal to amountsInToBin
+        uint256 amountInWithFee = amountInWithoutFee + totalFees.decode(swapForY);
+        assertEq(amountInWithFee, amountIn, "test_GetAmounts::3");
+        // assertNotEq(amountInWithFee, amountIn, "test_GetAmounts::3");
+    }
 }
