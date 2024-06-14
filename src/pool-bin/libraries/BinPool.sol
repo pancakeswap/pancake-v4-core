@@ -165,7 +165,7 @@ library BinPool {
             bytes32 binReserves = self.reserveOfBin[id];
             if (!binReserves.isEmpty(!swapForY)) {
                 (bytes32 amountsInWithFees, bytes32 amountsOutOfBin, bytes32 totalFees) =
-                    binReserves.getAmounts(swapFee, params.binStep, swapForY, id, amountsInLeft);
+                    binReserves.getAmountsOut(swapFee, params.binStep, swapForY, id, amountsInLeft);
 
                 if (amountsInWithFees > 0) {
                     amountsInLeft = amountsInLeft.sub(amountsInWithFees);
@@ -241,7 +241,7 @@ library BinPool {
                 bytes32 totalFee;
 
                 if (exactInput) {
-                    (amountsInWithFees, amountsOutOfBin, totalFee) = binReserves.getAmounts(
+                    (amountsInWithFees, amountsOutOfBin, totalFee) = binReserves.getAmountsOut(
                         swapState.swapFee, params.binStep, swapForY, swapState.activeId, amountsLeft
                     );
 

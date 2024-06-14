@@ -251,7 +251,7 @@ contract BinHelperTest is BinTestHelper {
         bytes32 reserves = binReserveX.encode(binReserveY);
 
         (bytes32 amountsInToBin, bytes32 amountsOutOfBin, bytes32 totalFees) =
-            reserves.getAmounts(fee, DEFAULT_BIN_STEP, swapForY, activeId, amountIn.encode(swapForY));
+            reserves.getAmountsOut(fee, DEFAULT_BIN_STEP, swapForY, activeId, amountIn.encode(swapForY));
 
         assertLe(amountsInToBin.decode(swapForY), amountIn, "test_GetAmounts::1");
 
@@ -301,7 +301,7 @@ contract BinHelperTest is BinTestHelper {
         bytes32 reserves = binReserveX.encode(binReserveY);
 
         (bytes32 amountsInToBin, bytes32 amountsOutOfBin, bytes32 totalFees) =
-            reserves.getAmounts(fee, DEFAULT_BIN_STEP, swapForY, activeId, amountIn.encode(swapForY));
+            reserves.getAmountsOut(fee, DEFAULT_BIN_STEP, swapForY, activeId, amountIn.encode(swapForY));
 
         assertLe(amountsInToBin.decode(swapForY), amountIn, "test_GetAmounts::1");
 

@@ -212,6 +212,17 @@ library BinHelper {
         return isX ? binReserves.decodeX() == 0 : binReserves.decodeY() == 0;
     }
 
+    /// @dev Returns the amounts of tokens that will be added and removed from the bin during a exactOut swap
+    ///     along with the fees that will be charged
+    /// @param binReserves The reserves of the bin
+    /// @param fee 100 = 0.01%, 1_000 = 0.1%
+    /// @param binStep The step of the bin
+    /// @param swapForY Whether the swap is for Y (true) or for X (false)
+    /// @param activeId The id of the active bin
+    /// @param amountsOutLeft The amounts of tokens out left
+    /// @return amountsInWithFees The encoded amounts of tokens that will be added to the bin, including fees
+    /// @return amountsOutOfBin The encoded amounts of tokens that will be removed from the bin
+    /// @return totalFees The encoded fees that will be charged
     function getAmountsIn(
         bytes32 binReserves,
         uint24 fee,
@@ -241,7 +252,7 @@ library BinHelper {
             : (amountIn.encodeSecond(), amountOutOfBin.encodeFirst(), feeAmount.encodeSecond());
     }
 
-    /// @dev Returns the amounts of tokens that will be added and removed from the bin during a swap
+    /// @dev Returns the amounts of tokens that will be added and removed from the bin during a exactIn swap
     ///     along with the fees that will be charged
     /// @param binReserves The reserves of the bin
     /// @param fee 100 = 0.01%, 1_000 = 0.1%
@@ -252,7 +263,7 @@ library BinHelper {
     /// @return amountsInWithFees The encoded amounts of tokens that will be added to the bin, including fees
     /// @return amountsOutOfBin The encoded amounts of tokens that will be removed from the bin
     /// @return totalFees The encoded fees that will be charged
-    function getAmounts(
+    function getAmountsOut(
         bytes32 binReserves,
         uint24 fee,
         uint16 binStep,
