@@ -12,6 +12,8 @@ import {PriceHelper} from "../../../src/pool-bin/libraries/PriceHelper.sol";
 import {FeeHelper} from "../../../src/pool-bin/libraries/FeeHelper.sol";
 import {LPFeeLibrary} from "../../../src/libraries/LPFeeLibrary.sol";
 
+import {console2} from "forge-std/console2.sol";
+
 contract BinHelperTest is BinTestHelper {
     using BinHelper for bytes32;
     using PackedUint128Math for bytes32;
@@ -221,7 +223,7 @@ contract BinHelperTest is BinTestHelper {
         assertEq(binReserves.isEmpty(false), binReserveY == 0, "test_BinIsEmpty::2");
     }
 
-    function testFuzz_GetAmountsLessThanBin(
+    function testFuzz_GetAmountsOutLessThanBin(
         uint128 binReserveX,
         uint128 binReserveY,
         bool swapForY,
@@ -235,6 +237,7 @@ contract BinHelperTest is BinTestHelper {
         uint256 price = PriceHelper.getPriceFromId(activeId, DEFAULT_BIN_STEP);
 
         {
+            // calculate max amountIn
             uint256 maxAmountIn = swapForY
                 ? uint256(binReserveY).shiftDivRoundUp(Constants.SCALE_OFFSET, price)
                 : uint256(binReserveX).mulShiftRoundUp(price, Constants.SCALE_OFFSET);
@@ -273,7 +276,7 @@ contract BinHelperTest is BinTestHelper {
         assertEq(amountOut, amountOutWithFees, "test_GetAmounts::3");
     }
 
-    function testFuzz_getAmountsFullBin(
+    function testFuzz_getAmountsOutFullBin(
         uint128 binReserveX,
         uint128 binReserveY,
         bool swapForY,
@@ -332,4 +335,6 @@ contract BinHelperTest is BinTestHelper {
         assertLe(amountsOutOfBin.decode(!swapForY), amountOutWithFees, "test_GetAmounts::3");
         assertGe(amountsOutOfBin.decode(!swapForY), amountOutWithFeesAmountInSub1, "test_GetAmounts::4");
     }
+
+    //todo: add getAmountsIn fuzzing test
 }
