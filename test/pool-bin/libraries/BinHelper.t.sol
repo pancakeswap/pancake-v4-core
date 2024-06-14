@@ -361,11 +361,11 @@ contract BinHelperTest is BinTestHelper {
         }
 
         bytes32 reserves = binReserveX.encode(binReserveY);
-        
+
         (bytes32 amountsInToBin, bytes32 amountsOutOfBin, bytes32 totalFees) =
             reserves.getAmountsIn(fee, DEFAULT_BIN_STEP, swapForY, activeId, amountOut.encode(!swapForY));
 
-        // 1. verify amountOutOfBin must be less than or equal to amountOut intended 
+        // 1. verify amountOutOfBin must be less than or equal to amountOut intended
         assertLe(amountsOutOfBin.decode(!swapForY), amountOut, "test_GetAmounts::1");
 
         // 2. verify amountIn is greater than or equal to amountInWithoutFee
