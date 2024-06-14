@@ -811,12 +811,6 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
         vm.expectRevert(PoolNotInitialized.selector);
         binSwapHelper.swap(key, true, -int128(1 ether), testSettings, "");
-
-        vm.expectRevert(PoolNotInitialized.selector);
-        poolManager.getSwapIn(key, true, 1 ether);
-
-        vm.expectRevert(PoolNotInitialized.selector);
-        poolManager.getSwapOut(key, true, 1 ether);
     }
 
     function testDonatePoolNotInitialized() public {
