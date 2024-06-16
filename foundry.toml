@@ -9,6 +9,8 @@ fs_permissions = [
     { access = "read-write", path = ".forge-snapshots/" },
     { access = "read", path = "./foundry-out" },
     { access = "read", path = "./script/config" },
+    { access = "read", path = "./test/pool-cl/bin" },
+    { access = "read", path = "./test/pool-bin/bin" },
 ]
 evm_version = 'cancun'
 
