@@ -20,6 +20,7 @@ import {BinPosition} from "../../src/pool-bin/libraries/BinPosition.sol";
 import {PoolKey} from "../../src/types/PoolKey.sol";
 import {PoolIdLibrary} from "../../src/types/PoolId.sol";
 import {PackedUint128Math} from "../../src/pool-bin/libraries/math/PackedUint128Math.sol";
+import {PriceHelper} from "../../src/pool-bin/libraries/PriceHelper.sol";
 
 abstract contract LBFuzzer is LBHelper, BinTestHelper {
     using BinPoolParametersHelper for bytes32;
@@ -64,16 +65,21 @@ abstract contract LBFuzzer is LBHelper, BinTestHelper {
         token1.approve(address(liquidityHelper), type(uint256).max);
     }
 
+    function _getBoundId(uint16 binStep, uint24 id) internal pure returns (uint24) {
+        uint256 maxId = PriceHelper.getIdFromPrice(type(uint128).max, binStep);
+        uint256 minId = PriceHelper.getIdFromPrice(1, binStep);
+        return uint24(bound(id, minId, maxId));
+    }
+
     function initPools(uint16 binStep, uint24 activeId)
         public
-        returns (ILBPair lbPair, PoolKey memory key_, uint24 boundActiveId)
+        returns (ILBPair lbPair, PoolKey memory key_, uint16 boundBinStep, uint24 boundActiveId)
     {
-        binStep = uint16(bound(binStep, manager.MIN_BIN_STEP(), manager.MAX_BIN_STEP()));
-
-        activeId = uint24(bound(activeId, (1 << 23) - 100, (1 << 23) + 100));
+        boundBinStep = uint16(bound(binStep, manager.MIN_BIN_STEP(), manager.MAX_BIN_STEP()));
+        boundActiveId = _getBoundId(boundBinStep, activeId);
 
         // lb init
-        lbPair = ILBPair(lbFactory.createLBPair(address(token0), address(token1), activeId, binStep));
+        lbPair = ILBPair(lbFactory.createLBPair(address(token0), address(token1), boundActiveId, boundBinStep));
 
         // v4#bin init
         key_ = PoolKey({
@@ -85,14 +91,12 @@ abstract contract LBFuzzer is LBHelper, BinTestHelper {
             // which is completely different from existing one
             // hence set fee to 0 to avoid interference
             fee: 0,
-            parameters: bytes32(0).setBinStep(binStep)
+            parameters: bytes32(0).setBinStep(boundBinStep)
         });
-        manager.initialize(key_, activeId, "");
-
-        boundActiveId = activeId;
+        manager.initialize(key_, boundActiveId, "");
     }
 
-    function mint(ILBPair lbPair, PoolKey memory key, uint24 activeId, uint256 amountX, uint256 amountY, uint8 binNum)
+    function mint(ILBPair lbPair, PoolKey memory key, uint24 boundId, uint256 amountX, uint256 amountY, uint8 binNum)
         public
     {
         binNum = uint8(bound(binNum, 1, 20));
@@ -100,16 +104,24 @@ abstract contract LBFuzzer is LBHelper, BinTestHelper {
         amountY = bound(amountY, 0.1 ether, 10000 ether);
         // construct bin mint params
         (IBinPoolManager.MintParams memory mintParams,) =
-            _getMultipleBinMintParams(activeId, amountX, amountY, binNum, binNum);
-
-        // v4#bin mint
-        BalanceDelta delta = liquidityHelper.mint(key, mintParams, "");
+            _getMultipleBinMintParams(boundId, amountX, amountY, binNum, binNum);
 
         // lb mint
         token0.transfer(address(lbPair), amountX);
         token1.transfer(address(lbPair), amountY);
         (, bytes32 amountsLeft, uint256[] memory liquidityMinted) =
             lbPair.mint(address(this), mintParams.liquidityConfigs, address(this));
+
+        // calc v4 positon share before mint
+        uint256[] memory sharesBefore = new uint256[](liquidityMinted.length);
+        for (uint256 i = 0; i < liquidityMinted.length; i++) {
+            uint24 id = uint24(uint256(mintParams.liquidityConfigs[i]));
+            BinPosition.Info memory positionInfo = manager.getPosition(key.toId(), address(liquidityHelper), id, 0);
+            sharesBefore[i] = positionInfo.share;
+        }
+
+        // v4#bin mint
+        BalanceDelta delta = liquidityHelper.mint(key, mintParams, "");
 
         // check
         assertEq(
@@ -124,8 +136,10 @@ abstract contract LBFuzzer is LBHelper, BinTestHelper {
         );
         for (uint256 i = 0; i < liquidityMinted.length; i++) {
             uint24 id = uint24(uint256(mintParams.liquidityConfigs[i]));
-            BinPosition.Info memory positionInfo = manager.getPosition(key.toId(), address(liquidityHelper), id, 0);
-            assertEq(liquidityMinted[i], positionInfo.share, "Expecting to mint same liquidity !");
+            BinPosition.Info memory positionInfoAfter = manager.getPosition(key.toId(), address(liquidityHelper), id, 0);
+            assertEq(
+                liquidityMinted[i], positionInfoAfter.share - sharesBefore[i], "Expecting to mint same liquidity !"
+            );
         }
     }
 
@@ -170,7 +184,7 @@ abstract contract LBFuzzer is LBHelper, BinTestHelper {
 
 contract BinPoolManagerBehaviorComparisonTest is LBFuzzer {
     function testMintFuzz(uint16 binStep, uint24 activeId, uint256 amountX, uint256 amountY, uint8 binNum) public {
-        (ILBPair lbPair, PoolKey memory key_, uint24 boundActiveId) = initPools(binStep, activeId);
+        (ILBPair lbPair, PoolKey memory key_,, uint24 boundActiveId) = initPools(binStep, activeId);
         mint(lbPair, key_, boundActiveId, amountX, amountY, binNum);
     }
 
@@ -183,8 +197,34 @@ contract BinPoolManagerBehaviorComparisonTest is LBFuzzer {
         bool swapForY,
         uint128 amountIn
     ) public {
-        (ILBPair lbPair, PoolKey memory key_, uint24 boundActiveId) = initPools(binStep, activeId);
+        (ILBPair lbPair, PoolKey memory key_,, uint24 boundActiveId) = initPools(binStep, activeId);
         mint(lbPair, key_, boundActiveId, amountX, amountY, binNum);
+        swap(lbPair, key_, swapForY, amountIn);
+    }
+
+    struct MintParams {
+        uint24 id;
+        uint256 amountX;
+        uint256 amountY;
+        uint8 binNum;
+    }
+
+    function testSwapWithMutiplePositionsFuzz(
+        uint16 binStep,
+        uint24 activeId,
+        MintParams[] memory mintParams,
+        bool swapForY,
+        uint128 amountIn
+    ) public {
+        (ILBPair lbPair, PoolKey memory key_, uint16 boundBinStep,) = initPools(binStep, activeId);
+        for (uint256 i = 0; i < mintParams.length; i++) {
+            // at most 10 positions
+            if (i == 10) {
+                break;
+            }
+            uint24 boundId = _getBoundId(boundBinStep, mintParams[i].id);
+            mint(lbPair, key_, boundId, mintParams[i].amountX, mintParams[i].amountY, mintParams[i].binNum);
+        }
         swap(lbPair, key_, swapForY, amountIn);
     }
 }
