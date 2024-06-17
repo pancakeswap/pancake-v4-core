@@ -95,9 +95,7 @@ abstract contract LBFuzzer is LBHelper, BinTestHelper {
     function mint(ILBPair lbPair, PoolKey memory key, uint24 activeId, uint256 amountX, uint256 amountY, uint8 binNum)
         public
     {
-        // TODO: investigate why the following line fails the test
-        // binNum = uint8(bound(binNum, 1, 20));
-        binNum = 5;
+        binNum = uint8(bound(binNum, 1, 20));
         amountX = bound(amountX, 0.1 ether, 10000 ether);
         amountY = bound(amountY, 0.1 ether, 10000 ether);
         // construct bin mint params
@@ -108,13 +106,22 @@ abstract contract LBFuzzer is LBHelper, BinTestHelper {
         BalanceDelta delta = liquidityHelper.mint(key, mintParams, "");
 
         // lb mint
-        token0.transfer(address(lbPair), uint256(int256(-delta.amount0())));
-        token1.transfer(address(lbPair), uint256(int256(-delta.amount1())));
+        token0.transfer(address(lbPair), amountX);
+        token1.transfer(address(lbPair), amountY);
         (, bytes32 amountsLeft, uint256[] memory liquidityMinted) =
             lbPair.mint(address(this), mintParams.liquidityConfigs, address(this));
 
         // check
-        assertEq(amountsLeft, bytes32(0), "Expecting to consume same token amounts !");
+        assertEq(
+            amountX - amountsLeft.decodeX(),
+            uint256(int256(-delta.amount0())),
+            "Expecting to consume same amount of tokenX !"
+        );
+        assertEq(
+            amountY - amountsLeft.decodeY(),
+            uint256(int256(-delta.amount1())),
+            "Expecting to consume same amount of tokenY !"
+        );
         for (uint256 i = 0; i < liquidityMinted.length; i++) {
             uint24 id = uint24(uint256(mintParams.liquidityConfigs[i]));
             BinPosition.Info memory positionInfo = manager.getPosition(key.toId(), address(liquidityHelper), id, 0);
