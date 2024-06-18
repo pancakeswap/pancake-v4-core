@@ -212,7 +212,45 @@ library BinHelper {
         return isX ? binReserves.decodeX() == 0 : binReserves.decodeY() == 0;
     }
 
-    /// @dev Returns the amounts of tokens that will be added and removed from the bin during a swap
+    /// @dev Returns the amounts of tokens that will be added and removed from the bin during a exactOut swap
+    ///     along with the fees that will be charged
+    /// @param binReserves The reserves of the bin
+    /// @param fee 100 = 0.01%, 1_000 = 0.1%
+    /// @param binStep The step of the bin
+    /// @param swapForY Whether the swap is for Y (true) or for X (false)
+    /// @param activeId The id of the active bin
+    /// @param amountsOutLeft The amounts of tokens out left
+    /// @return amountsInWithFees The encoded amounts of tokens that will be added to the bin, including fees
+    /// @return amountsOutOfBin The encoded amounts of tokens that will be removed from the bin
+    /// @return totalFees The encoded fees that will be charged
+    function getAmountsIn(
+        bytes32 binReserves,
+        uint24 fee,
+        uint16 binStep,
+        bool swapForY,
+        uint24 activeId,
+        bytes32 amountsOutLeft
+    ) internal pure returns (bytes32 amountsInWithFees, bytes32 amountsOutOfBin, bytes32 totalFees) {
+        uint256 price = activeId.getPriceFromId(binStep);
+        uint128 binReserveOut = binReserves.decode(!swapForY);
+        uint128 amountOutLeft128 = amountsOutLeft.decode(!swapForY);
+
+        // amountOutOfBin = if bin reserve has > amountOut, then amountOutOfBin = amountOut
+        uint128 amountOutOfBin = binReserveOut > amountOutLeft128 ? amountOutLeft128 : binReserveOut;
+
+        uint128 amountInWithoutFee = swapForY
+            ? uint256(amountOutOfBin).shiftDivRoundUp(Constants.SCALE_OFFSET, price).safe128()
+            : uint256(amountOutOfBin).mulShiftRoundUp(price, Constants.SCALE_OFFSET).safe128();
+
+        uint128 feeAmount = amountInWithoutFee.getFeeAmount(fee);
+        uint128 amountIn = amountInWithoutFee + feeAmount;
+
+        (amountsInWithFees, amountsOutOfBin, totalFees) = swapForY
+            ? (amountIn.encodeFirst(), amountOutOfBin.encodeSecond(), feeAmount.encodeFirst())
+            : (amountIn.encodeSecond(), amountOutOfBin.encodeFirst(), feeAmount.encodeSecond());
+    }
+
+    /// @dev Returns the amounts of tokens that will be added and removed from the bin during a exactIn swap
     ///     along with the fees that will be charged
     /// @param binReserves The reserves of the bin
     /// @param fee 100 = 0.01%, 1_000 = 0.1%
@@ -223,7 +261,7 @@ library BinHelper {
     /// @return amountsInWithFees The encoded amounts of tokens that will be added to the bin, including fees
     /// @return amountsOutOfBin The encoded amounts of tokens that will be removed from the bin
     /// @return totalFees The encoded fees that will be charged
-    function getAmounts(
+    function getAmountsOut(
         bytes32 binReserves,
         uint24 fee,
         uint16 binStep,
