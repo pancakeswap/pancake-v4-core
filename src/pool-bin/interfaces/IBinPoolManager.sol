@@ -181,28 +181,6 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
         external
         returns (BalanceDelta delta, uint24 binId);
 
-    /// @notice Given amountOut, calculate how much amountIn is required for a swap
-    /// @param swapForY if true, swap token X for Y. if false, swap token Y for X
-    /// @param amountOut amount of tokenOut
-    /// @return amountIn total amount in required
-    /// @return amountOutLeft total amount out left
-    /// @return fee total fee incurred
-    function getSwapIn(PoolKey memory key, bool swapForY, uint128 amountOut)
-        external
-        view
-        returns (uint128 amountIn, uint128 amountOutLeft, uint128 fee);
-
-    /// @notice Given amountIn, calculate how much amountOut
-    /// @param swapForY if true, swap token X for Y. if false, swap token Y for X
-    /// @param amountIn amount of tokenX (if swapForY) or amount of tokenY (if !swapForY)
-    /// @return amountInLeft total amount in left
-    /// @return amountOut total amount out
-    /// @return fee total fee incurred
-    function getSwapOut(PoolKey memory key, bool swapForY, uint128 amountIn)
-        external
-        view
-        returns (uint128 amountInLeft, uint128 amountOut, uint128 fee);
-
     /// @notice Set max bin step for BinPool
     /// @dev To be realistic, its highly unlikely a pool type with > 100 bin step is required. (>1% price jump per bin)
     function setMaxBinStep(uint16 maxBinStep) external;

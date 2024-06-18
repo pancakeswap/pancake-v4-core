@@ -257,11 +257,6 @@ contract BinPoolFeeTest is BinTestHelper {
         // addLiquidity: 10_000 token0 and token1 on active bin
         addLiquidityToBin(key, poolManager, bob, activeId, 10_000e18, 10_000e18, 1e18, 1e18, "");
 
-        // Call getSwapIn and getSwapOut
-        (, uint128 getSwapOutAmtOut,) = poolManager.getSwapOut(key, true, 1e18);
-        (uint128 getSwapInAmtIn,,) = poolManager.getSwapIn(key, true, getSwapOutAmtOut);
-        assertEq(getSwapInAmtIn, 1e18);
-
         vm.startPrank(bob);
         vm.expectEmit();
         emit Swap(key.toId(), bob, -1e18, (1e18 * 997) / 1000, activeId, 3000, 0);
@@ -270,9 +265,6 @@ contract BinPoolFeeTest is BinTestHelper {
         BalanceDelta delta = poolManager.swap(key, true, -int128(1e18), "0x");
         assertEq(delta.amount0(), -1e18, "test_Swap_NoFee::1");
         assertEq(delta.amount1(), (1e18 * 997) / 1000, "test_Swap_NoFee::2");
-
-        // Verify swap result is similar to getSwapOut
-        assertEq(getSwapOutAmtOut, uint128(delta.amount1()));
 
         // check fee. no hook for pool, so can skip check
         assertEq(poolManager.protocolFeesAccrued(currency0), 0, "test_Swap_NoFee::3");
@@ -306,18 +298,10 @@ contract BinPoolFeeTest is BinTestHelper {
         vm.prank(address(binFeeManagerHook));
         poolManager.updateDynamicLPFee(key, 20_000);
 
-        // Call getSwapIn and getSwapOut
-        (, uint128 getSwapOutAmtOut,) = poolManager.getSwapOut(key, true, 1e18);
-        (uint128 getSwapInAmtIn,,) = poolManager.getSwapIn(key, true, getSwapOutAmtOut);
-        assertEq(getSwapInAmtIn, 1e18);
-
         // verify 2% fee instead of whatever fee set on the pool
         BalanceDelta delta = poolManager.swap(key, true, -int128(1e18), "");
         assertEq(delta.amount0(), -1e18, "test_Swap_WithDynamicFee::1");
         assertEq(delta.amount1(), (1e18 * 98) / 100, "test_Swap_WithDynamicFee::2");
-
-        // Verify swap result is similar to getSwapOut
-        assertEq(getSwapOutAmtOut, uint128(delta.amount1()));
     }
 
     function testFuzz_Swap_WithDynamicFeeTooLarge(uint24 swapFee) external {
