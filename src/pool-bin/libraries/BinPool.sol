@@ -198,17 +198,20 @@ library BinPool {
         if (amountsUnspecified == 0) revert BinPool__InsufficientAmountUnSpecified();
 
         self.slot0.activeId = swapState.activeId;
-        if (exactInput) {
-            if (swapForY) {
-                result = toBalanceDelta(-amount.safeInt128(), amountsUnspecified.decodeY().safeInt128());
+        unchecked {
+            // uncheckeck as negating positive int128 is safe
+            if (exactInput) {
+                if (swapForY) {
+                    result = toBalanceDelta(-amount.safeInt128(), amountsUnspecified.decodeY().safeInt128());
+                } else {
+                    result = toBalanceDelta(amountsUnspecified.decodeX().safeInt128(), -(amount.safeInt128()));
+                }
             } else {
-                result = toBalanceDelta(amountsUnspecified.decodeX().safeInt128(), -(amount.safeInt128()));
-            }
-        } else {
-            if (swapForY) {
-                result = toBalanceDelta(-amountsUnspecified.decodeX().safeInt128(), amount.safeInt128());
-            } else {
-                result = toBalanceDelta(amount.safeInt128(), -(amountsUnspecified.decodeY().safeInt128()));
+                if (swapForY) {
+                    result = toBalanceDelta(-amountsUnspecified.decodeX().safeInt128(), amount.safeInt128());
+                } else {
+                    result = toBalanceDelta(amount.safeInt128(), -(amountsUnspecified.decodeY().safeInt128()));
+                }
             }
         }
     }
