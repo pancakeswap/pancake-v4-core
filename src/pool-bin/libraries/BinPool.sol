@@ -41,8 +41,9 @@ library BinPool {
     error BinPool__BurnZeroAmount(uint24 id);
     error BinPool__ZeroAmountsOut(uint24 id);
     error BinPool__OutOfLiquidity();
-    error BinPool__InsufficientAmountOut();
     error BinPool__NoLiquidityToReceiveFees();
+    /// @dev if swap exactIn, x for y, unspecifiedToken = token y. if swap x for exact out y, unspecified token is x
+    error BinPool__InsufficientAmountUnSpecified();
 
     struct Slot0 {
         // the current activeId
@@ -164,7 +165,7 @@ library BinPool {
             bytes32 binReserves = self.reserveOfBin[id];
             if (!binReserves.isEmpty(!swapForY)) {
                 (bytes32 amountsInWithFees, bytes32 amountsOutOfBin, bytes32 totalFees) =
-                    binReserves.getAmounts(swapFee, params.binStep, swapForY, id, amountsInLeft);
+                    binReserves.getAmountsOut(swapFee, params.binStep, swapForY, id, amountsInLeft);
 
                 if (amountsInWithFees > 0) {
                     amountsInLeft = amountsInLeft.sub(amountsInWithFees);
@@ -191,6 +192,7 @@ library BinPool {
         bool swapForY;
         uint16 binStep;
         uint24 lpFeeOverride;
+        int128 amountSpecified; // negative for exactInput, positive for exactOutput
     }
 
     struct SwapState {
@@ -200,7 +202,7 @@ library BinPool {
         bytes32 feeForProtocol;
     }
 
-    function swap(State storage self, SwapParams memory params, uint128 amountIn)
+    function swap(State storage self, SwapParams memory params)
         internal
         returns (BalanceDelta result, SwapState memory swapState)
     {
@@ -208,10 +210,8 @@ library BinPool {
         swapState.activeId = slot0Cache.activeId;
         bool swapForY = params.swapForY;
         swapState.protocolFee =
-            swapForY ? slot0Cache.protocolFee.getOneForZeroFee() : slot0Cache.protocolFee.getZeroForOneFee();
-
-        bytes32 amountsLeft = swapForY ? amountIn.encodeFirst() : amountIn.encodeSecond();
-        bytes32 amountsOut;
+            swapForY ? slot0Cache.protocolFee.getZeroForOneFee() : slot0Cache.protocolFee.getOneForZeroFee();
+        bool exactInput = params.amountSpecified < 0;
 
         {
             uint24 lpFee = params.lpFeeOverride.isOverride()
@@ -222,19 +222,41 @@ library BinPool {
             swapState.swapFee = swapState.protocolFee == 0 ? lpFee : swapState.protocolFee.calculateSwapFee(lpFee);
         }
 
-        /// @notice early return if hook has updated amountIn to 0
-        if (amountIn == 0) return (result, swapState);
+        /// @notice early return if hook has updated amountSpecified to 0
+        if (params.amountSpecified == 0) return (result, swapState);
+
+        uint128 amount = params.amountSpecified > 0 ? uint128(params.amountSpecified) : uint128(-params.amountSpecified);
+
+        /// @dev Amount of token left. In exactIn, refer to how much input left. In exactOut, refer to how much output left
+        bytes32 amountsLeft = (swapForY == exactInput) ? amount.encodeFirst() : amount.encodeSecond();
+
+        /// @dev Amount of token on the other side. In exactIn, refer to how much token out. In exactOut, refer to how much token in
+        bytes32 amountsUnspecified;
 
         while (true) {
             bytes32 binReserves = self.reserveOfBin[swapState.activeId];
             if (!binReserves.isEmpty(!swapForY)) {
-                (bytes32 amountsInWithFees, bytes32 amountsOutOfBin, bytes32 totalFee) =
-                    binReserves.getAmounts(swapState.swapFee, params.binStep, swapForY, swapState.activeId, amountsLeft);
+                bytes32 amountsInWithFees;
+                bytes32 amountsOutOfBin;
+                bytes32 totalFee;
+
+                if (exactInput) {
+                    (amountsInWithFees, amountsOutOfBin, totalFee) = binReserves.getAmountsOut(
+                        swapState.swapFee, params.binStep, swapForY, swapState.activeId, amountsLeft
+                    );
+
+                    amountsLeft = amountsLeft.sub(amountsInWithFees);
+                    amountsUnspecified = amountsUnspecified.add(amountsOutOfBin);
+                } else {
+                    (amountsInWithFees, amountsOutOfBin, totalFee) = binReserves.getAmountsIn(
+                        swapState.swapFee, params.binStep, swapForY, swapState.activeId, amountsLeft
+                    );
+
+                    amountsLeft = amountsLeft.sub(amountsOutOfBin);
+                    amountsUnspecified = amountsUnspecified.add(amountsInWithFees);
+                }
 
                 if (amountsInWithFees > 0) {
-                    amountsLeft = amountsLeft.sub(amountsInWithFees);
-                    amountsOut = amountsOut.add(amountsOutOfBin);
-
                     /// @dev calc protocol fee for current bin, totalFee * protocolFee / (protocolFee + lpFee)
                     bytes32 pFee = totalFee.getExternalFeeAmt(slot0Cache.protocolFee, swapState.swapFee);
                     if (pFee != 0) {
@@ -261,16 +283,21 @@ library BinPool {
             }
         }
 
-        if (amountsOut == 0) revert BinPool__InsufficientAmountOut();
+        if (amountsUnspecified == 0) revert BinPool__InsufficientAmountUnSpecified();
 
         self.slot0.activeId = swapState.activeId;
-
-        if (swapForY) {
-            uint128 consumed = amountIn - amountsLeft.decodeX();
-            result = toBalanceDelta(-consumed.safeInt128(), amountsOut.decodeY().safeInt128());
+        if (exactInput) {
+            if (swapForY) {
+                result = toBalanceDelta(-amount.safeInt128(), amountsUnspecified.decodeY().safeInt128());
+            } else {
+                result = toBalanceDelta(amountsUnspecified.decodeX().safeInt128(), -(amount.safeInt128()));
+            }
         } else {
-            uint128 consumed = amountIn - amountsLeft.decodeY();
-            result = toBalanceDelta(amountsOut.decodeX().safeInt128(), -(consumed.safeInt128()));
+            if (swapForY) {
+                result = toBalanceDelta(-amountsUnspecified.decodeX().safeInt128(), amount.safeInt128());
+            } else {
+                result = toBalanceDelta(amount.safeInt128(), -(amountsUnspecified.decodeY().safeInt128()));
+            }
         }
     }
 

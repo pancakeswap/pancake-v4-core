@@ -141,12 +141,12 @@ library BinHooks {
         }
     }
 
-    function beforeSwap(PoolKey memory key, bool swapForY, uint128 amountIn, bytes calldata hookData)
+    function beforeSwap(PoolKey memory key, bool swapForY, int128 amountSpecified, bytes calldata hookData)
         internal
-        returns (uint128 amountToSwap, BeforeSwapDelta beforeSwapDelta, uint24 lpFeeOverride)
+        returns (int128 amountToSwap, BeforeSwapDelta beforeSwapDelta, uint24 lpFeeOverride)
     {
         IBinHooks hooks = IBinHooks(address(key.hooks));
-        amountToSwap = amountIn;
+        amountToSwap = amountSpecified;
 
         /// @notice If the hook is not registered, return the original amount to swap
         if (!key.parameters.shouldCall(HOOKS_BEFORE_SWAP_OFFSET, hooks)) {
@@ -154,7 +154,8 @@ library BinHooks {
         }
 
         bytes4 selector;
-        (selector, beforeSwapDelta, lpFeeOverride) = hooks.beforeSwap(msg.sender, key, swapForY, amountIn, hookData);
+        (selector, beforeSwapDelta, lpFeeOverride) =
+            hooks.beforeSwap(msg.sender, key, swapForY, amountSpecified, hookData);
         if (selector != IBinHooks.beforeSwap.selector) {
             revert Hooks.InvalidHookResponse();
         }
@@ -169,13 +170,9 @@ library BinHooks {
             int128 hookDeltaSpecified = beforeSwapDelta.getSpecifiedDelta();
 
             if (hookDeltaSpecified != 0) {
-                /// @dev default overflow check make sure the swap amount is always valid
-                /// if hookDeltaSpecified is positive, it means the hook wants to take fee from the swap, so we reduce the swap amount
-                if (hookDeltaSpecified > 0) {
-                    amountToSwap -= uint128(hookDeltaSpecified);
-                } else {
-                    amountToSwap += uint128(-hookDeltaSpecified);
-                }
+                bool exactInput = amountToSwap < 0;
+                amountToSwap += hookDeltaSpecified;
+                if (exactInput ? amountToSwap > 0 : amountToSwap < 0) revert Hooks.HookDeltaExceedsSwapAmount();
             }
         }
     }
@@ -183,7 +180,7 @@ library BinHooks {
     function afterSwap(
         PoolKey memory key,
         bool swapForY,
-        uint128 amountIn,
+        int128 amountSpecified,
         BalanceDelta delta,
         bytes calldata hookData,
         BeforeSwapDelta beforeSwapDelta
@@ -195,7 +192,8 @@ library BinHooks {
         int128 hookDeltaUnspecified;
         if (key.parameters.shouldCall(HOOKS_AFTER_SWAP_OFFSET, hooks)) {
             bytes4 selector;
-            (selector, hookDeltaUnspecified) = hooks.afterSwap(msg.sender, key, swapForY, amountIn, delta, hookData);
+            (selector, hookDeltaUnspecified) =
+                hooks.afterSwap(msg.sender, key, swapForY, amountSpecified, delta, hookData);
             if (selector != IBinHooks.afterSwap.selector) {
                 revert Hooks.InvalidHookResponse();
             }
@@ -208,7 +206,7 @@ library BinHooks {
         hookDeltaUnspecified += beforeSwapDelta.getUnspecifiedDelta();
 
         if (hookDeltaUnspecified != 0 || hookDeltaSpecified != 0) {
-            hookDelta = swapForY
+            hookDelta = (amountSpecified < 0 == swapForY)
                 ? toBalanceDelta(hookDeltaSpecified, hookDeltaUnspecified)
                 : toBalanceDelta(hookDeltaUnspecified, hookDeltaSpecified);
 

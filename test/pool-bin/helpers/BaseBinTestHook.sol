@@ -72,7 +72,7 @@ contract BaseBinTestHook is IBinHooks {
         revert HookNotImplemented();
     }
 
-    function beforeSwap(address, PoolKey calldata, bool, uint128, bytes calldata)
+    function beforeSwap(address, PoolKey calldata, bool, int128, bytes calldata)
         external
         virtual
         returns (bytes4, BeforeSwapDelta, uint24)
@@ -80,7 +80,7 @@ contract BaseBinTestHook is IBinHooks {
         revert HookNotImplemented();
     }
 
-    function afterSwap(address, PoolKey calldata, bool, uint128, BalanceDelta, bytes calldata)
+    function afterSwap(address, PoolKey calldata, bool, int128, BalanceDelta, bytes calldata)
         external
         virtual
         returns (bytes4, int128)

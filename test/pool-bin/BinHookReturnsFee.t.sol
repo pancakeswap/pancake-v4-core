@@ -104,7 +104,7 @@ contract BinHookReturnsFeeTest is Test, BinTestHelper {
 
         uint24 actualFee = fee.removeOverrideFlag();
 
-        uint128 amountSpecified = 10000;
+        int128 amountSpecified = -int128(10000);
         BalanceDelta result;
         if (actualFee > LPFeeLibrary.TEN_PERCENT_FEE) {
             vm.expectRevert(LPFeeLibrary.FeeTooLarge.selector);
@@ -115,10 +115,14 @@ contract BinHookReturnsFeeTest is Test, BinTestHelper {
             result =
                 binSwapHelper.swap(key, true, amountSpecified, BinSwapHelper.TestSettings(true, true), new bytes(0));
         }
-        assertEq(-result.amount0(), int128(amountSpecified));
+
+        uint128 amountSpecified128 = uint128(-amountSpecified);
+        assertEq(-result.amount0(), int128(amountSpecified128));
 
         assertApproxEqAbs(
-            uint256(int256(result.amount1())), FullMath.mulDiv(uint256(amountSpecified), (1e6 - actualFee), 1e6), 1 wei
+            uint256(int256(result.amount1())),
+            FullMath.mulDiv(uint256(amountSpecified128), (1e6 - actualFee), 1e6),
+            1 wei
         );
     }
 
@@ -139,14 +143,15 @@ contract BinHookReturnsFeeTest is Test, BinTestHelper {
         assertEq(_fetchPoolSwapFee(key), 3000);
 
         // despite returning a valid swap fee (1000), the static fee is used
-        uint128 amountSpecified = 10000;
+        int128 amountSpecified = -10000;
         BalanceDelta result;
         result = binSwapHelper.swap(key, true, amountSpecified, BinSwapHelper.TestSettings(true, true), new bytes(0));
 
         // after swapping ~1:1, the amount out (amount1) should be approximately 0.30% less than the amount specified
-        assertEq(-result.amount0(), int128(amountSpecified));
+        uint128 amountSpecified128 = uint128(-amountSpecified);
+        assertEq(-result.amount0(), int128(amountSpecified128));
         assertApproxEqAbs(
-            uint256(int256(result.amount1())), FullMath.mulDiv(uint256(amountSpecified), (1e6 - 3000), 1e6), 1 wei
+            uint256(int256(result.amount1())), FullMath.mulDiv(uint256(amountSpecified128), (1e6 - 3000), 1e6), 1 wei
         );
     }
 
@@ -168,12 +173,13 @@ contract BinHookReturnsFeeTest is Test, BinTestHelper {
         uint24 newFee = 3000;
         dynamicReturnsFeesHook.setFee(newFee);
 
-        uint128 amountSpecified = 10000;
+        int128 amountSpecified = -10000;
         BalanceDelta result =
             binSwapHelper.swap(key, true, amountSpecified, BinSwapHelper.TestSettings(true, true), new bytes(0));
 
+        uint128 amountSpecified128 = uint128(-amountSpecified);
         assertApproxEqAbs(
-            uint256(int256(result.amount1())), FullMath.mulDiv(uint256(amountSpecified), (1e6 - newFee), 1e6), 1 wei
+            uint256(int256(result.amount1())), FullMath.mulDiv(uint256(amountSpecified128), (1e6 - newFee), 1e6), 1 wei
         );
 
         // the fee from beforeSwap is not stored
@@ -187,7 +193,7 @@ contract BinHookReturnsFeeTest is Test, BinTestHelper {
         dynamicReturnsFeesHook.setFee(1000001);
 
         // a large fee is not used
-        uint128 amountSpecified = 10000;
+        int128 amountSpecified = -10000;
         vm.expectRevert(LPFeeLibrary.FeeTooLarge.selector);
         binSwapHelper.swap(key, true, amountSpecified, BinSwapHelper.TestSettings(true, true), new bytes(0));
     }

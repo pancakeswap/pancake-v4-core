@@ -24,8 +24,8 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @notice Error thrown when owner set max bin step too small
     error MaxBinStepTooSmall(uint16 maxBinStep);
 
-    /// @notice Error thrown when amountIn is 0
-    error InsufficientAmountIn();
+    /// @notice Error thrown when amount specified is 0 in swap
+    error AmountSpecifiedIsZero();
 
     /// @notice Returns the constant representing the max bin step
     /// @return maxBinStep a value of 100 would represent a 1% price jump between bin (limit can be raised by owner)
@@ -167,7 +167,10 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
         returns (BalanceDelta delta);
 
     /// @notice Peform a swap to a pool
-    function swap(PoolKey memory key, bool swapForY, uint128 amountIn, bytes calldata hookData)
+    /// @param key The pool key
+    /// @param swapForY If true, swap token X for Y, if false, swap token Y for X
+    /// @param amountSpecified If negative, imply exactInput, if positive, imply exactOutput.
+    function swap(PoolKey memory key, bool swapForY, int128 amountSpecified, bytes calldata hookData)
         external
         returns (BalanceDelta delta);
 

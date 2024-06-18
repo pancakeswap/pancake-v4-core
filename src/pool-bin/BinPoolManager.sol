@@ -125,20 +125,20 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
     }
 
     /// @inheritdoc IBinPoolManager
-    function swap(PoolKey memory key, bool swapForY, uint128 amountIn, bytes calldata hookData)
+    function swap(PoolKey memory key, bool swapForY, int128 amountSpecified, bytes calldata hookData)
         external
         override
         whenNotPaused
         returns (BalanceDelta delta)
     {
-        if (amountIn == 0) revert InsufficientAmountIn();
+        if (amountSpecified == 0) revert AmountSpecifiedIsZero();
 
         PoolId id = key.toId();
         BinPool.State storage pool = pools[id];
         pool.checkPoolInitialized();
 
-        (uint128 amountToSwap, BeforeSwapDelta beforeSwapDelta, uint24 lpFeeOverride) =
-            BinHooks.beforeSwap(key, swapForY, amountIn, hookData);
+        (int128 amountToSwap, BeforeSwapDelta beforeSwapDelta, uint24 lpFeeOverride) =
+            BinHooks.beforeSwap(key, swapForY, amountSpecified, hookData);
 
         /// @dev fix stack too deep
         {
@@ -147,9 +147,9 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
                 BinPool.SwapParams({
                     swapForY: swapForY,
                     binStep: key.parameters.getBinStep(),
-                    lpFeeOverride: lpFeeOverride
-                }),
-                amountToSwap
+                    lpFeeOverride: lpFeeOverride,
+                    amountSpecified: amountToSwap
+                })
             );
 
             unchecked {
@@ -166,7 +166,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         }
 
         BalanceDelta hookDelta;
-        (delta, hookDelta) = BinHooks.afterSwap(key, swapForY, amountIn, delta, hookData, beforeSwapDelta);
+        (delta, hookDelta) = BinHooks.afterSwap(key, swapForY, amountSpecified, delta, hookData, beforeSwapDelta);
 
         if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
             vault.accountAppBalanceDelta(key, hookDelta, address(key.hooks));
