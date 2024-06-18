@@ -151,7 +151,7 @@ abstract contract LBFuzzer is LBHelper, BinTestHelper {
 
         bool shouldRevert = false;
         BalanceDelta balanceDelta;
-        try swapHelper.swap(key, swapForY, amountIn, testSettings, "") returns (BalanceDelta _balanceDelta) {
+        try swapHelper.swap(key, swapForY, -int128(amountIn), testSettings, "") returns (BalanceDelta _balanceDelta) {
             balanceDelta = _balanceDelta;
         } catch {
             shouldRevert = true;
