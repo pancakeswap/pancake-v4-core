@@ -101,9 +101,13 @@ library BinPool {
     }
 
     struct SwapState {
+        // current activeId
         uint24 activeId;
+        // the protocol fee for the swap
         uint24 protocolFee;
+        // the swapFee (the total percentage charged within a swap, including the protocol fee and the LP fee)
         uint24 swapFee;
+        // how much protocol fee has been charged
         bytes32 feeForProtocol;
     }
 
@@ -130,7 +134,10 @@ library BinPool {
         /// @notice early return if hook has updated amountSpecified to 0
         if (params.amountSpecified == 0) return (result, swapState);
 
-        uint128 amount = params.amountSpecified > 0 ? uint128(params.amountSpecified) : uint128(-params.amountSpecified);
+        uint128 amount;
+        unchecked {
+            amount = params.amountSpecified > 0 ? uint128(params.amountSpecified) : uint128(-params.amountSpecified);
+        }
 
         /// @dev Amount of token left. In exactIn, refer to how much input left. In exactOut, refer to how much output left
         bytes32 amountsLeft = (swapForY == exactInput) ? amount.encodeFirst() : amount.encodeSecond();
@@ -191,17 +198,20 @@ library BinPool {
         if (amountsUnspecified == 0) revert BinPool__InsufficientAmountUnSpecified();
 
         self.slot0.activeId = swapState.activeId;
-        if (exactInput) {
-            if (swapForY) {
-                result = toBalanceDelta(-amount.safeInt128(), amountsUnspecified.decodeY().safeInt128());
+        unchecked {
+            // uncheckeck as negating positive int128 is safe
+            if (exactInput) {
+                if (swapForY) {
+                    result = toBalanceDelta(-amount.safeInt128(), amountsUnspecified.decodeY().safeInt128());
+                } else {
+                    result = toBalanceDelta(amountsUnspecified.decodeX().safeInt128(), -(amount.safeInt128()));
+                }
             } else {
-                result = toBalanceDelta(amountsUnspecified.decodeX().safeInt128(), -(amount.safeInt128()));
-            }
-        } else {
-            if (swapForY) {
-                result = toBalanceDelta(-amountsUnspecified.decodeX().safeInt128(), amount.safeInt128());
-            } else {
-                result = toBalanceDelta(amount.safeInt128(), -(amountsUnspecified.decodeY().safeInt128()));
+                if (swapForY) {
+                    result = toBalanceDelta(-amountsUnspecified.decodeX().safeInt128(), amount.safeInt128());
+                } else {
+                    result = toBalanceDelta(amount.safeInt128(), -(amountsUnspecified.decodeY().safeInt128()));
+                }
             }
         }
     }
