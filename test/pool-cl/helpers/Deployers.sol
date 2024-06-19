@@ -14,6 +14,7 @@ import {Constants} from "./Constants.sol";
 import {SortTokens} from "../../helpers/SortTokens.sol";
 import {Vault} from "../../../src/Vault.sol";
 import {IVault} from "../../../src/interfaces/IVault.sol";
+import {TickMath} from "../../../src/pool-cl/libraries/TickMath.sol";
 
 contract Deployers {
     using LPFeeLibrary for uint24;
@@ -25,6 +26,9 @@ contract Deployers {
     uint160 constant SQRT_RATIO_1_2 = Constants.SQRT_RATIO_1_2;
     uint160 constant SQRT_RATIO_1_4 = Constants.SQRT_RATIO_1_4;
     uint160 constant SQRT_RATIO_4_1 = Constants.SQRT_RATIO_4_1;
+
+    uint160 public constant MIN_PRICE_LIMIT = TickMath.MIN_SQRT_RATIO + 1;
+    uint160 public constant MAX_PRICE_LIMIT = TickMath.MAX_SQRT_RATIO - 1;
 
     function deployCurrencies(uint256 totalSupply) internal returns (Currency currency0, Currency currency1) {
         MockERC20[] memory tokens = deployTokens(2, totalSupply);
