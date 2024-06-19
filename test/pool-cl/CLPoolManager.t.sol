@@ -96,6 +96,10 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         IERC20(Currency.unwrap(currency1)).approve(address(router), 10 ether);
     }
 
+    function test_bytecodeSize() public {
+        snapSize("CLPoolManagerBytecodeSize", address(poolManager));
+    }
+
     // **************              *************** //
     // **************  initialize  *************** //
     // **************              *************** //

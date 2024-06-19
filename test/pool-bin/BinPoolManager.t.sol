@@ -134,6 +134,10 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         });
     }
 
+    function test_bytecodeSize() public {
+        snapSize("BinPoolManagerBytecodeSize", address(poolManager));
+    }
+
     function test_FuzzInitializePool(uint16 binStep) public {
         binStep = uint16(bound(binStep, poolManager.MIN_BIN_STEP(), poolManager.MAX_BIN_STEP()));
 
