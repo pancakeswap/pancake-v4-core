@@ -44,7 +44,6 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
 
     function setUp() public {
         vault = new Vault();
-        snapSize("VaultTest#Vault", address(vault));
 
         unRegPoolManager = new FakePoolManager(vault);
 
@@ -79,6 +78,10 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
 
         poolKey2 = key2;
         fakePoolManagerRouter2 = new FakePoolManagerRouter(vault, key2);
+    }
+
+    function test_bytecodeSize() public {
+        snapSize("VaultBytecodeSize", address(vault));
     }
 
     function testRegisterPoolManager() public {

@@ -10,7 +10,6 @@ import {ParametersHelper} from "../libraries/math/ParametersHelper.sol";
 import {Currency, CurrencyLibrary} from "../types/Currency.sol";
 import {IPoolManager} from "../interfaces/IPoolManager.sol";
 import {IBinPoolManager} from "./interfaces/IBinPoolManager.sol";
-import {IBinDynamicFeeManager} from "./interfaces/IBinDynamicFeeManager.sol";
 import {PoolId, PoolIdLibrary} from "../types/PoolId.sol";
 import {PoolKey} from "../types/PoolKey.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../types/BalanceDelta.sol";
@@ -125,30 +124,31 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
     }
 
     /// @inheritdoc IBinPoolManager
-    function swap(PoolKey memory key, bool swapForY, uint128 amountIn, bytes calldata hookData)
+    function swap(PoolKey memory key, bool swapForY, int128 amountSpecified, bytes calldata hookData)
         external
         override
         whenNotPaused
         returns (BalanceDelta delta)
     {
-        if (amountIn == 0) revert InsufficientAmountIn();
+        if (amountSpecified == 0) revert AmountSpecifiedIsZero();
 
         PoolId id = key.toId();
-        _checkPoolInitialized(id);
+        BinPool.State storage pool = pools[id];
+        pool.checkPoolInitialized();
 
-        (uint128 amountToSwap, BeforeSwapDelta beforeSwapDelta, uint24 lpFeeOverride) =
-            BinHooks.beforeSwap(key, swapForY, amountIn, hookData);
+        (int128 amountToSwap, BeforeSwapDelta beforeSwapDelta, uint24 lpFeeOverride) =
+            BinHooks.beforeSwap(key, swapForY, amountSpecified, hookData);
 
         /// @dev fix stack too deep
         {
             BinPool.SwapState memory state;
-            (delta, state) = pools[id].swap(
+            (delta, state) = pool.swap(
                 BinPool.SwapParams({
                     swapForY: swapForY,
                     binStep: key.parameters.getBinStep(),
-                    lpFeeOverride: lpFeeOverride
-                }),
-                amountToSwap
+                    lpFeeOverride: lpFeeOverride,
+                    amountSpecified: amountToSwap
+                })
             );
 
             unchecked {
@@ -165,62 +165,13 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         }
 
         BalanceDelta hookDelta;
-        (delta, hookDelta) = BinHooks.afterSwap(key, swapForY, amountIn, delta, hookData, beforeSwapDelta);
+        (delta, hookDelta) = BinHooks.afterSwap(key, swapForY, amountSpecified, delta, hookData, beforeSwapDelta);
 
         if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
             vault.accountAppBalanceDelta(key, hookDelta, address(key.hooks));
         }
 
         vault.accountAppBalanceDelta(key, delta, msg.sender);
-    }
-
-    /// @inheritdoc IBinPoolManager
-    function getSwapIn(PoolKey memory key, bool swapForY, uint128 amountOut)
-        external
-        view
-        override
-        returns (uint128 amountIn, uint128 amountOutLeft, uint128 fee)
-    {
-        PoolId id = key.toId();
-        _checkPoolInitialized(id);
-
-        uint24 lpFee;
-        if (key.fee.isDynamicLPFee()) {
-            lpFee = IBinDynamicFeeManager(address(key.hooks)).getFeeForSwapInSwapOut(
-                msg.sender, key, swapForY, 0, amountOut
-            );
-        } else {
-            lpFee = key.fee.getInitialLPFee();
-        }
-        lpFee.validate(LPFeeLibrary.TEN_PERCENT_FEE);
-
-        (amountIn, amountOutLeft, fee) = pools[id].getSwapIn(
-            BinPool.SwapViewParams({swapForY: swapForY, binStep: key.parameters.getBinStep(), lpFee: lpFee}), amountOut
-        );
-    }
-
-    /// @inheritdoc IBinPoolManager
-    function getSwapOut(PoolKey memory key, bool swapForY, uint128 amountIn)
-        external
-        view
-        override
-        returns (uint128 amountInLeft, uint128 amountOut, uint128 fee)
-    {
-        PoolId id = key.toId();
-        _checkPoolInitialized(id);
-
-        uint24 lpFee;
-        if (key.fee.isDynamicLPFee()) {
-            lpFee =
-                IBinDynamicFeeManager(address(key.hooks)).getFeeForSwapInSwapOut(msg.sender, key, swapForY, amountIn, 0);
-        } else {
-            lpFee = key.fee.getInitialLPFee();
-        }
-        lpFee.validate(LPFeeLibrary.TEN_PERCENT_FEE);
-
-        (amountInLeft, amountOut, fee) = pools[id].getSwapOut(
-            BinPool.SwapViewParams({swapForY: swapForY, binStep: key.parameters.getBinStep(), lpFee: lpFee}), amountIn
-        );
     }
 
     /// @inheritdoc IBinPoolManager
@@ -231,13 +182,14 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         returns (BalanceDelta delta, BinPool.MintArrays memory mintArray)
     {
         PoolId id = key.toId();
-        _checkPoolInitialized(id);
+        BinPool.State storage pool = pools[id];
+        pool.checkPoolInitialized();
 
         BinHooks.beforeMint(key, params, hookData);
 
         bytes32 feeForProtocol;
         bytes32 compositionFee;
-        (delta, feeForProtocol, mintArray, compositionFee) = pools[id].mint(
+        (delta, feeForProtocol, mintArray, compositionFee) = pool.mint(
             BinPool.MintParams({
                 to: msg.sender,
                 liquidityConfigs: params.liquidityConfigs,
@@ -273,13 +225,14 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         returns (BalanceDelta delta)
     {
         PoolId id = key.toId();
-        _checkPoolInitialized(id);
+        BinPool.State storage pool = pools[id];
+        pool.checkPoolInitialized();
 
         BinHooks.beforeBurn(key, params, hookData);
 
         uint256[] memory binIds;
         bytes32[] memory amountRemoved;
-        (delta, binIds, amountRemoved) = pools[id].burn(
+        (delta, binIds, amountRemoved) = pool.burn(
             BinPool.BurnParams({
                 from: msg.sender,
                 ids: params.ids,
@@ -307,11 +260,12 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         returns (BalanceDelta delta, uint24 binId)
     {
         PoolId id = key.toId();
-        _checkPoolInitialized(id);
+        BinPool.State storage pool = pools[id];
+        pool.checkPoolInitialized();
 
         BinHooks.beforeDonate(key, amount0, amount1, hookData);
 
-        (delta, binId) = pools[id].donate(key.parameters.getBinStep(), amount0, amount1);
+        (delta, binId) = pool.donate(key.parameters.getBinStep(), amount0, amount1);
 
         vault.accountAppBalanceDelta(key, delta, msg.sender);
 
@@ -341,9 +295,5 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
 
     function _setProtocolFee(PoolId id, uint24 newProtocolFee) internal override {
         pools[id].setProtocolFee(newProtocolFee);
-    }
-
-    function _checkPoolInitialized(PoolId id) internal view {
-        if (pools[id].isNotInitialized()) revert PoolNotInitialized();
     }
 }

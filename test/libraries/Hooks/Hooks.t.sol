@@ -71,7 +71,7 @@ contract HooksTest is Test {
         this.toCallAsCalldata(poolKey);
     }
 
-    function testhasOffsetEnabled() public {
+    function testhasOffsetEnabled() public pure {
         // 0b1010101010101010
         assertEq(Hooks.hasOffsetEnabled(bytes32(uint256(0xaaaa)), 0), false);
         assertEq(Hooks.hasOffsetEnabled(bytes32(uint256(0xaaaa)), 1), true);

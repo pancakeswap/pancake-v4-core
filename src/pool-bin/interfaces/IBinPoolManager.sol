@@ -24,8 +24,8 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @notice Error thrown when owner set max bin step too small
     error MaxBinStepTooSmall(uint16 maxBinStep);
 
-    /// @notice Error thrown when amountIn is 0
-    error InsufficientAmountIn();
+    /// @notice Error thrown when amount specified is 0 in swap
+    error AmountSpecifiedIsZero();
 
     /// @notice Returns the constant representing the max bin step
     /// @return maxBinStep a value of 100 would represent a 1% price jump between bin (limit can be raised by owner)
@@ -167,7 +167,10 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
         returns (BalanceDelta delta);
 
     /// @notice Peform a swap to a pool
-    function swap(PoolKey memory key, bool swapForY, uint128 amountIn, bytes calldata hookData)
+    /// @param key The pool key
+    /// @param swapForY If true, swap token X for Y, if false, swap token Y for X
+    /// @param amountSpecified If negative, imply exactInput, if positive, imply exactOutput.
+    function swap(PoolKey memory key, bool swapForY, int128 amountSpecified, bytes calldata hookData)
         external
         returns (BalanceDelta delta);
 
@@ -177,28 +180,6 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     function donate(PoolKey memory key, uint128 amount0, uint128 amount1, bytes calldata hookData)
         external
         returns (BalanceDelta delta, uint24 binId);
-
-    /// @notice Given amountOut, calculate how much amountIn is required for a swap
-    /// @param swapForY if true, swap token X for Y. if false, swap token Y for X
-    /// @param amountOut amount of tokenOut
-    /// @return amountIn total amount in required
-    /// @return amountOutLeft total amount out left
-    /// @return fee total fee incurred
-    function getSwapIn(PoolKey memory key, bool swapForY, uint128 amountOut)
-        external
-        view
-        returns (uint128 amountIn, uint128 amountOutLeft, uint128 fee);
-
-    /// @notice Given amountIn, calculate how much amountOut
-    /// @param swapForY if true, swap token X for Y. if false, swap token Y for X
-    /// @param amountIn amount of tokenX (if swapForY) or amount of tokenY (if !swapForY)
-    /// @return amountInLeft total amount in left
-    /// @return amountOut total amount out
-    /// @return fee total fee incurred
-    function getSwapOut(PoolKey memory key, bool swapForY, uint128 amountIn)
-        external
-        view
-        returns (uint128 amountInLeft, uint128 amountOut, uint128 fee);
 
     /// @notice Set max bin step for BinPool
     /// @dev To be realistic, its highly unlikely a pool type with > 100 bin step is required. (>1% price jump per bin)

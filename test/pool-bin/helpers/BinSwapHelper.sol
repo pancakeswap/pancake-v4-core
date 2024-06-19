@@ -29,7 +29,7 @@ contract BinSwapHelper {
         TestSettings testSettings;
         PoolKey key;
         bool swapForY;
-        uint128 amountIn;
+        int128 amountSpecified;
         bytes hookData;
     }
 
@@ -41,11 +41,11 @@ contract BinSwapHelper {
     function swap(
         PoolKey memory key,
         bool swapForY,
-        uint128 amountIn,
+        int128 amountSpecified,
         TestSettings memory testSettings,
         bytes memory hookData
     ) external payable returns (BalanceDelta delta) {
-        CallbackData memory data = CallbackData(msg.sender, testSettings, key, swapForY, amountIn, hookData);
+        CallbackData memory data = CallbackData(msg.sender, testSettings, key, swapForY, amountSpecified, hookData);
         delta = abi.decode(vault.lock(abi.encode(data)), (BalanceDelta));
 
         uint256 ethBalance = address(this).balance;
@@ -59,7 +59,7 @@ contract BinSwapHelper {
 
         CallbackData memory data = abi.decode(callbackData, (CallbackData));
 
-        BalanceDelta delta = binManager.swap(data.key, data.swapForY, data.amountIn, data.hookData);
+        BalanceDelta delta = binManager.swap(data.key, data.swapForY, data.amountSpecified, data.hookData);
 
         if (data.swapForY) {
             if (delta.amount0() < 0) {

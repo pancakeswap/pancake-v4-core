@@ -108,7 +108,7 @@ contract TickTest is Test, GasSnapshot {
         return (Constants.MAX_TICK / tickSpacing) * tickSpacing;
     }
 
-    function checkCantOverflow(int24 tickSpacing, uint128 maxLiquidityPerTick) internal {
+    function checkCantOverflow(int24 tickSpacing, uint128 maxLiquidityPerTick) internal pure {
         assertLe(
             uint256(
                 uint256(maxLiquidityPerTick)
@@ -136,42 +136,42 @@ contract TickTest is Test, GasSnapshot {
         snapEnd();
     }
 
-    function testTick_tickSpacingToMaxLiquidityPerTick_returnsTheCorrectValueForLowFee() public {
+    function testTick_tickSpacingToMaxLiquidityPerTick_returnsTheCorrectValueForLowFee() public pure {
         uint128 maxLiquidityPerTick = tickSpacingToMaxLiquidityPerTick(LOW_TICK_SPACING);
 
         assertEq(maxLiquidityPerTick, 1917569901783203986719870431555990);
         checkCantOverflow(LOW_TICK_SPACING, maxLiquidityPerTick);
     }
 
-    function testTick_tickSpacingToMaxLiquidityPerTick_returnsTheCorrectValueForMediumFee() public {
+    function testTick_tickSpacingToMaxLiquidityPerTick_returnsTheCorrectValueForMediumFee() public pure {
         uint128 maxLiquidityPerTick = tickSpacingToMaxLiquidityPerTick(MEDIUM_TICK_SPACING);
 
         assertEq(maxLiquidityPerTick, 11505743598341114571880798222544994); // 113.1 bits
         checkCantOverflow(MEDIUM_TICK_SPACING, maxLiquidityPerTick);
     }
 
-    function testTick_tickSpacingToMaxLiquidityPerTick_returnsTheCorrectValueForHighFee() public {
+    function testTick_tickSpacingToMaxLiquidityPerTick_returnsTheCorrectValueForHighFee() public pure {
         uint128 maxLiquidityPerTick = tickSpacingToMaxLiquidityPerTick(HIGH_TICK_SPACING);
 
         assertEq(maxLiquidityPerTick, 38350317471085141830651933667504588); // 114.7 bits
         checkCantOverflow(HIGH_TICK_SPACING, maxLiquidityPerTick);
     }
 
-    function testTick_tickSpacingToMaxLiquidityPerTick_returnsTheCorrectValueFor1() public {
+    function testTick_tickSpacingToMaxLiquidityPerTick_returnsTheCorrectValueFor1() public pure {
         uint128 maxLiquidityPerTick = tickSpacingToMaxLiquidityPerTick(1);
 
         assertEq(maxLiquidityPerTick, 191757530477355301479181766273477); // 126 bits
         checkCantOverflow(1, maxLiquidityPerTick);
     }
 
-    function testTick_tickSpacingToMaxLiquidityPerTick_returnsTheCorrectValueForEntireRange() public {
+    function testTick_tickSpacingToMaxLiquidityPerTick_returnsTheCorrectValueForEntireRange() public pure {
         uint128 maxLiquidityPerTick = tickSpacingToMaxLiquidityPerTick(887272);
 
         assertEq(maxLiquidityPerTick, Constants.MAX_UINT128 / 3); // 126 bits
         checkCantOverflow(887272, maxLiquidityPerTick);
     }
 
-    function testTick_tickSpacingToMaxLiquidityPerTick_returnsTheCorrectValueFor2302() public {
+    function testTick_tickSpacingToMaxLiquidityPerTick_returnsTheCorrectValueFor2302() public pure {
         uint128 maxLiquidityPerTick = tickSpacingToMaxLiquidityPerTick(2302);
 
         assertEq(maxLiquidityPerTick, 441351967472034323558203122479595605); // 118 bits
@@ -523,8 +523,8 @@ contract TickTest is Test, GasSnapshot {
         assertEq(info.feeGrowthOutside1X128, 2);
     }
 
-    function testTick_tickSpacingToParametersInvariants_fuzz(int24 tickSpacing) public {
-        tickSpacing = int24(bound(tickSpacing, 1, TickMath.MAX_TICK));
+    function testTick_tickSpacingToParametersInvariants_fuzz(int24 tickSpacing) public pure {
+        tickSpacing = int24(bound(tickSpacing, 1, type(int16).max));
 
         int24 minTick = (TickMath.MIN_TICK / tickSpacing) * tickSpacing;
         int24 maxTick = (TickMath.MAX_TICK / tickSpacing) * tickSpacing;
@@ -541,5 +541,15 @@ contract TickTest is Test, GasSnapshot {
         uint256 numTicks = uint256(int256((maxTick - minTick) / tickSpacing)) + 1;
         // max liquidity at every tick is less than the cap
         assertGe(type(uint128).max, uint256(maxLiquidityPerTick) * numTicks);
+    }
+
+    function test_fuzz_tickSpacingToMaxLiquidityPerTick(int24 tickSpacing) public pure {
+        tickSpacing = int24(bound(tickSpacing, 1, type(int16).max));
+        // v3 math
+        int24 minTick = (TickMath.MIN_TICK / tickSpacing) * tickSpacing;
+        int24 maxTick = (TickMath.MAX_TICK / tickSpacing) * tickSpacing;
+        uint24 numTicks = uint24((maxTick - minTick) / tickSpacing) + 1;
+        // assert that the result is the same as the v3 math
+        assertEq(type(uint128).max / numTicks, Tick.tickSpacingToMaxLiquidityPerTick(tickSpacing));
     }
 }

@@ -181,7 +181,7 @@ contract BinSkipCallbackHook is BaseBinTestHook {
 
             key = data.key;
             sender = data.sender;
-            delta = poolManager.swap(data.key, data.swapForY, data.amountIn, data.hookData);
+            delta = poolManager.swap(data.key, data.swapForY, -int128(data.amountIn), data.hookData);
         } else if (actionType == ActionType.Donate) {
             DonateCallbackData memory data = abi.decode(callbackData, (DonateCallbackData));
 
@@ -248,7 +248,7 @@ contract BinSkipCallbackHook is BaseBinTestHook {
         return (BinSkipCallbackHook.afterBurn.selector, BalanceDeltaLibrary.ZERO_DELTA);
     }
 
-    function beforeSwap(address, PoolKey calldata, bool, uint128, bytes calldata)
+    function beforeSwap(address, PoolKey calldata, bool, int128, bytes calldata)
         external
         override
         returns (bytes4, BeforeSwapDelta, uint24)
@@ -257,7 +257,7 @@ contract BinSkipCallbackHook is BaseBinTestHook {
         return (BinSkipCallbackHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
 
-    function afterSwap(address, PoolKey calldata, bool, uint128, BalanceDelta, bytes calldata)
+    function afterSwap(address, PoolKey calldata, bool, int128, BalanceDelta, bytes calldata)
         external
         override
         returns (bytes4, int128)

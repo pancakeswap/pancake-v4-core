@@ -175,7 +175,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         addLiquidityToBin(key, poolManager, bob, binId, 1e18, 1e18, 1e18, 1e18, new bytes(123));
 
         snapStart("BinHookTest#testSwapSucceedsWithHook");
-        poolManager.swap(key, true, 1e18, new bytes(456));
+        poolManager.swap(key, true, -int128(1e18), new bytes(456));
         snapEnd();
 
         assertEq(mockHooks.beforeSwapData(), new bytes(456));
@@ -194,7 +194,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         addLiquidityToBin(key, poolManager, bob, binId, 1e18, 1e18, 1e18, 1e18, new bytes(123));
 
         vm.expectRevert(Hooks.InvalidHookResponse.selector);
-        poolManager.swap(key, true, 1e18, new bytes(456));
+        poolManager.swap(key, true, -int128(1e18), new bytes(456));
     }
 
     function testAfterSwapInvalidReturn() public {
@@ -209,7 +209,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         addLiquidityToBin(key, poolManager, bob, binId, 1e18, 1e18, 1e18, 1e18, new bytes(123));
 
         vm.expectRevert(Hooks.InvalidHookResponse.selector);
-        poolManager.swap(key, true, 1e18, new bytes(456));
+        poolManager.swap(key, true, -int128(1e18), new bytes(456));
     }
 
     function testDonateSucceedsWithHook() public {

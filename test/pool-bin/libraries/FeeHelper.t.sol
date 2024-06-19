@@ -10,7 +10,7 @@ contract FeeHelperTest is Test {
     using FeeHelper for uint128;
     using Uint256x256Math for uint256;
 
-    function testFuzz_GetFeeAmountFrom(uint128 amountWithFee, uint24 feeBips) external {
+    function testFuzz_GetFeeAmountFrom(uint128 amountWithFee, uint24 feeBips) external pure {
         feeBips = uint24(bound(feeBips, 0, LPFeeLibrary.TEN_PERCENT_FEE));
 
         uint128 fee = uint128(feeBips) * 1e12;
@@ -20,7 +20,7 @@ contract FeeHelperTest is Test {
         assertEq(feeAmount, expectedFeeAmount, "testFuzz_GetFeeAmountFrom::1");
     }
 
-    function testFuzz_GetFeeAmount(uint128 amount, uint24 feeBips) external {
+    function testFuzz_GetFeeAmount(uint128 amount, uint24 feeBips) external pure {
         feeBips = uint24(bound(feeBips, 0, LPFeeLibrary.TEN_PERCENT_FEE));
 
         uint128 fee = uint128(feeBips) * 1e12;
@@ -32,7 +32,7 @@ contract FeeHelperTest is Test {
         assertEq(feeAmount, expectedFeeAmount, "testFuzz_GetFeeAmount::1");
     }
 
-    function testFuzz_GetCompositionFee(uint128 amountWithFee, uint24 feeBips) external {
+    function testFuzz_GetCompositionFee(uint128 amountWithFee, uint24 feeBips) external pure {
         feeBips = uint24(bound(feeBips, 0, LPFeeLibrary.TEN_PERCENT_FEE));
 
         uint128 fee = uint128(feeBips) * 1e12;

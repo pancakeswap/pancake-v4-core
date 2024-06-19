@@ -15,7 +15,7 @@ contract CLPositionTest is Test, GasSnapshot {
 
     CLPool.State public pool;
 
-    function test_get_emptyPosition() public {
+    function test_get_emptyPosition() public view {
         CLPosition.Info memory info = pool.positions.get(address(this), 1, 2, 0);
         assertEq(info.liquidity, 0);
         assertEq(info.feeGrowthInside0LastX128, 0);

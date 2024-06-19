@@ -238,7 +238,7 @@ contract VaultInvariant is Test, NoIsolate, GasSnapshot {
         assertGe(amt1Bal, vault.reservesOfVault(vaultPoolManager.currency1()));
     }
 
-    function invariant_TokenbalanceInVaultGeReserveOfPoolManagerPlusSurplusToken() public {
+    function invariant_TokenbalanceInVaultGeReserveOfPoolManagerPlusSurplusToken() public view {
         (uint256 amt0Bal, uint256 amt1Bal) = getTokenBalanceInVault();
 
         uint256 totalMintedCurrency0 = vaultPoolManager.totalMintedCurrency0();
@@ -266,17 +266,17 @@ contract VaultInvariant is Test, NoIsolate, GasSnapshot {
         );
     }
 
-    function invariant_LockDataLengthZero() public {
+    function invariant_LockDataLengthZero() public view {
         uint256 nonZeroDeltaCount = vault.getUnsettledDeltasCount();
         assertEq(nonZeroDeltaCount, 0);
     }
 
-    function invariant_Locker() public {
+    function invariant_Locker() public view {
         address locker = vault.getLocker();
         assertEq(locker, address(0));
     }
 
-    function invariant_TotalMintedCurrency() public {
+    function invariant_TotalMintedCurrency() public view {
         uint256 totalMintedCurrency0 = vaultPoolManager.totalMintedCurrency0();
         uint256 totalMintedCurrency1 = vaultPoolManager.totalMintedCurrency1();
 
@@ -292,7 +292,7 @@ contract VaultInvariant is Test, NoIsolate, GasSnapshot {
         assertEq(totalFeeCollected1, token1.balanceOf(makeAddr("protocolFeeRecipient")));
     }
 
-    function invariant_TokenBalanceInVaultGeMinted() public {
+    function invariant_TokenBalanceInVaultGeMinted() public view {
         (uint256 amt0Bal, uint256 amt1Bal) = getTokenBalanceInVault();
 
         assertGe(amt0Bal, vault.balanceOf(address(vaultPoolManager), vaultPoolManager.currency0()));

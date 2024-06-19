@@ -134,6 +134,10 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         });
     }
 
+    function test_bytecodeSize() public {
+        snapSize("BinPoolManagerBytecodeSize", address(poolManager));
+    }
+
     function test_FuzzInitializePool(uint16 binStep) public {
         binStep = uint16(bound(binStep, poolManager.MIN_BIN_STEP(), poolManager.MAX_BIN_STEP()));
 
@@ -686,7 +690,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         emit Swap(key.toId(), address(binSwapHelper), -1 ether, (1 ether * 997) / 1000, activeId, key.fee, 0);
 
         snapStart("BinPoolManagerTest#testGasSwapSingleBin");
-        binSwapHelper.swap(key, true, 1 ether, testSettings, "");
+        binSwapHelper.swap(key, true, -int128(1 ether), testSettings, "");
         snapEnd();
     }
 
@@ -704,7 +708,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         BinSwapHelper.TestSettings memory testSettings =
             BinSwapHelper.TestSettings({withdrawTokens: true, settleUsingTransfer: true});
         snapStart("BinPoolManagerTest#testGasSwapMultipleBins");
-        binSwapHelper.swap(key, true, 8 ether, testSettings, ""); // traverse over 4 bin
+        binSwapHelper.swap(key, true, -int128(8 ether), testSettings, ""); // traverse over 4 bin
         snapEnd();
     }
 
@@ -732,7 +736,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         BinSwapHelper.TestSettings memory testSettings =
             BinSwapHelper.TestSettings({withdrawTokens: true, settleUsingTransfer: true});
         snapStart("BinPoolManagerTest#testGasSwapOverBigBinIdGate");
-        binSwapHelper.swap(key, true, 6 ether, testSettings, "");
+        binSwapHelper.swap(key, true, -int128(6 ether), testSettings, "");
         snapEnd();
     }
 
@@ -769,7 +773,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         // step 1: swap from currency0 to currency1 -- take tokenOut as NFT
         token0.mint(address(this), 1 ether);
         testSettings = BinSwapHelper.TestSettings({withdrawTokens: false, settleUsingTransfer: true});
-        binSwapHelper.swap(key, true, 1 ether, testSettings, "");
+        binSwapHelper.swap(key, true, -int128(1 ether), testSettings, "");
 
         // step 2: verify surplus token balance
         uint256 surplusTokenAmount = vault.balanceOf(address(this), currency1);
@@ -778,7 +782,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         // Step 3: swap from currency1 to currency0, take takenIn from existing NFT
         vault.approve(address(binSwapHelper), currency1, type(uint256).max);
         testSettings = BinSwapHelper.TestSettings({withdrawTokens: true, settleUsingTransfer: false});
-        binSwapHelper.swap(key, false, 1e17, testSettings, "");
+        binSwapHelper.swap(key, false, -int128(1e17), testSettings, "");
 
         // Step 4: Verify surplus token balance used as input
         surplusTokenAmount = vault.balanceOf(address(this), currency1);
@@ -810,13 +814,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         testSettings = BinSwapHelper.TestSettings({withdrawTokens: false, settleUsingTransfer: true});
 
         vm.expectRevert(PoolNotInitialized.selector);
-        binSwapHelper.swap(key, true, 1 ether, testSettings, "");
-
-        vm.expectRevert(PoolNotInitialized.selector);
-        poolManager.getSwapIn(key, true, 1 ether);
-
-        vm.expectRevert(PoolNotInitialized.selector);
-        poolManager.getSwapOut(key, true, 1 ether);
+        binSwapHelper.swap(key, true, -int128(1 ether), testSettings, "");
     }
 
     function testDonatePoolNotInitialized() public {
@@ -901,6 +899,16 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
         vm.expectEmit();
         emit SetMaxBinStep(binStep);
+        poolManager.setMaxBinStep(binStep);
+
+        assertEq(poolManager.MAX_BIN_STEP(), binStep);
+    }
+
+    function testGas_SetMaxBinStep() public {
+        uint16 binStep = 10;
+
+        vm.expectEmit();
+        emit SetMaxBinStep(binStep);
         snapStart("BinPoolManagerTest#testFuzz_SetMaxBinStep");
         poolManager.setMaxBinStep(binStep);
         snapEnd();
@@ -976,14 +984,38 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         emit DynamicLPFeeUpdated(key.toId(), _lpFee);
 
         vm.prank(address(binFeeManagerHook));
-        if (_lpFee != 0) {
-            // temp fix to only record gas if _lpFee !=0. todo use snapLastCall to make this part of code easier to read
-            snapStart("BinPoolManagerTest#testFuzzUpdateDynamicLPFee");
-            poolManager.updateDynamicLPFee(key, _lpFee);
-            snapEnd();
-        } else {
-            poolManager.updateDynamicLPFee(key, _lpFee);
-        }
+        poolManager.updateDynamicLPFee(key, _lpFee);
+
+        (,, uint24 swapFee) = poolManager.getSlot0(key.toId());
+        assertEq(swapFee, _lpFee);
+    }
+
+    function testGasUpdateDynamicLPFee() public {
+        uint24 _lpFee = LPFeeLibrary.TEN_PERCENT_FEE / 2;
+
+        uint16 bitMap = 0x0004; // 0000 0000 0000 0100 (before mint call)
+        BinFeeManagerHook binFeeManagerHook = new BinFeeManagerHook(poolManager);
+        binFeeManagerHook.setHooksRegistrationBitmap(bitMap);
+
+        key = PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            hooks: IHooks(address(binFeeManagerHook)),
+            poolManager: IPoolManager(address(poolManager)),
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
+            parameters: bytes32(uint256(bitMap)).setBinStep(10)
+        });
+        poolManager.initialize(key, activeId, new bytes(0));
+
+        binFeeManagerHook.setFee(_lpFee);
+
+        vm.expectEmit();
+        emit DynamicLPFeeUpdated(key.toId(), _lpFee);
+
+        vm.prank(address(binFeeManagerHook));
+        snapStart("BinPoolManagerTest#testFuzzUpdateDynamicLPFee");
+        poolManager.updateDynamicLPFee(key, _lpFee);
+        snapEnd();
 
         (,, uint24 swapFee) = poolManager.getSlot0(key.toId());
         assertEq(swapFee, _lpFee);
@@ -1008,7 +1040,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         token0.mint(address(this), 1 ether);
         vm.expectRevert("Pausable: paused");
         testSettings = BinSwapHelper.TestSettings({withdrawTokens: false, settleUsingTransfer: true});
-        binSwapHelper.swap(key, true, 1 ether, testSettings, "");
+        binSwapHelper.swap(key, true, -int128(1 ether), testSettings, "");
     }
 
     function testMint_WhenPaused() public {

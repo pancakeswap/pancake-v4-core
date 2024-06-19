@@ -2,13 +2,15 @@
 src = 'src'
 out = 'foundry-out'
 solc_version = '0.8.26'
-optimizer_runs = 800
+optimizer_runs = 20_000
 via_ir = true
 ffi = true
 fs_permissions = [
     { access = "read-write", path = ".forge-snapshots/" },
     { access = "read", path = "./foundry-out" },
     { access = "read", path = "./script/config" },
+    { access = "read", path = "./test/pool-cl/bin" },
+    { access = "read", path = "./test/pool-bin/bin" },
 ]
 evm_version = 'cancun'
 

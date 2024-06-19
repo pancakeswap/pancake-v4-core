@@ -86,14 +86,14 @@ contract BinReturnsDeltaHook is BaseBinTestHook {
         return (this.afterBurn.selector, toBalanceDelta(hookDelta0, hookDelta1));
     }
 
-    function beforeSwap(address, PoolKey calldata key, bool swapForY, uint128, bytes calldata data)
+    function beforeSwap(address, PoolKey calldata key, bool swapForY, int128 amountSpecified, bytes calldata data)
         external
         override
         returns (bytes4, BeforeSwapDelta, uint24)
     {
         (int128 hookDeltaSpecified, int128 hookDeltaUnspecified,) = abi.decode(data, (int128, int128, int128));
 
-        if (swapForY) {
+        if (swapForY == amountSpecified < 0) {
             // the specified token is token0
             if (hookDeltaSpecified < 0) key.currency0.settle(vault, address(this), uint128(-hookDeltaSpecified), false);
             if (hookDeltaSpecified > 0) key.currency0.take(vault, address(this), uint128(hookDeltaSpecified), false);
@@ -120,18 +120,21 @@ contract BinReturnsDeltaHook is BaseBinTestHook {
         return (this.beforeSwap.selector, toBeforeSwapDelta(hookDeltaSpecified, hookDeltaUnspecified), 0);
     }
 
-    function afterSwap(address, PoolKey calldata key, bool swapForY, uint128, BalanceDelta, bytes calldata data)
-        external
-        override
-        returns (bytes4, int128)
-    {
+    function afterSwap(
+        address,
+        PoolKey calldata key,
+        bool swapForY,
+        int128 amountSpecified,
+        BalanceDelta,
+        bytes calldata data
+    ) external override returns (bytes4, int128) {
         (,, int128 hookDeltaUnspecified) = abi.decode(data, (int128, int128, int128));
 
         if (hookDeltaUnspecified == 0) {
             return (this.afterSwap.selector, 0);
         }
 
-        if (swapForY) {
+        if (swapForY == amountSpecified < 0) {
             // the unspecified token is token1
             if (hookDeltaUnspecified < 0) {
                 key.currency1.settle(vault, address(this), uint128(-hookDeltaUnspecified), false);
