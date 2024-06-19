@@ -14,9 +14,9 @@
   },
   "scripts": {
     "compile": "forge compile",
-    "test": "forge test --isolate",
-    "dev": "forge test --isolate -vvv -w",
-    "snapshot": "rm -fr .forge-snapshots && forge test --isolate",
+    "test": "forge test --isolate --show-progress",
+    "dev": "forge test --isolate -vvv -w --show-progress",
+    "snapshot": "rm -fr .forge-snapshots && forge test --isolate --show-progress",
     "prettier": "forge fmt src/ && forge fmt test/",
     "prettier-check": "forge fmt --check",
     "prepare": "husky install"
