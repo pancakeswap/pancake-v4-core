@@ -27,7 +27,7 @@ contract BinHelperTest is BinTestHelper {
         uint128 binReserveY,
         uint256 amountToBurn,
         uint256 totalSupply
-    ) external {
+    ) external pure {
         totalSupply = bound(totalSupply, 1, type(uint256).max);
         amountToBurn = bound(amountToBurn, 1, totalSupply);
 
@@ -66,7 +66,7 @@ contract BinHelperTest is BinTestHelper {
         uint128 amountInY,
         uint256 price,
         uint256 totalSupply
-    ) external {
+    ) external pure {
         // workaround instead of vm.assume to prevent too many global reject
         bool validParameters;
         validParameters = price > 0
@@ -109,7 +109,7 @@ contract BinHelperTest is BinTestHelper {
         uint128 amountX2,
         uint128 amountY2,
         uint256 price
-    ) external {
+    ) external pure {
         // workaround instead of vm.assume to prevent too many global reject
         bool validParameters;
         validParameters = price > 0 && amountX1 > 0 && amountY1 > 0 && amountX2 > 0 && amountY2 > 0
@@ -216,7 +216,7 @@ contract BinHelperTest is BinTestHelper {
         }
     }
 
-    function testFuzz_BinIsEmpty(uint128 binReserveX, uint128 binReserveY) external {
+    function testFuzz_BinIsEmpty(uint128 binReserveX, uint128 binReserveY) external pure {
         bytes32 binReserves = binReserveX.encode(binReserveY);
 
         assertEq(binReserves.isEmpty(true), binReserveX == 0, "test_BinIsEmpty::1");
@@ -230,7 +230,7 @@ contract BinHelperTest is BinTestHelper {
         int16 deltaId,
         uint128 amountIn,
         uint24 fee
-    ) external {
+    ) external pure {
         fee = uint24(bound(fee, 0, LPFeeLibrary.TEN_PERCENT_FEE));
 
         uint24 activeId = uint24(uint256(int256(uint256(ID_ONE)) + deltaId));
@@ -283,7 +283,7 @@ contract BinHelperTest is BinTestHelper {
         int16 deltaId,
         uint128 amountIn,
         uint24 fee
-    ) external {
+    ) external pure {
         fee = uint24(bound(fee, 0, LPFeeLibrary.TEN_PERCENT_FEE));
 
         uint24 activeId = uint24(uint256(int256(uint256(ID_ONE)) + deltaId));
@@ -343,7 +343,7 @@ contract BinHelperTest is BinTestHelper {
         int16 deltaId,
         uint128 amountOut,
         uint24 fee
-    ) external {
+    ) external pure {
         fee = uint24(bound(fee, 0, LPFeeLibrary.TEN_PERCENT_FEE));
 
         uint24 activeId = uint24(uint256(int256(uint256(ID_ONE)) + deltaId));

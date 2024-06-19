@@ -38,7 +38,7 @@ contract VaultReservesTest is Test {
         assertEq(value, 200);
     }
 
-    function test_reservesOfSlot() public {
+    function test_reservesOfSlot() public pure {
         assertEq(uint256(keccak256("reservesOfVault")) - 1, VaultReserves.RESERVE_OF_VAULT_SLOT);
     }
 

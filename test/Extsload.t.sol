@@ -81,7 +81,7 @@ contract ExtsloadTest is Test, GasSnapshot {
             expected[i] = keccak256(abi.encode(slots[i]));
             vm.store(address(loadable), slots[i], expected[i]);
         }
-        bytes32[] memory values = loadable.extsload(slots);
+        loadable.extsload(slots);
         // assertEq(values, expected); //todo: uncomment once bumped forge-std lib
 
         // test with dirty bits

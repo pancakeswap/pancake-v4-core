@@ -11,6 +11,7 @@ import {SqrtPriceMath} from "../../../src/pool-cl/libraries/SqrtPriceMath.sol";
 contract SwapMathTest is Test, GasSnapshot {
     function testFuzz_getSqrtPriceTarget(bool zeroForOne, uint160 sqrtPriceNextX96, uint160 sqrtPriceLimitX96)
         external
+        pure
     {
         assertEq(
             SwapMath.getSqrtPriceTarget(zeroForOne, sqrtPriceNextX96, sqrtPriceLimitX96),
@@ -20,7 +21,7 @@ contract SwapMathTest is Test, GasSnapshot {
         );
     }
 
-    function testComputeSwapTest_sufficientAmountInOneForZero() external {
+    function testComputeSwapTest_sufficientAmountInOneForZero() external pure {
         // (y / x) ^ 0.5 * 2^(96 * 2 * 0.5)
         // (y / x) ^ 0.5 * 2^ (192 * 0.5)
         //  (y / x * 2^192) ^ 0.5
@@ -47,7 +48,7 @@ contract SwapMathTest is Test, GasSnapshot {
         assertLt(sqrtRatioNextX96, priceX96IfAllRemainingIn);
     }
 
-    function testComputeSwapTest_sufficientAmountOutOneForZero() external {
+    function testComputeSwapTest_sufficientAmountOutOneForZero() external pure {
         // (y / x) ^ 0.5 * 2^(96 * 2 * 0.5)
         // (y / x) ^ 0.5 * 2^ (192 * 0.5)
         //  (y / x * 2^192) ^ 0.5
@@ -75,7 +76,7 @@ contract SwapMathTest is Test, GasSnapshot {
         assertLt(sqrtRatioNextX96, priceX96IfAllWantedOut);
     }
 
-    function testComputeSwapTest_insufficientAmountIntOneForZero() external {
+    function testComputeSwapTest_insufficientAmountIntOneForZero() external pure {
         // (y / x) ^ 0.5 * 2^(96 * 2 * 0.5)
         // (y / x) ^ 0.5 * 2^ (192 * 0.5)
         //  (y / x * 2^192) ^ 0.5
@@ -101,7 +102,7 @@ contract SwapMathTest is Test, GasSnapshot {
         assertEq(sqrtRatioNextX96, priceX96IfAllAmountIn);
     }
 
-    function testComputeSwapTest_insufficientAmountOutOneForZero() external {
+    function testComputeSwapTest_insufficientAmountOutOneForZero() external pure {
         // (y / x) ^ 0.5 * 2^(96 * 2 * 0.5)
         // (y / x) ^ 0.5 * 2^ (192 * 0.5)
         //  (y / x * 2^192) ^ 0.5
@@ -126,7 +127,7 @@ contract SwapMathTest is Test, GasSnapshot {
         assertEq(sqrtRatioNextX96, priceX96IfwantedAmountOut);
     }
 
-    function testComputeSwapTest_amountWantedOutEq1() external {
+    function testComputeSwapTest_amountWantedOutEq1() external pure {
         uint160 priceX96 = 417332158212080721273783715441582;
         uint160 targetPriceX96 = 1452870262520218020823638996;
         uint128 liquidity = 159344665391607089467575320103;
@@ -142,7 +143,7 @@ contract SwapMathTest is Test, GasSnapshot {
         assertEq(sqrtRatioNextX96, 417332158212080721273783715441581);
     }
 
-    function testComputeSwapTest_partialInputToPriceEq1() external {
+    function testComputeSwapTest_partialInputToPriceEq1() external pure {
         uint160 priceX96 = 2;
         uint160 targetPriceX96 = 1;
         uint128 liquidity = 1;
@@ -159,7 +160,7 @@ contract SwapMathTest is Test, GasSnapshot {
         assertEq(sqrtRatioNextX96, 1);
     }
 
-    function testComputeSwapTest_entireInputAmountTakenAsFee() external {
+    function testComputeSwapTest_entireInputAmountTakenAsFee() external pure {
         uint160 priceX96 = 2413;
         uint160 targetPriceX96 = 79887613182836312;
         uint128 liquidity = 1985041575832132834610021537970;
@@ -175,7 +176,7 @@ contract SwapMathTest is Test, GasSnapshot {
         assertEq(sqrtRatioNextX96, 2413);
     }
 
-    function testComputeSwapTest_insufficientLiquidityExactOutputInZeroForOne() external {
+    function testComputeSwapTest_insufficientLiquidityExactOutputInZeroForOne() external pure {
         uint160 priceX96 = 20282409603651670423947251286016;
         uint160 targetPriceX96 = priceX96 * 11 / 10;
         uint128 liquidity = 1024;
@@ -193,7 +194,7 @@ contract SwapMathTest is Test, GasSnapshot {
         assertEq(sqrtRatioNextX96, targetPriceX96);
     }
 
-    function testComputeSwapTest_insufficientLiquidityExactOutputInOneForZero() external {
+    function testComputeSwapTest_insufficientLiquidityExactOutputInOneForZero() external pure {
         uint160 priceX96 = 20282409603651670423947251286016;
         uint160 targetPriceX96 = priceX96 * 9 / 10;
         uint128 liquidity = 1024;

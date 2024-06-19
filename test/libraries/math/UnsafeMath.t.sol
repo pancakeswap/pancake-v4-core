@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {UnsafeMath} from "../../../src/libraries/math/UnsafeMath.sol";
 
 contract UnsafeMathTest is Test {
-    function testDivRoundingUpFuzz(uint256 x, uint256 d) external {
+    function testDivRoundingUpFuzz(uint256 x, uint256 d) external pure {
         vm.assume(d != 0);
         uint256 z = UnsafeMath.divRoundingUp(x, d);
         uint256 diff = z - (x / d);

@@ -6,7 +6,7 @@ import {Test} from "forge-std/Test.sol";
 import {CLPoolParametersHelper} from "../../../src/pool-cl/libraries/CLPoolParametersHelper.sol";
 
 contract CLPoolParametersHelperTest is Test, GasSnapshot {
-    function testGetTickSpacing() public {
+    function testGetTickSpacing() public pure {
         bytes32 paramsWithTickSpacing0 = bytes32(uint256(0x0));
         int24 tickSpacing0 = CLPoolParametersHelper.getTickSpacing(paramsWithTickSpacing0);
         assertEq(tickSpacing0, 0);

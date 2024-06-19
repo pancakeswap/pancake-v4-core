@@ -9,7 +9,7 @@ contract CLPoolParametersHelperTest is Test {
 
     bytes32 params;
 
-    function testFuzz_SetTickSpacing(int24 tickSpacing) external {
+    function testFuzz_SetTickSpacing(int24 tickSpacing) external view {
         bytes32 updatedParam = params.setTickSpacing(tickSpacing);
         assertEq(updatedParam.getTickSpacing(), tickSpacing);
     }
