@@ -45,6 +45,7 @@ contract CLDynamicReturnsFeeHook is BaseCLTestHook {
 
     function beforeSwap(address, PoolKey calldata, ICLPoolManager.SwapParams calldata, bytes calldata)
         external
+        view
         override
         returns (bytes4, BeforeSwapDelta, uint24)
     {

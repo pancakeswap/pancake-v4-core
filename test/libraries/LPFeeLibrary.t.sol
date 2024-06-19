@@ -8,7 +8,7 @@ import {LPFeeLibrary} from "../../src/libraries/LPFeeLibrary.sol";
 contract LPFeeLibraryTest is Test {
     using LPFeeLibrary for uint24;
 
-    function testIsDynamicLPFee() public {
+    function testIsDynamicLPFee() public pure {
         // 1000 0000 0000 0000 0000 0000
         assertEq(LPFeeLibrary.isDynamicLPFee(0x800000), true);
 
@@ -28,7 +28,7 @@ contract LPFeeLibraryTest is Test {
         assertEq(LPFeeLibrary.isDynamicLPFee(0x7FFFFF), false);
     }
 
-    function testIsDynamicLPFeeFuzz(uint24 fee) public {
+    function testIsDynamicLPFeeFuzz(uint24 fee) public pure {
         if (fee != 0x800000) {
             assertEq(LPFeeLibrary.isDynamicLPFee(fee), false);
         } else {
@@ -36,7 +36,7 @@ contract LPFeeLibraryTest is Test {
         }
     }
 
-    function testGetInitialLPFee() public {
+    function testGetInitialLPFee() public pure {
         // static
         assertEq(LPFeeLibrary.getInitialLPFee(0x000001), 0x000001);
         assertEq(LPFeeLibrary.getInitialLPFee(0x000002), 0x000002);
@@ -63,7 +63,7 @@ contract LPFeeLibraryTest is Test {
         LPFeeLibrary.validate(self, maxFee);
     }
 
-    function testIsOverride() public {
+    function testIsOverride() public pure {
         // 1000 0000 0000 0000 0000 0000
         assertEq(LPFeeLibrary.isOverride(0x800000), false);
 

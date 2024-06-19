@@ -9,7 +9,7 @@ contract BinPoolParametersHelperTest is Test {
 
     bytes32 params;
 
-    function testFuzz_SetBinStep(uint16 binStep) external {
+    function testFuzz_SetBinStep(uint16 binStep) external view {
         bytes32 updatedParam = params.setBinStep(binStep);
         assertEq(updatedParam.getBinStep(), binStep);
     }

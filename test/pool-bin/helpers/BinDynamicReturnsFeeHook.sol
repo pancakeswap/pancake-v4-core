@@ -45,6 +45,7 @@ contract BinDynamicReturnsFeeHook is BaseBinTestHook {
 
     function beforeSwap(address, PoolKey calldata, bool, int128, bytes calldata)
         external
+        view
         override
         returns (bytes4, BeforeSwapDelta, uint24)
     {

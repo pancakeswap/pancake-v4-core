@@ -30,26 +30,26 @@ contract FullMathTest is Test {
         MAX_UINT256.mulDiv(MAX_UINT256, MAX_UINT256 - 1);
     }
 
-    function test_mulDiv_validAllMaxInputs() public {
+    function test_mulDiv_validAllMaxInputs() public pure {
         assertEq(MAX_UINT256.mulDiv(MAX_UINT256, MAX_UINT256), MAX_UINT256);
     }
 
-    function test_mulDiv_validWithoutPhantomOverflow() public {
+    function test_mulDiv_validWithoutPhantomOverflow() public pure {
         uint256 result = Q128 / 3;
         assertEq(Q128.mulDiv(50 * Q128 / 100, 150 * Q128 / 100), result);
     }
 
-    function test_mulDiv_validWithPhantomOverflow() public {
+    function test_mulDiv_validWithPhantomOverflow() public pure {
         uint256 result = 4375 * Q128 / 1000;
         assertEq(Q128.mulDiv(35 * Q128, 8 * Q128), result);
     }
 
-    function test_mulDiv_phantomOverflowRepeatingDecimal() public {
+    function test_mulDiv_phantomOverflowRepeatingDecimal() public pure {
         uint256 result = 1 * Q128 / 3;
         assertEq(Q128.mulDiv(1000 * Q128, 3000 * Q128), result);
     }
 
-    function test_mulDiv_fuzz(uint256 x, uint256 y, uint256 d) public {
+    function test_mulDiv_fuzz(uint256 x, uint256 y, uint256 d) public pure {
         vm.assume(d != 0);
         vm.assume(y != 0);
         x = bound(x, 0, type(uint256).max / y);
@@ -61,21 +61,21 @@ contract FullMathTest is Test {
         x.mulDivRoundingUp(y, 0);
     }
 
-    function test_mulDivRoundingUp_validWithAllMaxInputs() public {
+    function test_mulDivRoundingUp_validWithAllMaxInputs() public pure {
         assertEq(MAX_UINT256.mulDivRoundingUp(MAX_UINT256, MAX_UINT256), MAX_UINT256);
     }
 
-    function test_mulDivRoundingUp_validWithNoPhantomOverflow() public {
+    function test_mulDivRoundingUp_validWithNoPhantomOverflow() public pure {
         uint256 result = Q128 / 3 + 1;
         assertEq(Q128.mulDivRoundingUp(50 * Q128 / 100, 150 * Q128 / 100), result);
     }
 
-    function test_mulDivRoundingUp_validWithPhantomOverflow() public {
+    function test_mulDivRoundingUp_validWithPhantomOverflow() public pure {
         uint256 result = 4375 * Q128 / 1000;
         assertEq(Q128.mulDiv(35 * Q128, 8 * Q128), result);
     }
 
-    function test_mulDivRoundingUp_validWithPhantomOverflowRepeatingDecimal() public {
+    function test_mulDivRoundingUp_validWithPhantomOverflowRepeatingDecimal() public pure {
         uint256 result = 1 * Q128 / 3 + 1;
         assertEq(Q128.mulDivRoundingUp(1000 * Q128, 3000 * Q128), result);
     }
@@ -94,7 +94,7 @@ contract FullMathTest is Test {
         );
     }
 
-    function test_mulDivRoundingUp_fuzz(uint256 x, uint256 y, uint256 d) public {
+    function test_mulDivRoundingUp_fuzz(uint256 x, uint256 y, uint256 d) public pure {
         vm.assume(d != 0);
         vm.assume(y != 0);
         x = bound(x, 0, type(uint256).max / y);
@@ -107,7 +107,7 @@ contract FullMathTest is Test {
         }
     }
 
-    function test_mulDivRounding(uint256 x, uint256 y, uint256 d) public {
+    function test_mulDivRounding(uint256 x, uint256 y, uint256 d) public pure {
         unchecked {
             vm.assume(d > 0);
             vm.assume(!resultOverflows(x, y, d));
@@ -124,7 +124,7 @@ contract FullMathTest is Test {
         }
     }
 
-    function test_mulDiv_recomputed(uint256 x, uint256 y, uint256 d) public {
+    function test_mulDiv_recomputed(uint256 x, uint256 y, uint256 d) public pure {
         unchecked {
             vm.assume(d > 0);
             vm.assume(!resultOverflows(x, y, d));
@@ -145,7 +145,7 @@ contract FullMathTest is Test {
         }
     }
 
-    function checkMulDivRoundingUp(uint256 x, uint256 y, uint256 d) external {
+    function checkMulDivRoundingUp(uint256 x, uint256 y, uint256 d) external pure {
         unchecked {
             vm.assume(d > 0);
             vm.assume(!resultOverflows(x, y, d));
@@ -166,7 +166,7 @@ contract FullMathTest is Test {
         }
     }
 
-    function testResultOverflowsHelper() public {
+    function testResultOverflowsHelper() public pure {
         assertFalse(resultOverflows(0, 0, 1));
         assertFalse(resultOverflows(1, 0, 1));
         assertFalse(resultOverflows(0, 1, 1));
