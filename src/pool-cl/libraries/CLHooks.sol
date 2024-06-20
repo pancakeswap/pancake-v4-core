@@ -9,11 +9,15 @@ import {Hooks} from "../../libraries/Hooks.sol";
 import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta} from "../../types/BalanceDelta.sol";
 import {LPFeeLibrary} from "../../libraries/LPFeeLibrary.sol";
 import {BeforeSwapDeltaLibrary, BeforeSwapDelta} from "../../types/BeforeSwapDelta.sol";
+import {ParseBytes} from "../../libraries/ParseBytes.sol";
+import {SafeCast} from "../../libraries/SafeCast.sol";
 
 library CLHooks {
     using Hooks for bytes32;
+    using SafeCast for int256;
     using LPFeeLibrary for uint24;
     using BeforeSwapDeltaLibrary for BeforeSwapDelta;
+    using ParseBytes for bytes;
 
     /// @notice Validate hook permission, eg. if before_swap_return_delta is set, before_swap_delta must be set
     function validatePermissionsConflict(PoolKey memory key) internal pure {
@@ -50,9 +54,7 @@ library CLHooks {
         ICLHooks hooks = ICLHooks(address(key.hooks));
 
         if (key.parameters.shouldCall(HOOKS_BEFORE_INITIALIZE_OFFSET, hooks)) {
-            if (hooks.beforeInitialize(msg.sender, key, sqrtPriceX96, hookData) != ICLHooks.beforeInitialize.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
+            Hooks.callHook(hooks, abi.encodeCall(ICLHooks.beforeInitialize, (msg.sender, key, sqrtPriceX96, hookData)));
         }
     }
 
@@ -60,12 +62,9 @@ library CLHooks {
         ICLHooks hooks = ICLHooks(address(key.hooks));
 
         if (key.parameters.shouldCall(HOOKS_AFTER_INITIALIZE_OFFSET, hooks)) {
-            if (
-                hooks.afterInitialize(msg.sender, key, sqrtPriceX96, tick, hookData)
-                    != ICLHooks.afterInitialize.selector
-            ) {
-                revert Hooks.InvalidHookResponse();
-            }
+            Hooks.callHook(
+                hooks, abi.encodeCall(ICLHooks.afterInitialize, (msg.sender, key, sqrtPriceX96, tick, hookData))
+            );
         }
     }
 
@@ -77,17 +76,10 @@ library CLHooks {
         ICLHooks hooks = ICLHooks(address(key.hooks));
 
         if (params.liquidityDelta > 0 && key.parameters.shouldCall(HOOKS_BEFORE_ADD_LIQUIDITY_OFFSET, hooks)) {
-            if (hooks.beforeAddLiquidity(msg.sender, key, params, hookData) != ICLHooks.beforeAddLiquidity.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
+            Hooks.callHook(hooks, abi.encodeCall(ICLHooks.beforeAddLiquidity, (msg.sender, key, params, hookData)));
         } else if (params.liquidityDelta <= 0 && key.parameters.shouldCall(HOOKS_BEFORE_REMOVE_LIQUIDITY_OFFSET, hooks))
         {
-            if (
-                hooks.beforeRemoveLiquidity(msg.sender, key, params, hookData)
-                    != ICLHooks.beforeRemoveLiquidity.selector
-            ) {
-                revert Hooks.InvalidHookResponse();
-            }
+            Hooks.callHook(hooks, abi.encodeCall(ICLHooks.beforeRemoveLiquidity, (msg.sender, key, params, hookData)));
         }
     }
 
@@ -101,33 +93,25 @@ library CLHooks {
         callerDelta = delta;
 
         if (params.liquidityDelta > 0 && key.parameters.shouldCall(HOOKS_AFTER_ADD_LIQUIDITY_OFFSET, hooks)) {
-            bytes4 selector;
-            (selector, hookDelta) = hooks.afterAddLiquidity(msg.sender, key, params, delta, hookData);
+            hookDelta = BalanceDelta.wrap(
+                Hooks.callHookWithReturnDelta(
+                    hooks,
+                    abi.encodeCall(ICLHooks.afterAddLiquidity, (msg.sender, key, params, delta, hookData)),
+                    key.parameters.hasOffsetEnabled(HOOKS_AFTER_ADD_LIQUIDIY_RETURNS_DELTA_OFFSET)
+                )
+            );
 
-            if (selector != ICLHooks.afterAddLiquidity.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
-
-            if (
-                key.parameters.hasOffsetEnabled(HOOKS_AFTER_ADD_LIQUIDIY_RETURNS_DELTA_OFFSET)
-                    && hookDelta != BalanceDeltaLibrary.ZERO_DELTA
-            ) {
-                callerDelta = callerDelta - hookDelta;
-            }
+            callerDelta = callerDelta - hookDelta;
         } else if (params.liquidityDelta < 0 && key.parameters.shouldCall(HOOKS_AFTER_REMOVE_LIQUIDITY_OFFSET, hooks)) {
-            bytes4 selector;
-            (selector, hookDelta) = hooks.afterRemoveLiquidity(msg.sender, key, params, delta, hookData);
+            hookDelta = BalanceDelta.wrap(
+                Hooks.callHookWithReturnDelta(
+                    hooks,
+                    abi.encodeCall(ICLHooks.afterRemoveLiquidity, (msg.sender, key, params, delta, hookData)),
+                    key.parameters.hasOffsetEnabled(HOOKS_AFTER_REMOVE_LIQUIDIY_RETURNS_DELTA_OFFSET)
+                )
+            );
 
-            if (selector != ICLHooks.afterRemoveLiquidity.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
-
-            if (
-                key.parameters.hasOffsetEnabled(HOOKS_AFTER_REMOVE_LIQUIDIY_RETURNS_DELTA_OFFSET)
-                    && hookDelta != BalanceDeltaLibrary.ZERO_DELTA
-            ) {
-                callerDelta = callerDelta - hookDelta;
-            }
+            callerDelta = callerDelta - hookDelta;
         }
     }
 
@@ -143,20 +127,17 @@ library CLHooks {
             return (amountToSwap, beforeSwapDelta, lpFeeOverride);
         }
 
-        bytes4 selector;
-        // TODO: Potentially optimization: skip decoding the second return value when afterSwapReturnDelta not set
-        (selector, beforeSwapDelta, lpFeeOverride) = hooks.beforeSwap(msg.sender, key, params, hookData);
-        if (selector != ICLHooks.beforeSwap.selector) {
-            revert Hooks.InvalidHookResponse();
-        }
+        bytes memory result =
+            Hooks.callHook(hooks, abi.encodeCall(ICLHooks.beforeSwap, (msg.sender, key, params, hookData)));
 
-        if (!key.fee.isDynamicLPFee()) {
-            lpFeeOverride = 0;
+        if (key.fee.isDynamicLPFee()) {
+            lpFeeOverride = result.parseFee();
         }
 
         // Update the swap amount according to the hook's return, and check that the swap type doesnt change (exact input/output)
         if (key.parameters.hasOffsetEnabled(HOOKS_BEFORE_SWAP_RETURNS_DELTA_OFFSET)) {
             // any return in unspecified is passed to the afterSwap hook for handling
+            beforeSwapDelta = BeforeSwapDelta.wrap(result.parseReturnDelta());
             int128 hookDeltaSpecified = beforeSwapDelta.getSpecifiedDelta();
 
             if (hookDeltaSpecified != 0) {
@@ -173,51 +154,44 @@ library CLHooks {
         BalanceDelta delta,
         bytes calldata hookData,
         BeforeSwapDelta beforeSwapDelta
-    ) internal returns (BalanceDelta swapperDelta, BalanceDelta hookDelta) {
+    ) internal returns (BalanceDelta, BalanceDelta) {
         ICLHooks hooks = ICLHooks(address(key.hooks));
-        swapperDelta = delta;
 
         int128 hookDeltaSpecified = beforeSwapDelta.getSpecifiedDelta();
-        int128 hookDeltaUnspecified;
+        int128 hookDeltaUnspecified = beforeSwapDelta.getUnspecifiedDelta();
         if (key.parameters.shouldCall(HOOKS_AFTER_SWAP_OFFSET, hooks)) {
-            bytes4 selector;
-            (selector, hookDeltaUnspecified) = hooks.afterSwap(msg.sender, key, params, delta, hookData);
-            if (selector != ICLHooks.afterSwap.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
-
-            if (!key.parameters.hasOffsetEnabled(HOOKS_AFTER_SWAP_RETURNS_DELTA_OFFSET)) {
-                hookDeltaUnspecified = 0;
-            }
+            hookDeltaUnspecified += Hooks.callHookWithReturnDelta(
+                hooks,
+                abi.encodeCall(ICLHooks.afterSwap, (msg.sender, key, params, delta, hookData)),
+                key.parameters.hasOffsetEnabled(HOOKS_AFTER_SWAP_RETURNS_DELTA_OFFSET)
+            ).toInt128();
         }
-        hookDeltaUnspecified += beforeSwapDelta.getUnspecifiedDelta();
 
+        BalanceDelta hookDelta;
         if (hookDeltaUnspecified != 0 || hookDeltaSpecified != 0) {
             hookDelta = (params.amountSpecified < 0 == params.zeroForOne)
                 ? toBalanceDelta(hookDeltaSpecified, hookDeltaUnspecified)
                 : toBalanceDelta(hookDeltaUnspecified, hookDeltaSpecified);
 
             // the caller has to pay for (or receive) the hook's delta
-            swapperDelta = delta - hookDelta;
+            delta = delta - hookDelta;
         }
+
+        return (delta, hookDelta);
     }
 
     function beforeDonate(PoolKey memory key, uint256 amount0, uint256 amount1, bytes calldata hookData) internal {
         ICLHooks hooks = ICLHooks(address(key.hooks));
 
         if (key.parameters.shouldCall(HOOKS_BEFORE_DONATE_OFFSET, hooks)) {
-            if (hooks.beforeDonate(msg.sender, key, amount0, amount1, hookData) != ICLHooks.beforeDonate.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
+            Hooks.callHook(hooks, abi.encodeCall(ICLHooks.beforeDonate, (msg.sender, key, amount0, amount1, hookData)));
         }
     }
 
     function afterDonate(PoolKey memory key, uint256 amount0, uint256 amount1, bytes calldata hookData) internal {
         ICLHooks hooks = ICLHooks(address(key.hooks));
         if (key.parameters.shouldCall(HOOKS_AFTER_DONATE_OFFSET, hooks)) {
-            if (hooks.afterDonate(msg.sender, key, amount0, amount1, hookData) != ICLHooks.afterDonate.selector) {
-                revert Hooks.InvalidHookResponse();
-            }
+            Hooks.callHook(hooks, abi.encodeCall(ICLHooks.afterDonate, (msg.sender, key, amount0, amount1, hookData)));
         }
     }
 }
