@@ -17,6 +17,7 @@ import {IHooks} from "../../src/interfaces/IHooks.sol";
 import {Hooks} from "../../src/libraries/Hooks.sol";
 import {BinTestHelper} from "./helpers/BinTestHelper.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
+import {BinPoolGetter} from "../../src/pool-bin/libraries/BinPoolGetter.sol";
 
 contract BinHookTest is BinTestHelper, GasSnapshot {
     using PoolIdLibrary for PoolKey;
@@ -30,6 +31,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
     uint16 hookBitMapWithAllHooks;
     MockVault public vault;
     BinPoolManager public poolManager;
+    BinPoolGetter public poolGetter;
     MockBinHooks mockHooks;
     PoolKey key;
     address bob = makeAddr("bob");
@@ -37,6 +39,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
     function setUp() public {
         vault = new MockVault();
         poolManager = new BinPoolManager(IVault(address(vault)), 500000);
+        poolGetter = new BinPoolGetter(poolManager);
         mockHooks = new MockBinHooks();
     }
 
@@ -123,7 +126,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         poolManager.initialize(key, binId, "");
         addLiquidityToBin(key, poolManager, bob, binId, 1e18, 1e18, 1e18, 1e18, new bytes(123));
 
-        uint256 bobBal = poolManager.getPosition(key.toId(), bob, binId, 0).share;
+        uint256 bobBal = poolGetter.getPosition(key.toId(), bob, binId, 0).share;
 
         snapStart("BinHookTest#testBurnSucceedsWithHook");
         removeLiquidityFromBin(key, poolManager, bob, binId, bobBal, new bytes(456));
@@ -144,7 +147,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         poolManager.initialize(key, binId, "");
         addLiquidityToBin(key, poolManager, bob, binId, 1e18, 1e18, 1e18, 1e18, "");
 
-        uint256 bobBal = poolManager.getPosition(key.toId(), bob, binId, 0).share;
+        uint256 bobBal = poolGetter.getPosition(key.toId(), bob, binId, 0).share;
         vm.expectRevert(Hooks.InvalidHookResponse.selector);
         removeLiquidityFromBin(key, poolManager, bob, binId, bobBal, "");
     }
@@ -160,7 +163,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         poolManager.initialize(key, binId, "");
         addLiquidityToBin(key, poolManager, bob, binId, 1e18, 1e18, 1e18, 1e18, "");
 
-        uint256 bobBal = poolManager.getPosition(key.toId(), bob, binId, 0).share;
+        uint256 bobBal = poolGetter.getPosition(key.toId(), bob, binId, 0).share;
         vm.expectRevert(Hooks.InvalidHookResponse.selector);
         removeLiquidityFromBin(key, poolManager, bob, binId, bobBal, "");
     }

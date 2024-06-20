@@ -19,6 +19,7 @@ import {LiquidityConfigurations} from "../../../src/pool-bin/libraries/math/Liqu
 import {IBinPoolManager} from "../../../src/pool-bin/interfaces/IBinPoolManager.sol";
 import {BinPoolParametersHelper} from "../../../src/pool-bin/libraries/BinPoolParametersHelper.sol";
 import {BinTestHelper} from "../helpers/BinTestHelper.sol";
+import {BinPoolGetter} from "../../../src/pool-bin/libraries/BinPoolGetter.sol";
 
 contract BinPoolLiquidityTest is BinTestHelper {
     using PoolIdLibrary for PoolKey;
@@ -28,6 +29,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
 
     MockVault public vault;
     BinPoolManager public poolManager;
+    BinPoolGetter public poolGetter;
 
     uint24 immutable activeId = ID_ONE - 24647; // id where 1 NATIVE = 20 USDC
 
@@ -41,6 +43,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
     function setUp() public {
         vault = new MockVault();
         poolManager = new BinPoolManager(IVault(address(vault)), 500000);
+        poolGetter = new BinPoolGetter(poolManager);
 
         poolParam = poolParam.setBinStep(10);
         key = PoolKey({
@@ -81,7 +84,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
             for (uint256 i; i < total; ++i) {
                 uint24 id = getId(activeId, i, nbBinY);
 
-                (uint128 binReserveX, uint128 binReserveY) = poolManager.getBin(poolId, id);
+                (uint128 binReserveX, uint128 binReserveY) = poolGetter.getBin(poolId, id);
 
                 if (id < activeId) {
                     assertEq(binReserveX, 0, "test_SimpleMint::3");
@@ -98,7 +101,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
                     assertEq(binReserveY, 0, "test_SimpleMint::8");
                 }
 
-                assertGt(poolManager.getPosition(poolId, bob, id, 0).share, 0, "test_SimpleMint::9");
+                assertGt(poolGetter.getPosition(poolId, bob, id, 0).share, 0, "test_SimpleMint::9");
             }
         }
         {
@@ -123,7 +126,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
                 }
 
                 // verify liquidity minted
-                assertEq(poolManager.getPosition(poolId, bob, id, 0).share, array.liquidityMinted[i]);
+                assertEq(poolGetter.getPosition(poolId, bob, id, 0).share, array.liquidityMinted[i]);
             }
         }
     }
@@ -143,7 +146,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
 
         for (uint256 i; i < total; ++i) {
             uint24 id = getId(activeId, i, nbBinY);
-            balances[i] = poolManager.getPosition(poolId, bob, id, 0).share;
+            balances[i] = poolGetter.getPosition(poolId, bob, id, 0).share;
         }
 
         addLiquidity(key, poolManager, bob, activeId, amountX, amountY, nbBinX, nbBinY);
@@ -152,7 +155,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
             uint24 id = getId(activeId, i, nbBinY);
 
             // (uint128 binReserveX, uint128 binReserveY) = pairWnative.getBin(id);
-            (uint128 binReserveX, uint128 binReserveY) = poolManager.getBin(poolId, id);
+            (uint128 binReserveX, uint128 binReserveY) = poolGetter.getBin(poolId, id);
 
             if (id < activeId) {
                 assertEq(binReserveX, 0, "test_SimpleMint::1");
@@ -169,7 +172,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
                 assertEq(binReserveY, 0, "test_SimpleMint::6");
             }
 
-            assertEq(poolManager.getPosition(poolId, bob, id, 0).share, 2 * balances[i], "test_DoubleMint:7");
+            assertEq(poolGetter.getPosition(poolId, bob, id, 0).share, 2 * balances[i], "test_DoubleMint:7");
         }
     }
 
@@ -188,7 +191,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
 
         for (uint256 i; i < total; ++i) {
             uint24 id = getId(activeId, i, nbBinY);
-            balances[i] = poolManager.getPosition(poolId, bob, id, 0).share;
+            balances[i] = poolGetter.getPosition(poolId, bob, id, 0).share;
         }
 
         addLiquidity(key, poolManager, bob, activeId, amountX, amountY, nbBinX, 0);
@@ -199,14 +202,14 @@ contract BinPoolLiquidityTest is BinTestHelper {
 
             if (id == activeId) {
                 assertApproxEqRel(
-                    poolManager.getPosition(poolId, bob, id, 0).share,
+                    poolGetter.getPosition(poolId, bob, id, 0).share,
                     2 * balances[i],
                     1e15,
                     "test_MintWithDifferentBins::1"
                 ); // composition fee
             } else {
                 assertEq(
-                    poolManager.getPosition(poolId, bob, id, 0).share, 2 * balances[i], "test_MintWithDifferentBins::2"
+                    poolGetter.getPosition(poolId, bob, id, 0).share, 2 * balances[i], "test_MintWithDifferentBins::2"
                 );
             }
         }
@@ -281,7 +284,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
         for (uint256 i; i < total; ++i) {
             uint24 id = getId(activeId, i, nbBinY);
             ids[i] = id;
-            balances[i] = poolManager.getPosition(poolId, bob, id, 0).share;
+            balances[i] = poolGetter.getPosition(poolId, bob, id, 0).share;
         }
 
         uint256 reserveX = vault.reservesOfApp(address(key.poolManager), key.currency0);
@@ -323,7 +326,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
             uint24 id = getId(activeId, i, nbBinY);
 
             ids[i] = id;
-            uint256 balance = poolManager.getPosition(poolId, bob, id, 0).share;
+            uint256 balance = poolGetter.getPosition(poolId, bob, id, 0).share;
 
             halfbalances[i] = balance / 2;
             balances[i] = balance - balance / 2;
@@ -388,7 +391,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
         uint256[] memory balances = new uint256[](1);
 
         ids[0] = activeId;
-        balances[0] = poolManager.getPosition(poolId, bob, activeId, 0).share + 1;
+        balances[0] = poolGetter.getPosition(poolId, bob, activeId, 0).share + 1;
 
         vm.expectRevert(stdError.arithmeticError);
         removeLiquidity(key, poolManager, bob, ids, balances);

@@ -256,14 +256,6 @@ library BinPool {
         result = toBalanceDelta(-(x1.safeInt128()), -(x2.safeInt128()));
     }
 
-    /// @notice Returns the reserves of a bin
-    /// @param id The id of the bin
-    /// @return binReserveX The reserve of token X in the bin
-    /// @return binReserveY The reserve of token Y in the bin
-    function getBin(State storage self, uint24 id) internal view returns (uint128 binReserveX, uint128 binReserveY) {
-        (binReserveX, binReserveY) = self.reserveOfBin[id].decode();
-    }
-
     /// @dev Returns next non-empty bin
     /// @param swapForY Whether the swap is for Y
     /// @param id The id of the bin

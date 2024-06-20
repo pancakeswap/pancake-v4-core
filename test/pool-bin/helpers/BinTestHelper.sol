@@ -11,6 +11,7 @@ import {LiquidityConfigurations} from "../../../src/pool-bin/libraries/math/Liqu
 import {IBinPoolManager} from "../../../src/pool-bin/interfaces/IBinPoolManager.sol";
 import {PackedUint128Math} from "../../../src/pool-bin/libraries/math/PackedUint128Math.sol";
 import {BinPoolManager} from "../../../src/pool-bin/BinPoolManager.sol";
+import {BinPoolGetter} from "../../../src/pool-bin/libraries/BinPoolGetter.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {BalanceDelta, toBalanceDelta} from "../../../src/types/BalanceDelta.sol";
 import {BinPool} from "../../../src/pool-bin/libraries/BinPool.sol";
@@ -208,12 +209,14 @@ abstract contract BinTestHelper is Test {
         uint24 binId,
         address from,
         uint256 sharePercentage
-    ) internal view returns (IBinPoolManager.BurnParams memory params) {
+    ) internal returns (IBinPoolManager.BurnParams memory params) {
         uint256[] memory ids = new uint256[](1);
         uint256[] memory balances = new uint256[](1);
 
+        BinPoolGetter getter = new BinPoolGetter(pm);
+
         ids[0] = binId;
-        balances[0] = (pm.getPosition(_key.toId(), from, binId, 0).share * sharePercentage) / 100;
+        balances[0] = (getter.getPosition(_key.toId(), from, binId, 0).share * sharePercentage) / 100;
 
         params = IBinPoolManager.BurnParams({ids: ids, amountsToBurn: balances, salt: 0});
     }
@@ -226,13 +229,15 @@ abstract contract BinTestHelper is Test {
         uint24[] memory binIds,
         address from,
         uint256 sharePercentage
-    ) internal view returns (IBinPoolManager.BurnParams memory params) {
+    ) internal returns (IBinPoolManager.BurnParams memory params) {
         uint256[] memory ids = new uint256[](binIds.length);
         uint256[] memory balances = new uint256[](binIds.length);
 
+        BinPoolGetter getter = new BinPoolGetter(pm);
+
         for (uint256 i; i < binIds.length; i++) {
             ids[i] = binIds[i];
-            balances[i] = (pm.getPosition(_key.toId(), from, binIds[i], 0).share * sharePercentage) / 100;
+            balances[i] = (getter.getPosition(_key.toId(), from, binIds[i], 0).share * sharePercentage) / 100;
         }
 
         params = IBinPoolManager.BurnParams({ids: ids, amountsToBurn: balances, salt: 0});
@@ -245,13 +250,15 @@ abstract contract BinTestHelper is Test {
         address from,
         uint256 sharePercentage,
         bytes32 salt
-    ) internal view returns (IBinPoolManager.BurnParams memory params) {
+    ) internal returns (IBinPoolManager.BurnParams memory params) {
         uint256[] memory ids = new uint256[](binIds.length);
         uint256[] memory balances = new uint256[](binIds.length);
 
+        BinPoolGetter getter = new BinPoolGetter(pm);
+
         for (uint256 i; i < binIds.length; i++) {
             ids[i] = binIds[i];
-            balances[i] = (pm.getPosition(_key.toId(), from, binIds[i], salt).share * sharePercentage) / 100;
+            balances[i] = (getter.getPosition(_key.toId(), from, binIds[i], salt).share * sharePercentage) / 100;
         }
 
         params = IBinPoolManager.BurnParams({ids: ids, amountsToBurn: balances, salt: salt});

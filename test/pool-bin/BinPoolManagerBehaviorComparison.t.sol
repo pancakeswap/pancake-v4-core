@@ -21,6 +21,7 @@ import {PoolKey} from "../../src/types/PoolKey.sol";
 import {PoolIdLibrary} from "../../src/types/PoolId.sol";
 import {PackedUint128Math} from "../../src/pool-bin/libraries/math/PackedUint128Math.sol";
 import {PriceHelper} from "../../src/pool-bin/libraries/PriceHelper.sol";
+import {BinPoolGetter} from "../../src/pool-bin/libraries/BinPoolGetter.sol";
 
 abstract contract LBFuzzer is LBHelper, BinTestHelper {
     using BinPoolParametersHelper for bytes32;
@@ -29,6 +30,7 @@ abstract contract LBFuzzer is LBHelper, BinTestHelper {
 
     IVault vault;
     IBinPoolManager manager;
+    BinPoolGetter getter;
 
     BinLiquidityHelper liquidityHelper;
     BinSwapHelper swapHelper;
@@ -43,6 +45,7 @@ abstract contract LBFuzzer is LBHelper, BinTestHelper {
 
         vault = new Vault();
         manager = new BinPoolManager(vault, 500000);
+        getter = new BinPoolGetter(manager);
         vault.registerApp(address(manager));
         swapHelper = new BinSwapHelper(manager, vault);
         liquidityHelper = new BinLiquidityHelper(manager, vault);
@@ -116,7 +119,7 @@ abstract contract LBFuzzer is LBHelper, BinTestHelper {
         uint256[] memory sharesBefore = new uint256[](liquidityMinted.length);
         for (uint256 i = 0; i < liquidityMinted.length; i++) {
             uint24 id = uint24(uint256(mintParams.liquidityConfigs[i]));
-            BinPosition.Info memory positionInfo = manager.getPosition(key.toId(), address(liquidityHelper), id, 0);
+            BinPosition.Info memory positionInfo = getter.getPosition(key.toId(), address(liquidityHelper), id, 0);
             sharesBefore[i] = positionInfo.share;
         }
 
@@ -136,7 +139,7 @@ abstract contract LBFuzzer is LBHelper, BinTestHelper {
         );
         for (uint256 i = 0; i < liquidityMinted.length; i++) {
             uint24 id = uint24(uint256(mintParams.liquidityConfigs[i]));
-            BinPosition.Info memory positionInfoAfter = manager.getPosition(key.toId(), address(liquidityHelper), id, 0);
+            BinPosition.Info memory positionInfoAfter = getter.getPosition(key.toId(), address(liquidityHelper), id, 0);
             assertEq(
                 liquidityMinted[i], positionInfoAfter.share - sharesBefore[i], "Expecting to mint same liquidity !"
             );

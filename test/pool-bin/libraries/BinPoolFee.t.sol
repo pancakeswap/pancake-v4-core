@@ -25,6 +25,7 @@ import {LPFeeLibrary} from "../../../src/libraries/LPFeeLibrary.sol";
 import {BinTestHelper} from "../helpers/BinTestHelper.sol";
 import {BinFeeManagerHook} from "../helpers/BinFeeManagerHook.sol";
 import {HOOKS_AFTER_INITIALIZE_OFFSET, HOOKS_BEFORE_MINT_OFFSET} from "../../../src/pool-bin/interfaces/IBinHooks.sol";
+import {BinPoolGetter} from "../../../src/pool-bin/libraries/BinPoolGetter.sol";
 
 /**
  * @dev tests around fee for mint(), swap() and burn()
@@ -58,6 +59,7 @@ contract BinPoolFeeTest is BinTestHelper {
 
     MockVault public vault;
     BinPoolManager public poolManager;
+    BinPoolGetter public poolGetter;
     MockProtocolFeeController feeController;
     MockFeeManagerHook mockFeeManagerHook;
     BinFeeManagerHook binFeeManagerHook;
@@ -76,6 +78,7 @@ contract BinPoolFeeTest is BinTestHelper {
     function setUp() public {
         vault = new MockVault();
         poolManager = new BinPoolManager(IVault(address(vault)), 500000);
+        poolGetter = new BinPoolGetter(poolManager);
         binFeeManagerHook = new BinFeeManagerHook(poolManager);
 
         token0 = new MockERC20("TestA", "A", 18);
@@ -241,7 +244,7 @@ contract BinPoolFeeTest is BinTestHelper {
         // then remove liquidity
         uint256[] memory balances = new uint256[](1);
         uint256[] memory ids = new uint256[](1);
-        balances[0] = poolManager.getPosition(poolId, bob, activeId, 0).share;
+        balances[0] = poolGetter.getPosition(poolId, bob, activeId, 0).share;
         ids[0] = activeId;
         removeLiquidity(key, poolManager, bob, ids, balances);
 
