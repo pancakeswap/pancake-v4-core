@@ -109,8 +109,9 @@ contract VaultReentrancyTest is Test, TokenFixture {
             currency0.transfer(address(vault), paidAmount);
 
             address callerAddr = makeAddr(string(abi.encode(i)));
-            vm.prank(callerAddr);
+            vm.startPrank(callerAddr);
             vault.settle(currency0);
+            vm.stopPrank();
 
             nonzeroDeltaCount = vault.getUnsettledDeltasCount();
             assertEq(nonzeroDeltaCount, i);
@@ -127,8 +128,9 @@ contract VaultReentrancyTest is Test, TokenFixture {
 
             // amount from callerAmount - 1 to 0
             address callerAddr = makeAddr(string(abi.encode(i - 1)));
-            vm.prank(callerAddr);
+            vm.startPrank(callerAddr);
             vault.take(currency0, callerAddr, paidAmount);
+            vm.stopPrank();
 
             nonzeroDeltaCount = vault.getUnsettledDeltasCount();
             if (paidAmount == 0) {
@@ -157,10 +159,10 @@ contract VaultReentrancyTest is Test, TokenFixture {
             currency0.transfer(address(vault), 1 ether);
 
             address callerAddr = makeAddr(string(abi.encode(i % SETTLERS_AMOUNT)));
-            vm.prank(callerAddr);
+            vm.startPrank(callerAddr);
             vault.settle(currency0);
-            vm.prank(callerAddr);
             vault.mint(address(callerAddr), currency0, 1 ether);
+            vm.stopPrank();
 
             vaultTokenBalance[i] = vault.balanceOf(callerAddr, currency0);
         }
@@ -182,29 +184,33 @@ contract VaultReentrancyTest is Test, TokenFixture {
             uint256 paidAmount = i * 10;
             if (i % 6 == 0) {
                 // take
-                vm.prank(callerAddr);
+                vm.startPrank(callerAddr);
                 vault.take(currency0, callerAddr, paidAmount);
+                vm.stopPrank();
 
                 currencyDelta[i % SETTLERS_AMOUNT] -= int256(paidAmount);
             } else if (i % 6 == 1) {
                 // settle
                 vault.sync(currency0);
                 currency0.transfer(address(vault), paidAmount);
-                vm.prank(callerAddr);
+                vm.startPrank(callerAddr);
                 vault.settle(currency0);
+                vm.stopPrank();
 
                 currencyDelta[i % SETTLERS_AMOUNT] += int256(paidAmount);
             } else if (i % 6 == 2) {
                 // mint
-                vm.prank(callerAddr);
+                vm.startPrank(callerAddr);
                 vault.mint(callerAddr, currency0, paidAmount);
+                vm.stopPrank();
 
                 currencyDelta[i % SETTLERS_AMOUNT] -= int256(paidAmount);
                 vaultTokenBalance[i % SETTLERS_AMOUNT] += paidAmount;
             } else if (i % 6 == 3) {
                 // burn
-                vm.prank(callerAddr);
+                vm.startPrank(callerAddr);
                 vault.burn(callerAddr, currency0, paidAmount);
+                vm.stopPrank();
 
                 currencyDelta[i % SETTLERS_AMOUNT] += int256(paidAmount);
                 vaultTokenBalance[i % SETTLERS_AMOUNT] -= paidAmount;
@@ -212,17 +218,19 @@ contract VaultReentrancyTest is Test, TokenFixture {
                 // settleFor
                 vault.sync(currency0);
                 currency0.transfer(address(vault), paidAmount);
-                vm.prank(callerAddr);
+                vm.startPrank(callerAddr);
                 vault.settle(currency0);
+                vm.stopPrank();
 
                 address target = makeAddr(string(abi.encode((i + 1) % SETTLERS_AMOUNT)));
-                vm.prank(callerAddr);
+                vm.startPrank(callerAddr);
                 vault.settleFor(currency0, target, paidAmount);
+                vm.stopPrank();
 
                 currencyDelta[(i + 1) % SETTLERS_AMOUNT] += int256(paidAmount);
             } else if (i % 6 == 5) {
                 // accountPoolBalanceDelta
-                vm.prank(makeAddr("poolManager"));
+                vm.startPrank(makeAddr("poolManager"));
                 vault.accountAppBalanceDelta(
                     PoolKey({
                         currency0: currency0,
@@ -235,6 +243,7 @@ contract VaultReentrancyTest is Test, TokenFixture {
                     toBalanceDelta(-(paidAmount.toInt128()), int128(0)),
                     callerAddr
                 );
+                vm.stopPrank();
 
                 currencyDelta[i % SETTLERS_AMOUNT] -= int256(paidAmount);
             }
@@ -260,12 +269,14 @@ contract VaultReentrancyTest is Test, TokenFixture {
                 // user owes token to the vault
                 vault.sync(currency0);
                 currency0.transfer(address(vault), uint256(-delta));
-                vm.prank(callerAddr);
+                vm.startPrank(callerAddr);
                 vault.settle(currency0);
+                vm.stopPrank();
             } else if (delta > 0) {
                 // vault owes token to the user
-                vm.prank(callerAddr);
+                vm.startPrank(callerAddr);
                 vault.take(currency0, callerAddr, uint256(delta));
+                vm.stopPrank();
             }
             delta = vault.currencyDelta(callerAddr, currency0);
         }
