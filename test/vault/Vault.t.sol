@@ -241,8 +241,9 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
         currency0.transfer(address(vault), 10 ether);
         currency1.transfer(address(vault), 10 ether);
 
-        vm.prank(address(fakePoolManagerRouter));
+        vm.startPrank(address(fakePoolManagerRouter));
         vault.lock(hex"02");
+        vm.stopPrank();
 
         assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 10 ether);
         assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 10 ether);
@@ -250,10 +251,11 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
         assertEq(vault.reservesOfApp(address(poolKey.poolManager), currency1), 10 ether);
 
         currency0.transfer(address(vault), 3 ether);
-        vm.prank(address(fakePoolManagerRouter));
+        vm.startPrank(address(fakePoolManagerRouter));
         snapStart("VaultTest#lockSettledWhenSwap");
         vault.lock(hex"03");
         snapEnd();
+        vm.stopPrank();
 
         assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 13 ether);
         assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 7 ether);
@@ -287,13 +289,15 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
         vault.sync(currency1);
         currency0.transfer(address(vault), 10 ether);
         currency1.transfer(address(vault), 10 ether);
-        vm.prank(address(fakePoolManagerRouter));
+        vm.startPrank(address(fakePoolManagerRouter));
         vault.lock(hex"02");
+        vm.stopPrank();
 
         currency0.transfer(address(vault), 10 ether);
         currency1.transfer(address(vault), 10 ether);
-        vm.prank(address(fakePoolManagerRouter2));
+        vm.startPrank(address(fakePoolManagerRouter2));
         vault.lock(hex"02");
+        vm.stopPrank();
 
         assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 20 ether);
         assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 20 ether);
@@ -406,8 +410,9 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
         vault.sync(currency0);
         currency0.transfer(address(vault), amt);
 
-        vm.prank(address(0x01));
+        vm.startPrank(address(0x01));
         vault.approve(address(fakePoolManagerRouter), currency0, amt);
+        vm.stopPrank();
         assertEq(vault.allowance(address(0x01), address(fakePoolManagerRouter), currency0), amt);
 
         vm.startPrank(address(fakePoolManagerRouter));
@@ -422,8 +427,9 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
             vault.sync(currency0);
             currency0.transfer(address(vault), amt);
 
-            vm.prank(address(0x01));
+            vm.startPrank(address(0x01));
             vault.approve(address(fakePoolManagerRouter), currency0, type(uint256).max);
+            vm.stopPrank();
 
             vm.startPrank(address(fakePoolManagerRouter));
             vault.lock(hex"20");
@@ -439,11 +445,13 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
             currency0.transfer(address(vault), amt);
 
             // set a insufficient allowance
-            vm.prank(address(0x01));
+            vm.startPrank(address(0x01));
             vault.approve(address(fakePoolManagerRouter), currency0, 1);
+            vm.stopPrank();
 
-            vm.prank(address(0x01));
+            vm.startPrank(address(0x01));
             vault.setOperator(address(fakePoolManagerRouter), true);
+            vm.stopPrank();
 
             vm.startPrank(address(fakePoolManagerRouter));
             vault.lock(hex"20");
@@ -466,13 +474,15 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
 
         currency0.transfer(address(vault), 10 ether);
         currency1.transfer(address(vault), 10 ether);
-        vm.prank(address(fakePoolManagerRouter));
+        vm.startPrank(address(fakePoolManagerRouter));
         vault.lock(hex"02");
+        vm.stopPrank();
 
         currency0.transfer(address(vault), 10 ether);
         currency1.transfer(address(vault), 10 ether);
-        vm.prank(address(fakePoolManagerRouter2));
+        vm.startPrank(address(fakePoolManagerRouter2));
         vault.lock(hex"02");
+        vm.stopPrank();
 
         assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 20 ether);
         assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 20 ether);
@@ -487,8 +497,9 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
         currency0.transfer(address(vault), 15 ether);
 
         vm.expectRevert(stdError.arithmeticError);
-        vm.prank(address(fakePoolManagerRouter));
+        vm.startPrank(address(fakePoolManagerRouter));
         vault.lock(hex"04");
+        vm.stopPrank();
     }
 
     function testLockFlashloanCrossMoreThanOnePoolManagers() public noIsolate {
@@ -502,13 +513,15 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
 
         currency0.transfer(address(vault), 10 ether);
         currency1.transfer(address(vault), 10 ether);
-        vm.prank(address(fakePoolManagerRouter));
+        vm.startPrank(address(fakePoolManagerRouter));
         vault.lock(hex"02");
+        vm.stopPrank();
 
         currency0.transfer(address(vault), 10 ether);
         currency1.transfer(address(vault), 10 ether);
-        vm.prank(address(fakePoolManagerRouter2));
+        vm.startPrank(address(fakePoolManagerRouter2));
         vault.lock(hex"02");
+        vm.stopPrank();
 
         assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 20 ether);
         assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 20 ether);
@@ -519,10 +532,11 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
         assertEq(vault.reservesOfApp(address(poolKey2.poolManager), currency0), 10 ether);
         assertEq(vault.reservesOfApp(address(poolKey2.poolManager), currency1), 10 ether);
 
-        vm.prank(address(fakePoolManagerRouter));
+        vm.startPrank(address(fakePoolManagerRouter));
         snapStart("VaultTest#lockSettledWhenFlashloan");
         vault.lock(hex"05");
         snapEnd();
+        vm.stopPrank();
     }
 
     function test_CollectFee() public noIsolate {
@@ -680,18 +694,21 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
         vault.sync(currency1);
         currency1.transfer(address(vault), 10 ether);
 
-        vm.prank(address(router));
+        vm.startPrank(address(router));
         vault.lock(hex"21");
+        vm.stopPrank();
 
         CurrencyLibrary.NATIVE.transfer(address(router), 10 ether);
         currency1.transfer(address(vault), 10 ether);
-        vm.prank(address(router));
+        vm.startPrank(address(router));
         vault.lock(hex"21");
+        vm.stopPrank();
 
         // take and settle
         {
-            vm.prank(address(router));
+            vm.startPrank(address(router));
             vault.lock(hex"22");
+            vm.stopPrank();
         }
     }
 }
