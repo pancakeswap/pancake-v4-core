@@ -22,6 +22,7 @@ import {BinLiquidityHelper} from "./helpers/BinLiquidityHelper.sol";
 import {BinSwapHelper} from "./helpers/BinSwapHelper.sol";
 import {BinPoolParametersHelper} from "../../src/pool-bin/libraries/BinPoolParametersHelper.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {BinPoolGetter} from "../../src/pool-bin/libraries/BinPoolGetter.sol";
 
 contract BinHookReturnsFeeTest is Test, BinTestHelper {
     using PoolIdLibrary for PoolKey;
@@ -30,6 +31,7 @@ contract BinHookReturnsFeeTest is Test, BinTestHelper {
 
     Vault public vault;
     BinPoolManager public poolManager;
+    BinPoolGetter public poolGetter;
     BinDynamicReturnsFeeHook dynamicReturnsFeesHook;
 
     BinSwapHelper public binSwapHelper;
@@ -58,6 +60,7 @@ contract BinHookReturnsFeeTest is Test, BinTestHelper {
     function setUp() public {
         vault = new Vault();
         poolManager = new BinPoolManager(IVault(address(vault)), 500000);
+        poolGetter = new BinPoolGetter(poolManager);
         vault.registerApp(address(poolManager));
 
         // initializeTokens
@@ -200,6 +203,6 @@ contract BinHookReturnsFeeTest is Test, BinTestHelper {
 
     function _fetchPoolSwapFee(PoolKey memory _key) internal view returns (uint256 swapFee) {
         PoolId id = _key.toId();
-        (,, swapFee) = poolManager.getSlot0(id);
+        (,, swapFee) = poolGetter.getSlot0(id);
     }
 }

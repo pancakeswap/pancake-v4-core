@@ -16,6 +16,7 @@ import {PackedUint128Math} from "../../../src/pool-bin/libraries/math/PackedUint
 import {SafeCast} from "../../../src/pool-bin/libraries/math/SafeCast.sol";
 import {BinPoolParametersHelper} from "../../../src/pool-bin/libraries/BinPoolParametersHelper.sol";
 import {BinTestHelper} from "../helpers/BinTestHelper.sol";
+import {BinPoolGetter} from "../../../src/pool-bin/libraries/BinPoolGetter.sol";
 
 contract BinPoolDonateTest is BinTestHelper {
     using PoolIdLibrary for PoolKey;
@@ -25,6 +26,7 @@ contract BinPoolDonateTest is BinTestHelper {
 
     MockVault public vault;
     BinPoolManager public poolManager;
+    BinPoolGetter public poolGetter;
 
     uint24 immutable activeId = ID_ONE;
 
@@ -38,6 +40,7 @@ contract BinPoolDonateTest is BinTestHelper {
     function setUp() public {
         vault = new MockVault();
         poolManager = new BinPoolManager(IVault(address(vault)), 500000);
+        poolGetter = new BinPoolGetter(poolManager);
 
         poolParam = poolParam.setBinStep(10);
         key = PoolKey({
@@ -67,14 +70,14 @@ contract BinPoolDonateTest is BinTestHelper {
         // Initialize. Alice/Bob both add 1e18 token0, token1 to the active bin
         poolManager.initialize(key, activeId, new bytes(0));
         addLiquidityToBin(key, poolManager, alice, activeId, 1e18, 1e18, 1e18, 1e18, "");
-        uint256 aliceShare = poolManager.getPosition(poolId, alice, activeId, 0).share;
+        uint256 aliceShare = poolGetter.getPosition(poolId, alice, activeId, 0).share;
         addLiquidityToBin(key, poolManager, bob, activeId, 1e18, 1e18, 1e18, 1e18, "");
-        uint256 bobShare = poolManager.getPosition(poolId, bob, activeId, 0).share;
+        uint256 bobShare = poolGetter.getPosition(poolId, bob, activeId, 0).share;
 
         // Verify reserve before donate
         uint128 reserveX;
         uint128 reserveY;
-        (reserveX, reserveY) = poolManager.getBin(poolId, activeId);
+        (reserveX, reserveY) = poolGetter.getBin(poolId, activeId);
         assertEq(reserveX, 2e18);
         assertEq(reserveY, 2e18);
 
@@ -82,7 +85,7 @@ contract BinPoolDonateTest is BinTestHelper {
         poolManager.donate(key, 2e18, 2e18, "");
 
         // Verify reserve after donate
-        (reserveX, reserveY) = poolManager.getBin(poolId, activeId);
+        (reserveX, reserveY) = poolGetter.getBin(poolId, activeId);
         assertEq(reserveX, 4e18);
         assertEq(reserveY, 4e18);
 
@@ -96,7 +99,7 @@ contract BinPoolDonateTest is BinTestHelper {
         assertEq(removeDelta2.amount1(), 2e18);
 
         // Verify no reserve remaining
-        (reserveX, reserveY) = poolManager.getBin(poolId, activeId);
+        (reserveX, reserveY) = poolGetter.getBin(poolId, activeId);
         assertEq(reserveX, 0);
         assertEq(reserveY, 0);
 
@@ -110,12 +113,12 @@ contract BinPoolDonateTest is BinTestHelper {
         // Initialize and add 1e18 token0, token1 to the active bin. price of bin: 2**128, 3.4e38
         poolManager.initialize(key, activeId, new bytes(0));
         addLiquidityToBin(key, poolManager, bob, activeId, 1e18, 1e18, 1e18, 1e18, "");
-        poolManager.getPosition(poolId, bob, activeId, 0).share;
+        poolGetter.getPosition(poolId, bob, activeId, 0).share;
 
         poolManager.donate(key, amt0, amt1, "");
 
         // Verify reserve after donate
-        (uint128 reserveX, uint128 reserveY) = poolManager.getBin(poolId, activeId);
+        (uint128 reserveX, uint128 reserveY) = poolGetter.getBin(poolId, activeId);
         assertEq(reserveX, 1e18 + amt0);
         assertEq(reserveY, 1e18 + amt1);
     }

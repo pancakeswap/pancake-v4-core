@@ -36,6 +36,7 @@ import {BinTestHelper} from "./helpers/BinTestHelper.sol";
 import {Hooks} from "../../src/libraries/Hooks.sol";
 import {ParametersHelper} from "../../src/libraries/math/ParametersHelper.sol";
 import {BinPosition} from "../../src/pool-bin/libraries/BinPosition.sol";
+import {BinPoolGetter} from "../../src/pool-bin/libraries/BinPoolGetter.sol";
 
 contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     using PoolIdLibrary for PoolKey;
@@ -85,6 +86,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
     Vault public vault;
     BinPoolManager public poolManager;
+    BinPoolGetter public poolGetter;
     BinSwapHelper public binSwapHelper;
     BinLiquidityHelper public binLiquidityHelper;
     BinDonateHelper public binDonateHelper;
@@ -101,6 +103,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     function setUp() public {
         vault = new Vault();
         poolManager = new BinPoolManager(IVault(address(vault)), 500000);
+        poolGetter = new BinPoolGetter(poolManager);
 
         vault.registerApp(address(poolManager));
 
@@ -393,7 +396,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
         // liquidity added with salt 0x1234  not salt 0
         for (uint256 i = 0; i < binIds.length; i++) {
-            (uint128 binReserveX, uint128 binReserveY) = poolManager.getBin(key.toId(), binIds[i]);
+            (uint128 binReserveX, uint128 binReserveY) = poolGetter.getBin(key.toId(), binIds[i]);
 
             // make sure the liquidity is added to the correct bin
             if (binIds[i] < activeId) {
@@ -408,9 +411,9 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             }
 
             BinPosition.Info memory position =
-                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt);
+                poolGetter.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt);
             BinPosition.Info memory position0 =
-                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], 0);
+                poolGetter.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], 0);
             assertTrue(position.share != 0);
             // position with salt = 0
             assertTrue(position0.share == 0);
@@ -422,16 +425,16 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         binLiquidityHelper.burn(key, burnParams, "");
 
         for (uint256 i = 0; i < binIds.length; i++) {
-            (uint128 binReserveX, uint128 binReserveY) = poolManager.getBin(key.toId(), binIds[i]);
+            (uint128 binReserveX, uint128 binReserveY) = poolGetter.getBin(key.toId(), binIds[i]);
 
             // make sure the liquidity is added to the correct bin
             assertEq(binReserveX, 0 ether);
             assertEq(binReserveY, 0 ether);
 
             BinPosition.Info memory position =
-                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt);
+                poolGetter.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt);
             BinPosition.Info memory position0 =
-                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], 0);
+                poolGetter.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], 0);
             assertTrue(position.share == 0);
             assertTrue(position0.share == 0);
         }
@@ -452,7 +455,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
         // liquidity added with salt 0x1234  not salt 0
         for (uint256 i = 0; i < binIds.length; i++) {
-            (uint128 binReserveX, uint128 binReserveY) = poolManager.getBin(key.toId(), binIds[i]);
+            (uint128 binReserveX, uint128 binReserveY) = poolGetter.getBin(key.toId(), binIds[i]);
 
             // make sure the liquidity is added to the correct bin
             if (binIds[i] < activeId) {
@@ -467,11 +470,11 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             }
 
             BinPosition.Info memory position0 =
-                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt0);
+                poolGetter.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt0);
             BinPosition.Info memory position1 =
-                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt1);
+                poolGetter.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt1);
             BinPosition.Info memory position2 =
-                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt2);
+                poolGetter.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt2);
 
             // only position with salt 0x1234 should have share
             assertTrue(position0.share == 0);
@@ -484,7 +487,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             binLiquidityHelper.mint(key, mintParams, "");
 
             for (uint256 i = 0; i < binIds.length; i++) {
-                (uint128 binReserveX, uint128 binReserveY) = poolManager.getBin(key.toId(), binIds[i]);
+                (uint128 binReserveX, uint128 binReserveY) = poolGetter.getBin(key.toId(), binIds[i]);
 
                 // make sure the liquidity is added to the correct bin
                 if (binIds[i] < activeId) {
@@ -499,11 +502,11 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
                 }
 
                 BinPosition.Info memory position0 =
-                    poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt0);
+                    poolGetter.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt0);
                 BinPosition.Info memory position1 =
-                    poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt1);
+                    poolGetter.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt1);
                 BinPosition.Info memory position2 =
-                    poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt2);
+                    poolGetter.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt2);
 
                 // only position with salt 0 should be empty
                 assertTrue(position0.share == 0);
@@ -517,7 +520,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             binLiquidityHelper.mint(key, mintParams, "");
 
             for (uint256 i = 0; i < binIds.length; i++) {
-                (uint128 binReserveX, uint128 binReserveY) = poolManager.getBin(key.toId(), binIds[i]);
+                (uint128 binReserveX, uint128 binReserveY) = poolGetter.getBin(key.toId(), binIds[i]);
 
                 // make sure the liquidity is added to the correct bin
                 if (binIds[i] < activeId) {
@@ -532,11 +535,11 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
                 }
 
                 BinPosition.Info memory position0 =
-                    poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt0);
+                    poolGetter.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt0);
                 BinPosition.Info memory position1 =
-                    poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt1);
+                    poolGetter.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt1);
                 BinPosition.Info memory position2 =
-                    poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt2);
+                    poolGetter.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt2);
 
                 assertTrue(position0.share != 0);
                 assertTrue(position1.share == position0.share);
@@ -550,7 +553,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         binLiquidityHelper.burn(key, burnParams, "");
 
         for (uint256 i = 0; i < binIds.length; i++) {
-            (uint128 binReserveX, uint128 binReserveY) = poolManager.getBin(key.toId(), binIds[i]);
+            (uint128 binReserveX, uint128 binReserveY) = poolGetter.getBin(key.toId(), binIds[i]);
 
             // make sure the liquidity is added to the correct bin
             if (binIds[i] < activeId) {
@@ -565,11 +568,11 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             }
 
             BinPosition.Info memory position0 =
-                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt0);
+                poolGetter.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt0);
             BinPosition.Info memory position1 =
-                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt1);
+                poolGetter.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt1);
             BinPosition.Info memory position2 =
-                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt2);
+                poolGetter.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt2);
 
             assertTrue(position0.share != 0);
             assertTrue(position1.share == 0);
@@ -844,7 +847,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             // slot0Bytes: 0x0000000000000000000000000000000000000000000000000000000000800000
             ativeIdExtsload := slot0Bytes
         }
-        (uint24 activeIdLoad,,) = poolManager.getSlot0(key.toId());
+        (uint24 activeIdLoad,,) = poolGetter.getSlot0(key.toId());
 
         // assert that extsload loads the correct storage slot which matches the true slot0
         assertEq(ativeIdExtsload, activeIdLoad);
@@ -874,7 +877,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     function testSetProtocolFee() public {
         // initialize the pool and asset protocolFee is 0
         poolManager.initialize(key, activeId, new bytes(0));
-        (, uint24 protocolFee,) = poolManager.getSlot0(key.toId());
+        (, uint24 protocolFee,) = poolGetter.getSlot0(key.toId());
         assertEq(protocolFee, 0);
 
         // set up feeController
@@ -890,7 +893,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         poolManager.setProtocolFee(key, newProtocolFee);
         snapEnd();
 
-        (, protocolFee,) = poolManager.getSlot0(key.toId());
+        (, protocolFee,) = poolGetter.getSlot0(key.toId());
         assertEq(protocolFee, newProtocolFee);
     }
 
@@ -986,7 +989,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         vm.prank(address(binFeeManagerHook));
         poolManager.updateDynamicLPFee(key, _lpFee);
 
-        (,, uint24 swapFee) = poolManager.getSlot0(key.toId());
+        (,, uint24 swapFee) = poolGetter.getSlot0(key.toId());
         assertEq(swapFee, _lpFee);
     }
 
@@ -1017,7 +1020,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         poolManager.updateDynamicLPFee(key, _lpFee);
         snapEnd();
 
-        (,, uint24 swapFee) = poolManager.getSlot0(key.toId());
+        (,, uint24 swapFee) = poolGetter.getSlot0(key.toId());
         assertEq(swapFee, _lpFee);
     }
 

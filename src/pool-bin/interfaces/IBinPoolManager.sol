@@ -123,25 +123,6 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
         bytes32 salt;
     }
 
-    /// @notice Get the current value in slot0 of the given pool
-    function getSlot0(PoolId id) external view returns (uint24 activeId, uint24 protocolFee, uint24 lpFee);
-
-    /// @notice Returns the reserves of a bin
-    /// @param id The id of the bin
-    /// @return binReserveX The reserve of token X in the bin
-    /// @return binReserveY The reserve of token Y in the bin
-    function getBin(PoolId id, uint24 binId) external view returns (uint128 binReserveX, uint128 binReserveY);
-
-    /// @notice Returns the positon of owner at a binId
-    /// @param id The id of PoolKey
-    /// @param owner Address of the owner
-    /// @param binId The id of the bin
-    /// @param salt The salt to distinguish different positions for the same owner
-    function getPosition(PoolId id, address owner, uint24 binId, bytes32 salt)
-        external
-        view
-        returns (BinPosition.Info memory position);
-
     /// @notice Returns the next non-empty bin
     /// @dev The next non-empty bin is the bin with a higher (if swapForY is true) or lower (if swapForY is false)
     ///     id that has a non-zero reserve of token X or Y.

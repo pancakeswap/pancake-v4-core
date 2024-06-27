@@ -53,33 +53,6 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
     }
 
     /// @inheritdoc IBinPoolManager
-    function getSlot0(PoolId id) external view override returns (uint24 activeId, uint24 protocolFee, uint24 lpFee) {
-        BinPool.Slot0 memory slot0 = pools[id].slot0;
-
-        return (slot0.activeId, slot0.protocolFee, slot0.lpFee);
-    }
-
-    /// @inheritdoc IBinPoolManager
-    function getBin(PoolId id, uint24 binId)
-        external
-        view
-        override
-        returns (uint128 binReserveX, uint128 binReserveY)
-    {
-        (binReserveX, binReserveY) = pools[id].getBin(binId);
-    }
-
-    /// @inheritdoc IBinPoolManager
-    function getPosition(PoolId id, address owner, uint24 binId, bytes32 salt)
-        external
-        view
-        override
-        returns (BinPosition.Info memory position)
-    {
-        return pools[id].positions.get(owner, binId, salt);
-    }
-
-    /// @inheritdoc IBinPoolManager
     function getNextNonEmptyBin(PoolId id, bool swapForY, uint24 binId)
         external
         view
