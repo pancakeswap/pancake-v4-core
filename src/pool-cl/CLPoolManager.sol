@@ -115,7 +115,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         tick = pools[id].initialize(sqrtPriceX96, protocolFee, lpFee);
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
-        emit Initialize(id, key.currency0, key.currency1, key.fee, tickSpacing, key.hooks);
+        emit Initialize(id, key.currency0, key.currency1, key.hooks, key.fee, key.parameters);
 
         CLHooks.afterInitialize(key, sqrtPriceX96, tick, hookData);
     }
