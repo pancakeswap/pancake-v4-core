@@ -36,6 +36,8 @@ import {BinTestHelper} from "./helpers/BinTestHelper.sol";
 import {Hooks} from "../../src/libraries/Hooks.sol";
 import {ParametersHelper} from "../../src/libraries/math/ParametersHelper.sol";
 import {BinPosition} from "../../src/pool-bin/libraries/BinPosition.sol";
+import {PriceHelper} from "../../src/pool-bin/libraries/PriceHelper.sol";
+import {BinHelper} from "../../src/pool-bin/libraries/BinHelper.sol";
 
 contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     using PoolIdLibrary for PoolKey;
@@ -43,6 +45,8 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     using PackedUint128Math for bytes32;
     using PackedUint128Math for uint128;
     using BinPoolParametersHelper for bytes32;
+    using PriceHelper for uint24;
+    using BinHelper for bytes32;
 
     error PoolAlreadyInitialized();
     error PoolNotInitialized();
@@ -408,7 +412,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
         // liquidity added with salt 0x1234  not salt 0
         for (uint256 i = 0; i < binIds.length; i++) {
-            (uint128 binReserveX, uint128 binReserveY) = poolManager.getBin(key.toId(), binIds[i]);
+            (uint128 binReserveX, uint128 binReserveY,) = poolManager.getBin(key.toId(), binIds[i]);
 
             // make sure the liquidity is added to the correct bin
             if (binIds[i] < activeId) {
@@ -437,7 +441,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         binLiquidityHelper.burn(key, burnParams, "");
 
         for (uint256 i = 0; i < binIds.length; i++) {
-            (uint128 binReserveX, uint128 binReserveY) = poolManager.getBin(key.toId(), binIds[i]);
+            (uint128 binReserveX, uint128 binReserveY,) = poolManager.getBin(key.toId(), binIds[i]);
 
             // make sure the liquidity is added to the correct bin
             assertEq(binReserveX, 0 ether);
@@ -467,7 +471,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
         // liquidity added with salt 0x1234  not salt 0
         for (uint256 i = 0; i < binIds.length; i++) {
-            (uint128 binReserveX, uint128 binReserveY) = poolManager.getBin(key.toId(), binIds[i]);
+            (uint128 binReserveX, uint128 binReserveY,) = poolManager.getBin(key.toId(), binIds[i]);
 
             // make sure the liquidity is added to the correct bin
             if (binIds[i] < activeId) {
@@ -499,7 +503,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             binLiquidityHelper.mint(key, mintParams, "");
 
             for (uint256 i = 0; i < binIds.length; i++) {
-                (uint128 binReserveX, uint128 binReserveY) = poolManager.getBin(key.toId(), binIds[i]);
+                (uint128 binReserveX, uint128 binReserveY,) = poolManager.getBin(key.toId(), binIds[i]);
 
                 // make sure the liquidity is added to the correct bin
                 if (binIds[i] < activeId) {
@@ -532,7 +536,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             binLiquidityHelper.mint(key, mintParams, "");
 
             for (uint256 i = 0; i < binIds.length; i++) {
-                (uint128 binReserveX, uint128 binReserveY) = poolManager.getBin(key.toId(), binIds[i]);
+                (uint128 binReserveX, uint128 binReserveY,) = poolManager.getBin(key.toId(), binIds[i]);
 
                 // make sure the liquidity is added to the correct bin
                 if (binIds[i] < activeId) {
@@ -565,7 +569,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         binLiquidityHelper.burn(key, burnParams, "");
 
         for (uint256 i = 0; i < binIds.length; i++) {
-            (uint128 binReserveX, uint128 binReserveY) = poolManager.getBin(key.toId(), binIds[i]);
+            (uint128 binReserveX, uint128 binReserveY,) = poolManager.getBin(key.toId(), binIds[i]);
 
             // make sure the liquidity is added to the correct bin
             if (binIds[i] < activeId) {
@@ -1117,6 +1121,29 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
         vm.expectRevert("Pausable: paused");
         binDonateHelper.donate(key, 10 ether, 10 ether, "");
+    }
+
+    function testGasGetBin() public {
+        // Initialize and add 1e18 token0, token1 to the active bin. price of bin: 2**128, 3.4e38
+        poolManager.initialize(key, activeId, new bytes(0));
+
+        // add 1 eth of tokenX and 1 eth of tokenY liquidity at activeId
+        token0.mint(address(this), 1 ether);
+        token1.mint(address(this), 1 ether);
+        IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
+        binLiquidityHelper.mint(key, mintParams, "");
+
+        snapStart("BinPoolManagerTest#testGasGetBin");
+        (uint128 reserveX, uint128 reserveY, uint256 liquidity) = poolManager.getBin(key.toId(), activeId);
+        snapEnd();
+
+        assertEq(reserveX, 1e18);
+        assertEq(reserveY, 1e18);
+
+        bytes32 binReserves = reserveX.encode(reserveY);
+        uint16 binStep = key.parameters.getBinStep();
+        uint256 binLiquidity = binReserves.getLiquidity(activeId.getPriceFromId(binStep));
+        assertEq(liquidity, binLiquidity);
     }
 
     receive() external payable {}
