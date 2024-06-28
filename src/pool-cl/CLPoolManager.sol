@@ -42,6 +42,8 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
 
     mapping(PoolId id => CLPool.State) public pools;
 
+    mapping(PoolId id => PoolKey) public poolIdToPoolKey;
+
     constructor(IVault _vault, uint256 controllerGasLimit) ProtocolFees(_vault, controllerGasLimit) {}
 
     /// @notice pool manager specified in the pool key must match current contract
@@ -113,6 +115,8 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         PoolId id = key.toId();
         (, uint24 protocolFee) = _fetchProtocolFee(key);
         tick = pools[id].initialize(sqrtPriceX96, protocolFee, lpFee);
+
+        poolIdToPoolKey[id] = key;
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
         emit Initialize(id, key.currency0, key.currency1, key.hooks, key.fee, key.parameters);

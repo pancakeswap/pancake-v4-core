@@ -40,6 +40,8 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
 
     mapping(PoolId id => BinPool.State) public pools;
 
+    mapping(PoolId id => PoolKey) public poolIdToPoolKey;
+
     constructor(IVault vault, uint256 controllerGasLimit) ProtocolFees(vault, controllerGasLimit) {}
 
     /// @notice pool manager specified in the pool key must match current contract
@@ -116,6 +118,8 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
 
         (, uint24 protocolFee) = _fetchProtocolFee(key);
         pools[id].initialize(activeId, protocolFee, lpFee);
+
+        poolIdToPoolKey[id] = key;
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
         emit Initialize(id, key.currency0, key.currency1, key.hooks, key.fee, key.parameters);

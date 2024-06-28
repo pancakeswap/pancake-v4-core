@@ -1,8 +1,10 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+import {IHooks} from "./IHooks.sol";
 import {PoolKey} from "../types/PoolKey.sol";
 import {PoolId} from "../types/PoolId.sol";
+import {Currency} from "../types/Currency.sol";
 
 interface IPoolManager {
     /// @notice Thrown when trying to interact with a non-initialized pool
@@ -25,4 +27,17 @@ interface IPoolManager {
     ///   2) For BinPool only, when hook#beforeMint() is called and hook call this function to update the lp fee
     ///   3) other use case where the hook might want to on an ad-hoc basis increase/reduce lp fee
     function updateDynamicLPFee(PoolKey memory key, uint24 newDynamicLPFee) external;
+
+    /// @notice Return PoolKey for a given PoolId
+    function poolIdToPoolKey(PoolId id)
+        external
+        view
+        returns (
+            Currency currency0,
+            Currency currency1,
+            IHooks hooks,
+            IPoolManager poolManager,
+            uint24 fee,
+            bytes32 parameters
+        );
 }

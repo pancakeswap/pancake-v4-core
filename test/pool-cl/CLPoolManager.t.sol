@@ -493,6 +493,15 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
         (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
         assertEq(slot0.sqrtPriceX96, sqrtPriceX96);
+
+        (Currency curr0, Currency curr1, IHooks hooks, IPoolManager pm, uint24 fee, bytes32 parameters) =
+            poolManager.poolIdToPoolKey(key.toId());
+        assertEq(Currency.unwrap(curr0), Currency.unwrap(key.currency0));
+        assertEq(Currency.unwrap(curr1), Currency.unwrap(key.currency1));
+        assertEq(address(hooks), address(key.hooks));
+        assertEq(address(pm), address(key.poolManager));
+        assertEq(fee, key.fee);
+        assertEq(parameters, key.parameters);
     }
 
     function test_initialize_succeedsWithMaxTickSpacing(uint160 sqrtPriceX96) public {

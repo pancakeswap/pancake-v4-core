@@ -138,6 +138,12 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         snapSize("BinPoolManagerBytecodeSize", address(poolManager));
     }
 
+    function testInitialize_gasCheck_withoutHooks() public {
+        snapStart("BinPoolManagerTest#testInitialize_gasCheck_withoutHooks");
+        poolManager.initialize(key, activeId, new bytes(0));
+        snapEnd();
+    }
+
     function test_FuzzInitializePool(uint16 binStep) public {
         binStep = uint16(bound(binStep, poolManager.MIN_BIN_STEP(), poolManager.MAX_BIN_STEP()));
 
@@ -159,6 +165,15 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         emit Initialize(key.toId(), key.currency0, key.currency1, IHooks(address(mockHooks)), key.fee, key.parameters);
 
         poolManager.initialize(key, activeId, new bytes(0));
+
+        (Currency curr0, Currency curr1, IHooks hooks, IPoolManager pm, uint24 fee, bytes32 parameters) =
+            poolManager.poolIdToPoolKey(key.toId());
+        assertEq(Currency.unwrap(curr0), Currency.unwrap(key.currency0));
+        assertEq(Currency.unwrap(curr1), Currency.unwrap(key.currency1));
+        assertEq(address(hooks), address(key.hooks));
+        assertEq(address(pm), address(key.poolManager));
+        assertEq(fee, key.fee);
+        assertEq(parameters, key.parameters);
     }
 
     function test_FuzzInitializePoolUnusedBits(uint256 randomOneBitOffset) external {
