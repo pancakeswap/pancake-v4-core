@@ -59,6 +59,22 @@ contract BinHelperTest is BinTestHelper {
         }
     }
 
+    // run test via: forge test --match-test testLiquidityPOC -vvv
+    function testLiquidityPOC() external {
+        uint24 binId = 8_393_426;
+        uint16 binStep = 10;
+        uint256 price = PriceHelper.getPriceFromId(binId, binStep);
+        assertEq(price, 41997625866672948725687173685150666229626);
+        console2.log("price: ", price);
+
+        uint128 amtX = 1e18;
+        uint128 amtY = 2e18;
+        bytes32 amounts = amtX.encode(amtY);
+        uint256 liquidity = BinHelper.getLiquidity(amounts, price);
+        console2.log("liquidity :", liquidity);
+        assertEq(liquidity, 42678190600514825652613922900014202652538000000000000000000);
+    }
+
     function testFuzz_getSharesAndEffectiveAmountsIn(
         uint128 binReserveX,
         uint128 binReserveY,
