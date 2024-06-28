@@ -17,6 +17,8 @@ import {ProtocolFeeLibrary} from "../../libraries/ProtocolFeeLibrary.sol";
 import {LPFeeLibrary} from "../../libraries/LPFeeLibrary.sol";
 
 library BinPool {
+    event BinSwap(uint24 binId, bytes32 amountsIn, bytes32 amountsOut);
+
     using BinHelper for bytes32;
     using LiquidityConfigurations for bytes32;
     using PackedUint128Math for bytes32;
@@ -178,6 +180,8 @@ library BinPool {
 
                     self.reserveOfBin[swapState.activeId] = binReserves.add(amountsInWithFees).sub(amountsOutOfBin);
                 }
+
+                emit BinSwap(swapState.activeId, amountsInWithFees, amountsOutOfBin);
             }
 
             if (amountsLeft == 0) {
