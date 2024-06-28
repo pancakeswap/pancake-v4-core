@@ -39,16 +39,16 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @param id The abi encoded hash of the pool key struct for the new pool
     /// @param currency0 The first currency of the pool by address sort order
     /// @param currency1 The second currency of the pool by address sort order
-    /// @param fee The lp fee collected upon every swap in the pool, denominated in hundredths of a bip
-    /// @param binStep The bin step in basis point, used to calculate log(1 + binStep / 10_000)
     /// @param hooks The hooks contract address for the pool, or address(0) if none
+    /// @param fee The lp fee collected upon every swap in the pool, denominated in hundredths of a bip
+    /// @param parameters Includes hooks callback bitmap and binStep
     event Initialize(
         PoolId indexed id,
         Currency indexed currency0,
         Currency indexed currency1,
+        IHooks hooks,
         uint24 fee,
-        uint16 binStep,
-        IHooks hooks
+        bytes32 parameters
     );
 
     /// @notice Emitted for swaps between currency0 and currency1
