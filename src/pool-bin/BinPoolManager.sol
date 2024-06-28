@@ -66,9 +66,10 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         external
         view
         override
-        returns (uint128 binReserveX, uint128 binReserveY)
+        returns (uint128 binReserveX, uint128 binReserveY, uint256 binLiquidity)
     {
-        (binReserveX, binReserveY) = pools[id].getBin(binId);
+        PoolKey memory key = poolIdToPoolKey[id];
+        (binReserveX, binReserveY, binLiquidity) = pools[id].getBin(key.parameters.getBinStep(), binId);
     }
 
     /// @inheritdoc IBinPoolManager

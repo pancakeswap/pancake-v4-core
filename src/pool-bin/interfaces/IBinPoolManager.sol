@@ -130,7 +130,11 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @param id The id of the bin
     /// @return binReserveX The reserve of token X in the bin
     /// @return binReserveY The reserve of token Y in the bin
-    function getBin(PoolId id, uint24 binId) external view returns (uint128 binReserveX, uint128 binReserveY);
+    /// @return binLiquidity The liquidity in the bin
+    function getBin(PoolId id, uint24 binId)
+        external
+        view
+        returns (uint128 binReserveX, uint128 binReserveY, uint256 binLiquidity);
 
     /// @notice Returns the positon of owner at a binId
     /// @param id The id of PoolKey
