@@ -146,7 +146,7 @@ contract Vault is IVault, VaultToken, Ownable {
     }
 
     /// @inheritdoc IVault
-    function collectFee(Currency currency, uint256 amount, address recipient) external {
+    function collectFee(Currency currency, uint256 amount, address recipient) external onlyRegisteredApp {
         reservesOfApp[msg.sender][currency] -= amount;
         currency.transfer(recipient, amount);
     }

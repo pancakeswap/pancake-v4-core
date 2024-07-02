@@ -553,8 +553,8 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
         address bob = makeAddr("bob");
         vm.startPrank(bob);
 
-        // expected underflow as reserves are 0 currently
-        vm.expectRevert(stdError.arithmeticError);
+        // expected revert as bob is not a valid pool manager
+        vm.expectRevert(IVault.AppUnregistered.selector);
         vault.collectFee(currency0, 10 ether, bob);
     }
 
