@@ -46,3 +46,5 @@ forge script script/01_DeployVault.s.sol:DeployVaultScript -vvv \
     --slow \
     --verify
 ```
+
+Note you will need to update the `script/config/xxx.json` file to set the vault address that was created in order to deploy the PoolManagers.
