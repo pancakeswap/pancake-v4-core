@@ -32,7 +32,6 @@ contract VaultPoolManager is Test {
     enum ActionType {
         Take,
         Settle,
-        SettleFor,
         Mint,
         Burn
     }
@@ -83,19 +82,6 @@ contract VaultPoolManager is Test {
         token0.mint(address(this), amt0);
         token1.mint(address(this), amt1);
         vault.lock(abi.encode(Action(ActionType.Settle, uint128(amt0), uint128(amt1))));
-    }
-
-    /// @dev In settleFor case, assume user is paying for hook
-    function settleFor(uint256 amt0, uint256 amt1) public {
-        amt0 = bound(amt0, 0, MAX_TOKEN_BALANCE);
-        amt1 = bound(amt1, 0, MAX_TOKEN_BALANCE);
-
-        // make sure the vault has enough liquidity at very beginning
-        settle(amt0, amt1);
-
-        token0.mint(address(this), amt0);
-        token1.mint(address(this), amt1);
-        vault.lock(abi.encode(Action(ActionType.SettleFor, uint128(amt0), uint128(amt1))));
     }
 
     /// @dev In mint case, assume user remove liquidity and mint nft as reciept
@@ -169,24 +155,6 @@ contract VaultPoolManager is Test {
 
             vault.settle(currency0);
             vault.settle(currency1);
-        } else if (action.actionType == ActionType.SettleFor) {
-            // hook cash out the fee ahead
-            BalanceDelta delta = toBalanceDelta(int128(action.amt0), int128(action.amt1));
-            vault.accountAppBalanceDelta(poolKey, delta, makeAddr("hook"));
-
-            // transfer hook's fee to user
-            vault.settleFor(currency0, makeAddr("hook"), action.amt0);
-            vault.settleFor(currency1, makeAddr("hook"), action.amt1);
-
-            vault.sync(currency0);
-            vault.sync(currency1);
-
-            // handle user's own deltas
-            token0.transfer(address(vault), action.amt0);
-            token1.transfer(address(vault), action.amt1);
-
-            vault.settle(currency0);
-            vault.settle(currency1);
         } else if (action.actionType == ActionType.Burn) {
             BalanceDelta delta = toBalanceDelta(int128(action.amt0), int128(action.amt1));
             vault.accountAppBalanceDelta(poolKey, delta, address(this));
@@ -219,13 +187,12 @@ contract VaultInvariant is Test, NoIsolate, GasSnapshot {
         // Only call vaultPoolManager, otherwise all other contracts deployed in setUp will be called
         targetContract(address(vaultPoolManager));
 
-        bytes4[] memory selectors = new bytes4[](6);
+        bytes4[] memory selectors = new bytes4[](5);
         selectors[0] = VaultPoolManager.take.selector;
         selectors[1] = VaultPoolManager.mint.selector;
         selectors[2] = VaultPoolManager.settle.selector;
         selectors[3] = VaultPoolManager.burn.selector;
-        selectors[4] = VaultPoolManager.settleFor.selector;
-        selectors[5] = VaultPoolManager.collectFee.selector;
+        selectors[4] = VaultPoolManager.collectFee.selector;
         targetSelector(FuzzSelector({addr: address(vaultPoolManager), selectors: selectors}));
     }
 
