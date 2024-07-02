@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 import {Constants} from "../../../../src/pool-bin/libraries/Constants.sol";
 import {PackedUint128Math} from "../../../../src/pool-bin/libraries/math/PackedUint128Math.sol";
+import {SafeCast} from "../../../../src/pool-bin/libraries/math/SafeCast.sol";
 import {ProtocolFeeLibrary} from "../../../../src/libraries/ProtocolFeeLibrary.sol";
 
 contract PackedUint128MathTest is Test {
@@ -148,30 +149,42 @@ contract PackedUint128MathTest is Test {
         assertEq(x.gt(y), x1 > y1 || x2 > y2, "testFuzz_GreaterThan::1");
     }
 
-    function testFuzz_getExternalFeeAmt(bytes32 x, uint24 protocolFee, uint24 swapFee) external pure {
-        protocolFee = uint24(bound(protocolFee, 0, 1000_000));
-        swapFee = uint24(bound(swapFee, protocolFee, 1000_000));
+    function testFuzz_getProtocolFeeAmt(bytes32 x, uint24 protocolFee, uint24 swapFee) external pure {
+        protocolFee = uint24(bound(protocolFee, 0, 1_000_000));
+        swapFee = uint24(bound(swapFee, protocolFee, 1_000_000));
 
         (uint128 x1, uint128 x2) = x.decode();
 
         if (protocolFee == 0 || swapFee == 0) {
-            assertEq(x.getExternalFeeAmt(protocolFee, swapFee), 0);
+            assertEq(x.getProtocolFeeAmt(protocolFee, swapFee), 0);
         } else {
             uint24 fee0 = protocolFee % 4096;
             uint24 fee1 = protocolFee >> 12;
 
             uint128 x1Fee = fee0 > 0 ? uint128(uint256(x1) * fee0 / swapFee) : 0;
             uint128 x2Fee = fee1 > 0 ? uint128(uint256(x2) * fee1 / swapFee) : 0;
-            assertEq(x.getExternalFeeAmt(protocolFee, swapFee), uint128(x1Fee).encode(uint128(x2Fee)));
+            assertEq(x.getProtocolFeeAmt(protocolFee, swapFee), uint128(x1Fee).encode(uint128(x2Fee)));
         }
     }
 
-    function test_getExternalFeeAmt() external pure {
+    function test_getProtocolFeeAmt_Overflow() external {
+        bytes32 amounts = uint128(type(uint128).max).encode(uint128(type(uint128).max));
+
+        /// @dev This shouldn't happen as swapFee passed in will be inclusive of protocolFee
+        ///      However, adding safeCast protects against future extension of v4 in the case the fee is not inclusive
+        uint24 protocolFee = 100;
+        uint24 swapFee = 10;
+
+        vm.expectRevert(SafeCast.SafeCastOverflow.selector);
+        amounts.getProtocolFeeAmt(protocolFee, swapFee);
+    }
+
+    function test_getProtocolFeeAmt() external pure {
         {
             // 0% fee
             bytes32 x = uint128(100).encode(uint128(100));
             uint24 fee = (0 << 12) + 0; // amt / 0 = 0%
-            assertEq(x.getExternalFeeAmt(fee, 0), 0);
+            assertEq(x.getProtocolFeeAmt(fee, 0), 0);
         }
 
         {
@@ -180,7 +193,7 @@ contract PackedUint128MathTest is Test {
             uint24 fee = (100 << 12) + 100;
 
             // lpFee 0%
-            assertEq(x.getExternalFeeAmt(fee, 100), uint128(10000).encode(uint128(10000)));
+            assertEq(x.getProtocolFeeAmt(fee, 100), uint128(10000).encode(uint128(10000)));
         }
 
         {
@@ -190,7 +203,7 @@ contract PackedUint128MathTest is Test {
 
             // 0.3% lp fee => swap fee 0.3997%
             uint24 swapFee = ProtocolFeeLibrary.calculateSwapFee(1000, 3000);
-            assertEq(x.getExternalFeeAmt(fee, swapFee), uint128(2501).encode(uint128(2501)));
+            assertEq(x.getProtocolFeeAmt(fee, swapFee), uint128(2501).encode(uint128(2501)));
         }
     }
 }
