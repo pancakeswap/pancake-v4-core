@@ -140,17 +140,6 @@ contract Vault is IVault, VaultToken, Ownable {
     }
 
     /// @inheritdoc IVault
-    function settleFor(Currency currency, address target, uint256 amount) external isLocked {
-        /// @notice settle all outstanding debt if amount is 0
-        /// It will revert if target has positive delta
-        unchecked {
-            if (amount == 0) amount = (-SettlementGuard.getCurrencyDelta(target, currency)).toUint256();
-            SettlementGuard.accountDelta(msg.sender, currency, -(amount.toInt128()));
-            SettlementGuard.accountDelta(target, currency, amount.toInt128());
-        }
-    }
-
-    /// @inheritdoc IVault
     function burn(address from, Currency currency, uint256 amount) external override isLocked {
         SettlementGuard.accountDelta(msg.sender, currency, amount.toInt128());
         _burnFrom(from, currency, amount);
