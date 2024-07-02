@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 
 import {Constants} from "../Constants.sol";
 import {ProtocolFeeLibrary} from "../../../libraries/ProtocolFeeLibrary.sol";
+import {SafeCast} from "./SafeCast.sol";
 
 /// @notice This library contains functions to encode and decode two uint128 into a single bytes32
 ///         and interact with the encoded bytes32.
@@ -223,10 +224,9 @@ library PackedUint128Math {
 
         uint128 feeForX;
         uint128 feeForY;
-        // todo: double check on this unchecked condition
         unchecked {
-            feeForX = fee0 == 0 ? 0 : uint128(uint256(amountX) * fee0 / swapFee);
-            feeForY = fee1 == 0 ? 0 : uint128(uint256(amountY) * fee1 / swapFee);
+            feeForX = fee0 == 0 ? 0 : SafeCast.safe128(uint256(amountX) * fee0 / swapFee);
+            feeForY = fee1 == 0 ? 0 : SafeCast.safe128(uint256(amountY) * fee1 / swapFee);
         }
 
         return encode(feeForX, feeForY);
