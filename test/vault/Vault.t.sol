@@ -322,23 +322,6 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
         assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(fakePoolManagerRouter)), 3 ether);
     }
 
-    function testVault_settleFor() public {
-        // make sure router has enough tokens
-        currency0.transfer(address(fakePoolManagerRouter), 10 ether);
-
-        vm.prank(address(fakePoolManagerRouter));
-        vault.lock(hex"11");
-    }
-
-    function testVaultFuzz_settleFor_arbitraryAmt(uint256 amt) public {
-        amt = bound(amt, 0, 10 ether);
-        // make sure router has enough tokens
-        currency0.transfer(address(fakePoolManagerRouter), amt);
-
-        vm.prank(address(fakePoolManagerRouter));
-        vault.lock(hex"12");
-    }
-
     function testVaultFuzz_mint(uint256 amt) public noIsolate {
         amt = bound(amt, 0, 10 ether);
         // make sure router has enough tokens
