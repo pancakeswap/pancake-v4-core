@@ -204,14 +204,14 @@ contract ProtocolFeesTest is Test {
         assertEq(protocolFee1, 1e15);
 
         // send some token to vault as poolManager.swap doesn't have tokens
-        token0.mint(address(vault), 1e15);
-        token1.mint(address(vault), 1e15);
+        token0.mint(address(vault), 2 * 1e15);
+        token1.mint(address(vault), 2 * 1e15);
 
         // before collect
         assertEq(token0.balanceOf(alice), 0);
         assertEq(token1.balanceOf(alice), 0);
-        assertEq(token0.balanceOf(address(vault)), 1e15);
-        assertEq(token1.balanceOf(address(vault)), 1e15);
+        assertEq(token0.balanceOf(address(vault)), 2 * 1e15);
+        assertEq(token1.balanceOf(address(vault)), 2 * 1e15);
 
         // collect
         vm.prank(address(feeController));
@@ -221,8 +221,72 @@ contract ProtocolFeesTest is Test {
         // after collect
         assertEq(token0.balanceOf(alice), 1e15);
         assertEq(token1.balanceOf(alice), 1e15);
-        assertEq(token0.balanceOf(address(vault)), 0);
-        assertEq(token1.balanceOf(address(vault)), 0);
+        assertEq(token0.balanceOf(address(vault)), 1e15);
+        assertEq(token1.balanceOf(address(vault)), 1e15);
+    }
+
+    function test_CollectProtocolFee_specifyZero() public {
+        // set protocolFee as 0.1% of fee
+        uint24 protocolFee = _buildProtocolFee(ProtocolFeeLibrary.MAX_PROTOCOL_FEE, ProtocolFeeLibrary.MAX_PROTOCOL_FEE);
+        feeController.setProtocolFeeForPool(key, protocolFee);
+        poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
+        poolManager.initialize(key, new bytes(0));
+        (uint256 protocolFee0, uint256 protocolFee1) = poolManager.swap(key, 1e18, 1e18);
+        assertEq(protocolFee0, 1e15);
+        assertEq(protocolFee1, 1e15);
+
+        // send some token to vault as poolManager.swap doesn't have tokens
+        token0.mint(address(vault), 2 * 1e15);
+        token1.mint(address(vault), 2 * 1e15);
+
+        // before collect
+        assertEq(token0.balanceOf(alice), 0);
+        assertEq(token1.balanceOf(alice), 0);
+        assertEq(token0.balanceOf(address(vault)), 2 * 1e15);
+        assertEq(token1.balanceOf(address(vault)), 2 * 1e15);
+
+        // collect with 0 amount
+        vm.prank(address(feeController));
+        poolManager.collectProtocolFees(alice, Currency.wrap(address(token0)), 0);
+        poolManager.collectProtocolFees(alice, Currency.wrap(address(token1)), 0);
+
+        // after collect
+        assertEq(token0.balanceOf(alice), 1e15);
+        assertEq(token1.balanceOf(alice), 1e15);
+        assertEq(token0.balanceOf(address(vault)), 1e15);
+        assertEq(token1.balanceOf(address(vault)), 1e15);
+    }
+
+    function test_CollectProtocolFee_specifyMax() public {
+        // set protocolFee as 0.1% of fee
+        uint24 protocolFee = _buildProtocolFee(ProtocolFeeLibrary.MAX_PROTOCOL_FEE, ProtocolFeeLibrary.MAX_PROTOCOL_FEE);
+        feeController.setProtocolFeeForPool(key, protocolFee);
+        poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
+        poolManager.initialize(key, new bytes(0));
+        (uint256 protocolFee0, uint256 protocolFee1) = poolManager.swap(key, 1e18, 1e18);
+        assertEq(protocolFee0, 1e15);
+        assertEq(protocolFee1, 1e15);
+
+        // send some token to vault as poolManager.swap doesn't have tokens
+        token0.mint(address(vault), 2 * 1e15);
+        token1.mint(address(vault), 2 * 1e15);
+
+        // before collect
+        assertEq(token0.balanceOf(alice), 0);
+        assertEq(token1.balanceOf(alice), 0);
+        assertEq(token0.balanceOf(address(vault)), 2 * 1e15);
+        assertEq(token1.balanceOf(address(vault)), 2 * 1e15);
+
+        // collect with 0 amount
+        vm.prank(address(feeController));
+        poolManager.collectProtocolFees(alice, Currency.wrap(address(token0)), type(uint256).max);
+        poolManager.collectProtocolFees(alice, Currency.wrap(address(token1)), type(uint256).max);
+
+        // after collect
+        assertEq(token0.balanceOf(alice), 1e15);
+        assertEq(token1.balanceOf(alice), 1e15);
+        assertEq(token0.balanceOf(address(vault)), 1e15);
+        assertEq(token1.balanceOf(address(vault)), 1e15);
     }
 
     function _buildProtocolFee(uint24 fee0, uint24 fee1) public pure returns (uint24) {

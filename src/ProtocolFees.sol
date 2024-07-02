@@ -80,6 +80,11 @@ abstract contract ProtocolFees is IProtocolFees, PausableRole {
         if (msg.sender != owner() && msg.sender != address(protocolFeeController)) revert InvalidCaller();
 
         amountCollected = (amount == 0) ? protocolFeesAccrued[currency] : amount;
+        /// @notice ensure that the amount collected does not exceed the amount accrued.
+        if (amountCollected > protocolFeesAccrued[currency]) {
+            amountCollected = protocolFeesAccrued[currency];
+        }
+
         protocolFeesAccrued[currency] -= amountCollected;
         vault.collectFee(currency, amountCollected, recipient);
     }
