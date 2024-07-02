@@ -76,27 +76,6 @@ contract FakePoolManagerRouter is Test {
         } else if (data[0] == 0x10) {
             // call accountPoolBalanceDelta from arbitrary addr
             vault.accountAppBalanceDelta(poolKey, toBalanceDelta(int128(-1), int128(0)), address(0));
-        } else if (data[0] == 0x11) {
-            // settleFor
-            Payer payer = new Payer();
-            payer.settleFor(vault, poolKey.currency0, 5 ether);
-
-            vault.sync(poolKey.currency0);
-            poolKey.currency0.transfer(address(vault), 5 ether);
-            payer.settle(vault, poolKey.currency0);
-
-            vault.take(poolKey.currency0, address(this), 5 ether);
-        } else if (data[0] == 0x12) {
-            // settleFor(, , 0)
-            Payer payer = new Payer();
-
-            vault.sync(poolKey.currency0);
-            uint256 amt = poolKey.currency0.balanceOfSelf();
-            poolKey.currency0.transfer(address(vault), amt);
-            payer.settle(vault, poolKey.currency0);
-
-            vault.take(poolKey.currency0, address(this), amt);
-            payer.settleFor(vault, poolKey.currency0, 0);
         } else if (data[0] == 0x13) {
             // mint
             uint256 amt = poolKey.currency0.balanceOf(address(vault));
@@ -224,10 +203,6 @@ contract Forwarder {
 }
 
 contract Payer {
-    function settleFor(IVault vault, Currency currency, uint256 amt) public {
-        vault.settleFor(currency, msg.sender, amt);
-    }
-
     function settle(IVault vault, Currency currency) public {
         vault.settle(currency);
     }

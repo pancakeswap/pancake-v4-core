@@ -75,12 +75,6 @@ interface IVault is IVaultToken {
     /// @notice Called by the user to pay what is owed
     function settle(Currency token) external payable returns (uint256 paid);
 
-    /// @notice move the delta from target to the msg.sender, only payment delta can be moved
-    /// @param currency The currency to settle
-    /// @param target The address whose delta will be updated
-    /// @param amount The amount to settle. 0 to settle all outstanding debt
-    function settleFor(Currency currency, address target, uint256 amount) external;
-
     /// @notice Called by app to collect any fee related
     /// @dev no restriction on caller, underflow happen if caller collect more than the reserve
     function collectFee(Currency currency, uint256 amount, address recipient) external;

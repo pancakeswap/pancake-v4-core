@@ -170,7 +170,7 @@ library BinPool {
 
                 if (amountsInWithFees > 0) {
                     /// @dev calc protocol fee for current bin, totalFee * protocolFee / (protocolFee + lpFee)
-                    bytes32 pFee = totalFee.getExternalFeeAmt(slot0Cache.protocolFee, swapState.swapFee);
+                    bytes32 pFee = totalFee.getProtocolFeeAmt(slot0Cache.protocolFee, swapState.swapFee);
                     if (pFee != 0) {
                         swapState.feeForProtocol = swapState.feeForProtocol.add(pFee);
                         amountsInWithFees = amountsInWithFees.sub(pFee);

@@ -177,19 +177,18 @@ contract VaultReentrancyTest is Test, TokenFixture {
             // 2. settle
             // 3. mint
             // 4. burn
-            // 5. settleFor
-            // 6. accountPoolBalanceDelta
+            // 5. accountPoolBalanceDelta
 
             address callerAddr = makeAddr(string(abi.encode(i % SETTLERS_AMOUNT)));
             uint256 paidAmount = i * 10;
-            if (i % 6 == 0) {
+            if (i % 5 == 0) {
                 // take
                 vm.startPrank(callerAddr);
                 vault.take(currency0, callerAddr, paidAmount);
                 vm.stopPrank();
 
                 currencyDelta[i % SETTLERS_AMOUNT] -= int256(paidAmount);
-            } else if (i % 6 == 1) {
+            } else if (i % 5 == 1) {
                 // settle
                 vault.sync(currency0);
                 currency0.transfer(address(vault), paidAmount);
@@ -198,7 +197,7 @@ contract VaultReentrancyTest is Test, TokenFixture {
                 vm.stopPrank();
 
                 currencyDelta[i % SETTLERS_AMOUNT] += int256(paidAmount);
-            } else if (i % 6 == 2) {
+            } else if (i % 5 == 2) {
                 // mint
                 vm.startPrank(callerAddr);
                 vault.mint(callerAddr, currency0, paidAmount);
@@ -206,7 +205,7 @@ contract VaultReentrancyTest is Test, TokenFixture {
 
                 currencyDelta[i % SETTLERS_AMOUNT] -= int256(paidAmount);
                 vaultTokenBalance[i % SETTLERS_AMOUNT] += paidAmount;
-            } else if (i % 6 == 3) {
+            } else if (i % 5 == 3) {
                 // burn
                 vm.startPrank(callerAddr);
                 vault.burn(callerAddr, currency0, paidAmount);
@@ -214,21 +213,7 @@ contract VaultReentrancyTest is Test, TokenFixture {
 
                 currencyDelta[i % SETTLERS_AMOUNT] += int256(paidAmount);
                 vaultTokenBalance[i % SETTLERS_AMOUNT] -= paidAmount;
-            } else if (i % 6 == 4) {
-                // settleFor
-                vault.sync(currency0);
-                currency0.transfer(address(vault), paidAmount);
-                vm.startPrank(callerAddr);
-                vault.settle(currency0);
-                vm.stopPrank();
-
-                address target = makeAddr(string(abi.encode((i + 1) % SETTLERS_AMOUNT)));
-                vm.startPrank(callerAddr);
-                vault.settleFor(currency0, target, paidAmount);
-                vm.stopPrank();
-
-                currencyDelta[(i + 1) % SETTLERS_AMOUNT] += int256(paidAmount);
-            } else if (i % 6 == 5) {
+            } else if (i % 5 == 4) {
                 // accountPoolBalanceDelta
                 vm.startPrank(makeAddr("poolManager"));
                 vault.accountAppBalanceDelta(
