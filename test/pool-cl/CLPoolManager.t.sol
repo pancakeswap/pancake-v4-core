@@ -44,6 +44,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
     using LPFeeLibrary for uint24;
     using Hooks for bytes32;
 
+    error ContractSizeTooLarge(uint256 diff);
+
     event Initialize(
         PoolId indexed id,
         Currency indexed currency0,
@@ -98,6 +100,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
     function test_bytecodeSize() public {
         snapSize("CLPoolManagerBytecodeSize", address(poolManager));
+        if (address(poolManager).code.length > 24576) {
+            revert ContractSizeTooLarge(address(poolManager).code.length - 24576);
+        }
     }
 
     // **************              *************** //
