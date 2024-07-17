@@ -121,11 +121,11 @@ library SqrtPriceMath {
     /// @param liquidity The amount of usable liquidity
     /// @param amountIn How much of currency0, or currency1, is being swapped in
     /// @param zeroForOne Whether the amount in is currency0 or currency1
-    /// @return sqrtQX96 The price after adding the input amount to currency0 or currency1
+    /// @return uint160 The price after adding the input amount to currency0 or currency1
     function getNextSqrtPriceFromInput(uint160 sqrtPX96, uint128 liquidity, uint256 amountIn, bool zeroForOne)
         internal
         pure
-        returns (uint160 sqrtQX96)
+        returns (uint160)
     {
         // equivalent: if (sqrtPX96 == 0 || liquidity == 0) revert InvalidPriceOrLiquidity();
         assembly ("memory-safe") {
@@ -147,11 +147,11 @@ library SqrtPriceMath {
     /// @param liquidity The amount of usable liquidity
     /// @param amountOut How much of currency0, or currency1, is being swapped out
     /// @param zeroForOne Whether the amount out is currency0 or currency1
-    /// @return sqrtQX96 The price after removing the output amount of currency0 or currency1
+    /// @return uint160 The price after removing the output amount of currency0 or currency1
     function getNextSqrtPriceFromOutput(uint160 sqrtPX96, uint128 liquidity, uint256 amountOut, bool zeroForOne)
         internal
         pure
-        returns (uint160 sqrtQX96)
+        returns (uint160)
     {
         // equivalent: if (sqrtPX96 == 0 || liquidity == 0) revert InvalidPriceOrLiquidity();
         assembly ("memory-safe") {
@@ -174,11 +174,11 @@ library SqrtPriceMath {
     /// @param sqrtRatioBX96 Another sqrt price
     /// @param liquidity The amount of usable liquidity
     /// @param roundUp Whether to round the amount up or down
-    /// @return amount0 Amount of currency0 required to cover a position of size liquidity between the two passed prices
+    /// @return uint256 Amount of currency0 required to cover a position of size liquidity between the two passed prices
     function getAmount0Delta(uint160 sqrtRatioAX96, uint160 sqrtRatioBX96, uint128 liquidity, bool roundUp)
         internal
         pure
-        returns (uint256 amount0)
+        returns (uint256)
     {
         unchecked {
             if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
@@ -249,11 +249,11 @@ library SqrtPriceMath {
     /// @param sqrtRatioAX96 A sqrt price
     /// @param sqrtRatioBX96 Another sqrt price
     /// @param liquidity The change in liquidity for which to compute the amount0 delta
-    /// @return amount0 Amount of currency0 corresponding to the passed liquidityDelta between the two prices
+    /// @return int256 Amount of currency0 corresponding to the passed liquidityDelta between the two prices
     function getAmount0Delta(uint160 sqrtRatioAX96, uint160 sqrtRatioBX96, int128 liquidity)
         internal
         pure
-        returns (int256 amount0)
+        returns (int256)
     {
         unchecked {
             return liquidity < 0
@@ -266,11 +266,11 @@ library SqrtPriceMath {
     /// @param sqrtRatioAX96 A sqrt price
     /// @param sqrtRatioBX96 Another sqrt price
     /// @param liquidity The change in liquidity for which to compute the amount1 delta
-    /// @return amount1 Amount of currency1 corresponding to the passed liquidityDelta between the two prices
+    /// @return int256 Amount of currency1 corresponding to the passed liquidityDelta between the two prices
     function getAmount1Delta(uint160 sqrtRatioAX96, uint160 sqrtRatioBX96, int128 liquidity)
         internal
         pure
-        returns (int256 amount1)
+        returns (int256)
     {
         unchecked {
             return liquidity < 0
