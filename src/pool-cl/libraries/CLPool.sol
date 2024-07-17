@@ -283,12 +283,12 @@ library CLPool {
                 }
 
                 /// @dev amountCalculated is the amount of output token, hence neg in this case
-                state.amountCalculated = state.amountCalculated + step.amountOut.toInt256();
+                state.amountCalculated += step.amountOut.toInt256();
             } else {
                 unchecked {
                     state.amountSpecifiedRemaining -= step.amountOut.toInt256();
                 }
-                state.amountCalculated = state.amountCalculated - (step.amountIn + step.feeAmount).toInt256();
+                state.amountCalculated -= (step.amountIn + step.feeAmount).toInt256();
             }
 
             /// @dev if the protocol fee is on, calculate how much is owed, decrement feeAmount, and increment protocolFee
