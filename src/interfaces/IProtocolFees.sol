@@ -18,7 +18,7 @@ interface IProtocolFees {
     /// @dev The event is emitted even if the updated protocolFee is the same as previous protocolFee
     event ProtocolFeeUpdated(PoolId indexed id, uint24 protocolFee);
 
-    event ProtocolFeeControllerUpdated(address protocolFeeController);
+    event ProtocolFeeControllerUpdated(address indexed protocolFeeController);
 
     /// @notice Given a currency address, returns the protocol fees accrued in that currency
     function protocolFeesAccrued(Currency) external view returns (uint256);
