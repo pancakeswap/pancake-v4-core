@@ -19,11 +19,11 @@ abstract contract VaultToken is IVaultToken {
                              ERC6909 STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    mapping(address => mapping(address => bool)) public isOperator;
+    mapping(address owner => mapping(address operator => bool isOperator)) public isOperator;
 
-    mapping(address => mapping(Currency currency => uint256)) public balanceOf;
+    mapping(address owner => mapping(Currency currency => uint256 balance)) public balanceOf;
 
-    mapping(address => mapping(address => mapping(Currency currency => uint256))) public allowance;
+    mapping(address owner => mapping(address spender => mapping(Currency currency => uint256 amount))) public allowance;
 
     /*//////////////////////////////////////////////////////////////
                               ERC6909 LOGIC

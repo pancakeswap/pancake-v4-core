@@ -64,8 +64,8 @@ library BinPool {
         mapping(uint256 binId => bytes32 reserve) reserveOfBin;
         /// @notice binId ==> (total share minted)
         mapping(uint256 binId => uint256 share) shareOfBin;
-        /// @notice (user, binId) => shares of user in a binId
-        mapping(bytes32 => BinPosition.Info) positions;
+        /// @notice (user, binId, salt) => shares of user in a binId
+        mapping(bytes32 positionHash => BinPosition.Info info) positions;
         /// @dev todo: cannot nest a struct with mapping, error: recursive type is not allowed for public state variables.
         /// TreeMath.TreeUint24 _tree;
         /// the 3 attributes below come from TreeMath
