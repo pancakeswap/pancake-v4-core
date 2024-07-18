@@ -16,6 +16,7 @@ import {FeeHelper} from "./FeeHelper.sol";
 import {ProtocolFeeLibrary} from "../../libraries/ProtocolFeeLibrary.sol";
 import {LPFeeLibrary} from "../../libraries/LPFeeLibrary.sol";
 
+/// @notice a library with all actions that can be performed on bin pool
 library BinPool {
     using BinHelper for bytes32;
     using LiquidityConfigurations for bytes32;

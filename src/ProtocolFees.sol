@@ -15,9 +15,13 @@ abstract contract ProtocolFees is IProtocolFees, PausableRole {
     using PoolIdLibrary for PoolKey;
     using ProtocolFeeLibrary for uint24;
 
+    /// @inheritdoc IProtocolFees
     mapping(Currency currency => uint256) public protocolFeesAccrued;
 
+    /// @inheritdoc IProtocolFees
     IProtocolFeeController public protocolFeeController;
+
+    /// @inheritdoc IProtocolFees
     IVault public immutable vault;
 
     uint256 private immutable controllerGasLimit;

@@ -16,6 +16,7 @@ import {LiquidityMath} from "./LiquidityMath.sol";
 import {ProtocolFeeLibrary} from "../../libraries/ProtocolFeeLibrary.sol";
 import {LPFeeLibrary} from "../../libraries/LPFeeLibrary.sol";
 
+/// @notice a library with all actions that can be performed on cl pool
 library CLPool {
     using SafeCast for int256;
     using SafeCast for uint256;
