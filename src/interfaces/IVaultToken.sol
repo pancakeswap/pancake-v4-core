@@ -29,20 +29,20 @@ interface IVaultToken {
     /// @param spender The address who is allowed to spend the owner's token
     /// @param currency The currency the spender is allowed to spend
     /// @return amount The amount of token the spender is allowed to spend
-    function allowance(address owner, address spender, Currency currency) external view returns (uint256);
+    function allowance(address owner, address spender, Currency currency) external view returns (uint256 amount);
 
     /// @notice approve spender for using user's token
     /// @param spender The address msg.sender is approving to spend the his token
     /// @param currency The currency the spender is allowed to spend
     /// @param amount The amount of token the spender is allowed to spend
-    /// @return success Whether the approval was successful or not
+    /// @return bool Whether the approval was successful or not
     function approve(address spender, Currency currency, uint256 amount) external returns (bool);
 
     /// @notice transfer msg.sender's token to someone else
     /// @param to The address to transfer the token to
     /// @param currency The currency to transfer
     /// @param amount The amount of token to transfer
-    /// @return success Whether the transfer was successful or not
+    /// @return bool Whether the transfer was successful or not
     function transfer(address to, Currency currency, uint256 amount) external returns (bool);
 
     /// @notice transfer from address's token on behalf of him
@@ -50,6 +50,6 @@ interface IVaultToken {
     /// @param to The address to transfer the token to
     /// @param currency The currency to transfer
     /// @param amount The amount of token to transfer
-    /// @return success Whether the transfer was successful or not
+    /// @return bool Whether the transfer was successful or not
     function transferFrom(address from, address to, Currency currency, uint256 amount) external returns (bool);
 }
