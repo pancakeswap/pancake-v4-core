@@ -145,8 +145,8 @@ contract BinPoolFeeTest is BinTestHelper {
         uint24 activeId = ID_ONE; // where token price are the same
         poolManager.initialize(key, activeId, new bytes(0));
 
-        vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
         bytes memory data = abi.encode(true, uint24(swapFee));
+        vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, uint24(swapFee)));
         addLiquidityToBin(key, poolManager, bob, activeId, 10_000 ether, 10_000 ether, 1e18, 1e18, data);
     }
 
@@ -325,8 +325,8 @@ contract BinPoolFeeTest is BinTestHelper {
         poolManager.initialize(key, activeId, new bytes(0));
         addLiquidityToBin(key, poolManager, bob, activeId, 10_000e18, 10_000e18, 1e18, 1e18, "");
 
-        vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
         bytes memory data = abi.encode(true, uint24(swapFee));
+        vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, uint24(swapFee)));
         poolManager.swap(key, true, 1e18, data);
     }
 

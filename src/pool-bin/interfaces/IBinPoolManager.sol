@@ -16,10 +16,10 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     error PoolManagerMismatch();
 
     /// @notice Pool binStep cannot be lesser than 1. Otherwise there will be no price jump between bin
-    error BinStepTooSmall();
+    error BinStepTooSmall(uint16 binStep);
 
     /// @notice Pool binstep cannot be greater than the limit set at MAX_BIN_STEP
-    error BinStepTooLarge();
+    error BinStepTooLarge(uint16 binStep);
 
     /// @notice Error thrown when owner set max bin step too small
     error MaxBinStepTooSmall(uint16 maxBinStep);

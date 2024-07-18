@@ -79,8 +79,8 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
     }
 
     function testPoolInitializeFailsWithTooLargeFee() public {
-        vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
         staticFeeKey.fee = LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1;
+        vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, staticFeeKey.fee));
         poolManager.initialize(staticFeeKey, SQRT_RATIO_1_1, ZERO_BYTES);
     }
 
@@ -90,7 +90,9 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
         poolManager.initialize(dynamicFeeKey, SQRT_RATIO_1_1, ZERO_BYTES);
 
         hook.setFee(LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1);
-        vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1)
+        );
         vm.prank(address(dynamicFeeKey.hooks));
         poolManager.updateDynamicLPFee(dynamicFeeKey, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1);
     }

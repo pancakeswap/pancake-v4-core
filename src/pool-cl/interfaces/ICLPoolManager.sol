@@ -17,9 +17,9 @@ interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @notice PoolManagerMismatch is thrown when pool manager specified in the pool key does not match current contract
     error PoolManagerMismatch();
     /// @notice Pools are limited to type(int16).max tickSpacing in #initialize, to prevent overflow
-    error TickSpacingTooLarge();
+    error TickSpacingTooLarge(int24 tickSpacing);
     /// @notice Pools must have a positive non-zero tickSpacing passed to #initialize
-    error TickSpacingTooSmall();
+    error TickSpacingTooSmall(int24 tickSpacing);
     /// @notice Error thrown when add liquidity is called when paused()
     error PoolPaused();
     /// @notice Thrown when trying to swap amount of 0

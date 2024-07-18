@@ -9,7 +9,7 @@ import {IVault} from "./IVault.sol";
 
 interface IProtocolFees {
     /// @notice Thrown when the protocol fee exceeds the upper limit.
-    error FeeTooLarge();
+    error ProtocolFeeTooLarge(uint24 fee);
     /// @notice Thrown when not enough gas is provided to look up the protocol fee
     error ProtocolFeeCannotBeFetched();
     /// @notice Thrown when user not authorized to set or collect protocol fee

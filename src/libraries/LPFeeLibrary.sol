@@ -10,7 +10,7 @@ library LPFeeLibrary {
     using LPFeeLibrary for uint24;
 
     /// @notice Thrown when the static/dynamic fee on a pool exceeds 100%.
-    error FeeTooLarge();
+    error LPFeeTooLarge(uint24 fee);
 
     /// @notice mask to remove the override fee flag from a fee returned by the beforeSwaphook
     uint24 public constant OVERRIDE_MASK = 0xBFFFFF;
@@ -38,7 +38,7 @@ library LPFeeLibrary {
     /// @param self The fee to validate
     /// @param maxFee The maximum fee allowed for the pool
     function validate(uint24 self, uint24 maxFee) internal pure {
-        if (self > maxFee) revert FeeTooLarge();
+        if (self > maxFee) revert LPFeeTooLarge(self);
     }
 
     /// @notice gets the initial LP fee for a pool. Dynamic fee pools have an initial fee of 0.

@@ -36,7 +36,7 @@ abstract contract ProtocolFees is IProtocolFees, PausableRole {
     /// @inheritdoc IProtocolFees
     function setProtocolFee(PoolKey memory key, uint24 newProtocolFee) external virtual {
         if (msg.sender != address(protocolFeeController)) revert InvalidCaller();
-        if (!newProtocolFee.validate()) revert FeeTooLarge();
+        if (!newProtocolFee.validate()) revert ProtocolFeeTooLarge(newProtocolFee);
         PoolId id = key.toId();
         _setProtocolFee(id, newProtocolFee);
         emit ProtocolFeeUpdated(id, newProtocolFee);

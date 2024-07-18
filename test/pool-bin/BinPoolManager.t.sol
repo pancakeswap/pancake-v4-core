@@ -51,8 +51,6 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     error PoolAlreadyInitialized();
     error PoolNotInitialized();
     error CurrenciesInitializedOutOfOrder();
-    error BinStepTooSmall();
-    error BinStepTooLarge();
     error MaxBinStepTooSmall(uint16 maxBinStep);
 
     event Initialize(
@@ -265,7 +263,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         binFeeManagerHook.setFee(dynamicSwapFee);
 
         vm.prank(address(binFeeManagerHook));
-        vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
+        vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, dynamicSwapFee));
         poolManager.updateDynamicLPFee(key, dynamicSwapFee);
     }
 
@@ -283,7 +281,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             parameters: bytes32(uint256(bitMap)).setBinStep(10)
         });
 
-        vm.expectRevert(LPFeeLibrary.FeeTooLarge.selector);
+        vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, key.fee));
         poolManager.initialize(key, 10, new bytes(0));
     }
 
@@ -299,7 +297,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             parameters: poolParam.setBinStep(1) // binStep
         });
 
-        vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
+        vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, swapFee));
         poolManager.initialize(key, activeId, "");
     }
 
@@ -313,7 +311,9 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             parameters: poolParam.setBinStep(poolManager.MIN_BIN_STEP() - 1) // binStep
         });
 
-        vm.expectRevert(BinStepTooSmall.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(IBinPoolManager.BinStepTooSmall.selector, poolManager.MIN_BIN_STEP() - 1)
+        );
         poolManager.initialize(key, activeId, "");
 
         key = PoolKey({
@@ -325,7 +325,9 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             parameters: poolParam.setBinStep(poolManager.MAX_BIN_STEP() + 1) // binStep
         });
 
-        vm.expectRevert(BinStepTooLarge.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(IBinPoolManager.BinStepTooLarge.selector, poolManager.MAX_BIN_STEP() + 1)
+        );
         poolManager.initialize(key, activeId, "");
     }
 
@@ -961,7 +963,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
         binFeeManagerHook.setFee(LPFeeLibrary.TEN_PERCENT_FEE + 1);
 
-        vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
+        vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, LPFeeLibrary.TEN_PERCENT_FEE + 1));
         vm.prank(address(binFeeManagerHook));
         poolManager.updateDynamicLPFee(key, LPFeeLibrary.TEN_PERCENT_FEE + 1);
     }
