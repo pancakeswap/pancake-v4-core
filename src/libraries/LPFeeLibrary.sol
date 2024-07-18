@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Copyright (C) 2024 PancakeSwap
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.0;
 
 /// @dev Library for handling lp fee setting from `PoolKey.fee`
 /// It can be either static or dynamic, and upper 4 bits are used to store the flag:
