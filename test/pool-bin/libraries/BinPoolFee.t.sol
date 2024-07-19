@@ -36,26 +36,6 @@ contract BinPoolFeeTest is BinTestHelper {
     using BinPoolParametersHelper for bytes32;
     using SafeCast for uint256;
 
-    event Mint(
-        PoolId indexed id,
-        address indexed sender,
-        uint256[] ids,
-        bytes32 salt,
-        bytes32[] amounts,
-        bytes32 compositionFee,
-        bytes32 pFee
-    );
-    event Burn(PoolId indexed id, address indexed sender, uint256[] ids, bytes32 salt, bytes32[] amounts);
-    event Swap(
-        PoolId indexed id,
-        address indexed sender,
-        int128 amount0,
-        int128 amount1,
-        uint24 activeId,
-        uint24 fee,
-        uint24 pFees
-    );
-
     MockVault public vault;
     BinPoolManager public poolManager;
     MockProtocolFeeController feeController;
@@ -122,7 +102,7 @@ contract BinPoolFeeTest is BinTestHelper {
         ids[0] = binId;
         amounts[0] = expectedAmtInBin;
         vm.expectEmit();
-        emit Mint(key.toId(), bob, ids, 0, amounts, expectedFee, protocolFee);
+        emit IBinPoolManager.Mint(key.toId(), bob, ids, 0, amounts, expectedFee, protocolFee);
         addLiquidityToBin(key, poolManager, bob, binId, amountX, amountY, 4e17, 5e17, "");
     }
 
@@ -188,7 +168,7 @@ contract BinPoolFeeTest is BinTestHelper {
         ids[0] = binId;
         amounts[0] = expectedAmtInBin;
         vm.expectEmit();
-        emit Mint(key.toId(), bob, ids, 0, amounts, expectedFee, protocolFee);
+        emit IBinPoolManager.Mint(key.toId(), bob, ids, 0, amounts, expectedFee, protocolFee);
         addLiquidityToBin(key, poolManager, bob, binId, amountX, amountY, 4e17, 5e17, "");
     }
 
@@ -217,7 +197,7 @@ contract BinPoolFeeTest is BinTestHelper {
         ids[0] = binId;
         amounts[0] = expectedAmtInBin;
         vm.expectEmit();
-        emit Mint(key.toId(), bob, ids, 0, amounts, expectedFee, protocolFee);
+        emit IBinPoolManager.Mint(key.toId(), bob, ids, 0, amounts, expectedFee, protocolFee);
 
         addLiquidityToBin(key, poolManager, bob, binId, amountX, amountY, 4e17, 5e17, "");
 
@@ -259,7 +239,7 @@ contract BinPoolFeeTest is BinTestHelper {
 
         vm.startPrank(bob);
         vm.expectEmit();
-        emit Swap(key.toId(), bob, -1e18, (1e18 * 997) / 1000, activeId, 3000, 0);
+        emit IBinPoolManager.Swap(key.toId(), bob, -1e18, (1e18 * 997) / 1000, activeId, 3000, 0);
 
         // swap: 1e18 X for Y. pool is 0.3% fee
         BalanceDelta delta = poolManager.swap(key, true, -int128(1e18), "0x");

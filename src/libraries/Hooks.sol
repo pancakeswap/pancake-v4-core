@@ -15,6 +15,9 @@ library Hooks {
     using LPFeeLibrary for uint24;
     using ParseBytes for bytes;
 
+    /// @param revertReason bubbled up revert reason
+    error FailedHookCall(bytes revertReason);
+
     /// @notice Hook permissions contain conflict
     ///  1. enabled beforeSwapReturnsDelta, but lacking beforeSwap call
     ///  2. enabled afterSwapReturnsDelta, but lacking afterSwap call

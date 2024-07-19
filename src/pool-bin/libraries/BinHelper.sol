@@ -23,6 +23,7 @@ library BinHelper {
     using BinPoolParametersHelper for bytes32;
     using FeeHelper for uint128;
     using ProtocolFeeLibrary for uint24;
+    using ProtocolFeeLibrary for uint16;
 
     error BinHelper__CompositionFactorFlawed(uint24 id);
     error BinHelper__LiquidityOverflow();
@@ -189,14 +190,14 @@ library BinHelper {
         // if received more X than given X, then swap some Y for X
         if (receivedAmountX > amountX) {
             protocolFee = protocolFee.getOneForZeroFee();
-            uint24 swapFee = uint24(protocolFee).calculateSwapFee(lpFee);
+            uint24 swapFee = uint16(protocolFee).calculateSwapFee(lpFee);
 
             uint128 amtSwapped = amountY - receivedAmountY;
             fees = amtSwapped.getCompositionFee(swapFee).encodeSecond();
             feeForProtocol = amtSwapped.getCompositionFee(protocolFee).encodeSecond();
         } else if (receivedAmountY > amountY) {
             protocolFee = protocolFee.getZeroForOneFee();
-            uint24 swapFee = uint24(protocolFee).calculateSwapFee(lpFee);
+            uint24 swapFee = uint16(protocolFee).calculateSwapFee(lpFee);
 
             uint128 amtSwapped = amountX - receivedAmountX;
             fees = amtSwapped.getCompositionFee(swapFee).encodeFirst();

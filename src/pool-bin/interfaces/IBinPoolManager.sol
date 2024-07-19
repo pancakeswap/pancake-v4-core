@@ -58,7 +58,7 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @param amount1 The delta of the currency1 balance of the pool
     /// @param activeId The activeId of the pool after the swap
     /// @param fee The fee collected upon every swap in the pool (including protocol fee and LP fee), denominated in hundredths of a bip
-    /// @param protocolFee Protocol fee from the swap, also denominated in hundredths of a bip
+    /// @param protocolFee Single direction protocol fee from the swap, also denominated in hundredths of a bip
     event Swap(
         PoolId indexed id,
         address indexed sender,
@@ -66,7 +66,7 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
         int128 amount1,
         uint24 activeId,
         uint24 fee,
-        uint24 protocolFee
+        uint16 protocolFee
     );
 
     /// @notice Emitted when liquidity is added

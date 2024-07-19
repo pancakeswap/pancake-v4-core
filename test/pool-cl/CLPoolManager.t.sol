@@ -44,38 +44,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
     using LPFeeLibrary for uint24;
     using Hooks for bytes32;
 
-    event Initialize(
-        PoolId indexed id,
-        Currency indexed currency0,
-        Currency indexed currency1,
-        IHooks hooks,
-        uint24 fee,
-        bytes32 parameters
-    );
-    event ModifyLiquidity(
-        PoolId indexed poolId,
-        address indexed sender,
-        int24 tickLower,
-        int24 tickUpper,
-        bytes32 salt,
-        int256 liquidityDelta
-    );
-    event Swap(
-        PoolId indexed poolId,
-        address indexed sender,
-        int128 amount0,
-        int128 amount1,
-        uint160 sqrtPriceX96,
-        uint128 liquidity,
-        int24 tick,
-        uint24 fee,
-        uint24 protocolFee
-    );
     event Transfer(address caller, address indexed from, address indexed to, Currency indexed currency, uint256 amount);
-
     event ProtocolFeeUpdated(PoolId indexed id, uint24 protocolFees);
     event DynamicLPFeeUpdated(PoolId indexed id, uint24 dynamicLPFee);
-    event Donate(PoolId indexed id, address indexed sender, uint256 amount0, uint256 amount1, int24 tick);
 
     IVault public vault;
     CLPoolManager public poolManager;
@@ -441,7 +412,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
         } else {
             vm.expectEmit(true, true, true, true);
-            emit Initialize(key.toId(), key.currency0, key.currency1, key.hooks, key.fee, key.parameters);
+            emit ICLPoolManager.Initialize(key.toId(), key.currency0, key.currency1, key.hooks, key.fee, key.parameters);
             poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
 
             (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
@@ -464,7 +435,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         vm.expectEmit(true, true, true, true);
-        emit Initialize(key.toId(), key.currency0, key.currency1, key.hooks, key.fee, key.parameters);
+        emit ICLPoolManager.Initialize(key.toId(), key.currency0, key.currency1, key.hooks, key.fee, key.parameters);
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
 
         (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
@@ -527,7 +498,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         vm.expectEmit(true, true, true, true);
-        emit Initialize(key.toId(), key.currency0, key.currency1, key.hooks, key.fee, key.parameters);
+        emit ICLPoolManager.Initialize(key.toId(), key.currency0, key.currency1, key.hooks, key.fee, key.parameters);
 
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
     }
@@ -664,7 +635,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         mockHooks.setReturnValue(mockHooks.afterInitialize.selector, mockHooks.afterInitialize.selector);
 
         vm.expectEmit(true, true, true, true);
-        emit Initialize(key.toId(), key.currency0, key.currency1, key.hooks, key.fee, key.parameters);
+        emit ICLPoolManager.Initialize(key.toId(), key.currency0, key.currency1, key.hooks, key.fee, key.parameters);
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
     }
@@ -1353,7 +1324,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
 
         vm.expectEmit(true, true, true, true);
-        emit ModifyLiquidity(key.toId(), address(router), 0, 60, 0, 100);
+        emit ICLPoolManager.ModifyLiquidity(key.toId(), address(router), 0, 60, 0, 100);
 
         router.modifyPosition(
             key,
@@ -1376,7 +1347,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
         vm.expectEmit(true, true, true, true);
-        emit ModifyLiquidity(key.toId(), address(router), 0, 60, 0, 100);
+        emit ICLPoolManager.ModifyLiquidity(key.toId(), address(router), 0, 60, 0, 100);
 
         router.modifyPosition{value: 100}(
             key,
@@ -1478,7 +1449,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         mockHooks.setReturnValue(mockHooks.afterAddLiquidity.selector, mockHooks.afterAddLiquidity.selector);
 
         vm.expectEmit(true, true, true, true);
-        emit ModifyLiquidity(key.toId(), address(router), 0, 60, 0, 100);
+        emit ICLPoolManager.ModifyLiquidity(key.toId(), address(router), 0, 60, 0, 100);
 
         router.modifyPosition(key, params, ZERO_BYTES);
     }
@@ -1807,7 +1778,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         router.modifyPosition(key, modifyPositionParams, ZERO_BYTES);
 
         vm.expectEmit(true, true, true, true);
-        emit Swap(
+        emit ICLPoolManager.Swap(
             key.toId(), address(router), -100, 98, 79228162514264329749955861424, 1000000000000000000, -1, 3000, 0
         );
 
@@ -1843,7 +1814,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         // similar result to testSwap_succeedsIfInitialized above, except swapFee is twice due to dynamic fee
         vm.expectEmit(true, true, true, true);
-        emit Swap(
+        emit ICLPoolManager.Swap(
             key.toId(), address(router), -100, 97, 79228162514264329829184023939, 1000000000000000000, -1, 12000, 0
         );
 
@@ -1884,7 +1855,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         // 0.1% protocol fee first then 0.3% lp fee charged for the remaining i.e. 0.3997% in total
         vm.expectEmit(true, true, true, true);
-        emit Swap(
+        emit ICLPoolManager.Swap(
             key.toId(),
             address(router),
             // amt0 = -3013394245478362 and amt1 = 2995354955910780 if it goes without protocol fee
@@ -1929,7 +1900,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
         vm.expectEmit(true, true, true, true);
-        emit Swap(key.toId(), address(router), 0, 0, SQRT_RATIO_1_2, 0, -6932, 3000, 0);
+        emit ICLPoolManager.Swap(key.toId(), address(router), 0, 0, SQRT_RATIO_1_2, 0, -6932, 3000, 0);
 
         router.swap(key, params, testSettings, ZERO_BYTES);
     }
@@ -2041,7 +2012,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         mockHooks.setReturnValue(mockHooks.afterSwap.selector, mockHooks.afterSwap.selector);
 
         vm.expectEmit(true, true, true, true);
-        emit Swap(key.toId(), address(router), 0, 0, SQRT_RATIO_1_2, 0, -6932, 100, 0);
+        emit ICLPoolManager.Swap(key.toId(), address(router), 0, 0, SQRT_RATIO_1_2, 0, -6932, 100, 0);
 
         router.swap(key, swapParams, testSettings, ZERO_BYTES);
     }
@@ -2517,7 +2488,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         (, int24 tick,,) = poolManager.getSlot0(key.toId());
 
         vm.expectEmit();
-        emit Donate(key.toId(), address(router), 100, 0, tick);
+        emit ICLPoolManager.Donate(key.toId(), address(router), 100, 0, tick);
 
         router.donate(key, 100, 0, ZERO_BYTES);
     }

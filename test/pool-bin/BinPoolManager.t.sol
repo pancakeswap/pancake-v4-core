@@ -53,34 +53,6 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     error CurrenciesInitializedOutOfOrder();
     error MaxBinStepTooSmall(uint16 maxBinStep);
 
-    event Initialize(
-        PoolId indexed id,
-        Currency indexed currency0,
-        Currency indexed currency1,
-        IHooks hooks,
-        uint24 fee,
-        bytes32 parameters
-    );
-    event Mint(
-        PoolId indexed id,
-        address indexed sender,
-        uint256[] ids,
-        bytes32 salt,
-        bytes32[] amounts,
-        bytes32 compositionFee,
-        bytes32 pFees
-    );
-    event Burn(PoolId indexed id, address indexed sender, uint256[] ids, bytes32 salt, bytes32[] amounts);
-    event Swap(
-        PoolId indexed id,
-        address indexed sender,
-        int128 amount0,
-        int128 amount1,
-        uint24 activeId,
-        uint24 fee,
-        uint24 pFees
-    );
-    event Donate(PoolId indexed id, address indexed sender, int128 amount0, int128 amount1, uint24 binId);
     event ProtocolFeeUpdated(PoolId indexed id, uint24 protocolFees);
     event SetMaxBinStep(uint16 maxBinStep);
     event DynamicLPFeeUpdated(PoolId indexed id, uint24 dynamicSwapFee);
@@ -164,7 +136,9 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         });
 
         vm.expectEmit();
-        emit Initialize(key.toId(), key.currency0, key.currency1, IHooks(address(mockHooks)), key.fee, key.parameters);
+        emit IBinPoolManager.Initialize(
+            key.toId(), key.currency0, key.currency1, IHooks(address(mockHooks)), key.fee, key.parameters
+        );
 
         poolManager.initialize(key, activeId, new bytes(0));
 
@@ -345,7 +319,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         vm.expectEmit();
         bytes32 compositionFee = uint128(0).encode(uint128(0));
         bytes32 pFee = uint128(0).encode(uint128(0));
-        emit Mint(key.toId(), address(binLiquidityHelper), ids, 0, amounts, compositionFee, pFee);
+        emit IBinPoolManager.Mint(key.toId(), address(binLiquidityHelper), ids, 0, amounts, compositionFee, pFee);
 
         snapStart("BinPoolManagerTest#testGasMintOneBin-1");
         binLiquidityHelper.mint(key, mintParams, "");
@@ -394,7 +368,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         bytes32 compositionFee = uint128(0).encode(uint128(0));
         bytes32 pFee = uint128(0).encode(uint128(0));
         vm.expectEmit();
-        emit Mint(key.toId(), address(binLiquidityHelper), ids, 0, amounts, compositionFee, pFee);
+        emit IBinPoolManager.Mint(key.toId(), address(binLiquidityHelper), ids, 0, amounts, compositionFee, pFee);
 
         // 1 ether as add 1 ether in native currency
         snapStart("BinPoolManagerTest#testMintNativeCurrency");
@@ -617,7 +591,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         ids[0] = activeId;
         amounts[0] = uint128(1e18).encode(uint128(1e18));
         vm.expectEmit();
-        emit Burn(key.toId(), address(binLiquidityHelper), ids, 0, amounts);
+        emit IBinPoolManager.Burn(key.toId(), address(binLiquidityHelper), ids, 0, amounts);
 
         snapStart("BinPoolManagerTest#testGasBurnOneBin");
         binLiquidityHelper.burn(key, burnParams, "");
@@ -686,7 +660,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         ids[0] = activeId;
         amounts[0] = uint128(1e18).encode(uint128(1e18));
         vm.expectEmit();
-        emit Burn(key.toId(), address(binLiquidityHelper), ids, 0, amounts);
+        emit IBinPoolManager.Burn(key.toId(), address(binLiquidityHelper), ids, 0, amounts);
 
         snapStart("BinPoolManagerTest#testBurnNativeCurrency");
         binLiquidityHelper.burn(key, burnParams, "");
@@ -708,7 +682,9 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         BinSwapHelper.TestSettings memory testSettings =
             BinSwapHelper.TestSettings({withdrawTokens: true, settleUsingTransfer: true});
         vm.expectEmit();
-        emit Swap(key.toId(), address(binSwapHelper), -1 ether, (1 ether * 997) / 1000, activeId, key.fee, 0);
+        emit IBinPoolManager.Swap(
+            key.toId(), address(binSwapHelper), -1 ether, (1 ether * 997) / 1000, activeId, key.fee, 0
+        );
 
         snapStart("BinPoolManagerTest#testGasSwapSingleBin");
         binSwapHelper.swap(key, true, -int128(1 ether), testSettings, "");
@@ -772,7 +748,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         binLiquidityHelper.mint(key, mintParams, "");
 
         vm.expectEmit();
-        emit Donate(key.toId(), address(binDonateHelper), -10 ether, -10 ether, activeId);
+        emit IBinPoolManager.Donate(key.toId(), address(binDonateHelper), -10 ether, -10 ether, activeId);
 
         snapStart("BinPoolManagerTest#testGasDonate");
         binDonateHelper.donate(key, 10 ether, 10 ether, "");

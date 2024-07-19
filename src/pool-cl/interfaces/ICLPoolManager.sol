@@ -61,7 +61,7 @@ interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @param liquidity The liquidity of the pool after the swap
     /// @param tick The log base 1.0001 of the price of the pool after the swap
     /// @param fee The fee collected upon every swap in the pool (including protocol fee and LP fee), denominated in hundredths of a bip
-    /// @param protocolFee Protocol fee from the swap, also denominated in hundredths of a bip
+    /// @param protocolFee Single direction protocol fee from the swap, also denominated in hundredths of a bip
     event Swap(
         PoolId indexed id,
         address indexed sender,
@@ -71,7 +71,7 @@ interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload {
         uint128 liquidity,
         int24 tick,
         uint24 fee,
-        uint24 protocolFee
+        uint16 protocolFee
     );
 
     /// @notice Emitted when donate happen
@@ -159,10 +159,15 @@ interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// the hook may alter the swap input/output. Integrators should perform checks on the returned swapDelta.
     function swap(PoolKey memory key, SwapParams memory params, bytes calldata hookData)
         external
-        returns (BalanceDelta);
+        returns (BalanceDelta delta);
 
     /// @notice Donate the given currency amounts to the pool with the given pool key
+    /// @param key The pool to donate to
+    /// @param amount0 The amount of currency0 to donate
+    /// @param amount1 The amount of currency1 to donate
+    /// @param hookData Any data to pass to the callback
+    /// @return delta The balance delta of the address donating
     function donate(PoolKey memory key, uint256 amount0, uint256 amount1, bytes calldata hookData)
         external
-        returns (BalanceDelta);
+        returns (BalanceDelta delta);
 }
