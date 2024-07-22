@@ -16,7 +16,6 @@ import {Tick} from "./libraries/Tick.sol";
 import {CLPoolParametersHelper} from "./libraries/CLPoolParametersHelper.sol";
 import {ParametersHelper} from "../libraries/math/ParametersHelper.sol";
 import {LPFeeLibrary} from "../libraries/LPFeeLibrary.sol";
-import {PoolId, PoolIdLibrary} from "../types/PoolId.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../types/BalanceDelta.sol";
 import {Extsload} from "../Extsload.sol";
 import {SafeCast} from "../libraries/SafeCast.sol";
