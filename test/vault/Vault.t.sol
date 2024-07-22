@@ -26,6 +26,8 @@ import {NoIsolate} from "../helpers/NoIsolate.sol";
 contract VaultTest is Test, NoIsolate, GasSnapshot {
     using PoolIdLibrary for PoolKey;
 
+    error ContractSizeTooLarge(uint256 diff);
+
     event AppRegistered(address indexed app);
     event LockAcquired();
 
@@ -82,6 +84,9 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
 
     function test_bytecodeSize() public {
         snapSize("VaultBytecodeSize", address(vault));
+        if (address(vault).code.length > 24576) {
+            revert ContractSizeTooLarge(address(vault).code.length - 24576);
+        }
     }
 
     function testRegisterPoolManager() public {

@@ -44,6 +44,35 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
     using LPFeeLibrary for uint24;
     using Hooks for bytes32;
 
+    error ContractSizeTooLarge(uint256 diff);
+
+    event Initialize(
+        PoolId indexed id,
+        Currency indexed currency0,
+        Currency indexed currency1,
+        IHooks hooks,
+        uint24 fee,
+        bytes32 parameters
+    );
+    event ModifyLiquidity(
+        PoolId indexed poolId,
+        address indexed sender,
+        int24 tickLower,
+        int24 tickUpper,
+        bytes32 salt,
+        int256 liquidityDelta
+    );
+    event Swap(
+        PoolId indexed poolId,
+        address indexed sender,
+        int128 amount0,
+        int128 amount1,
+        uint160 sqrtPriceX96,
+        uint128 liquidity,
+        int24 tick,
+        uint24 fee,
+        uint24 protocolFee
+    );
     event Transfer(address caller, address indexed from, address indexed to, Currency indexed currency, uint256 amount);
     event ProtocolFeeUpdated(PoolId indexed id, uint24 protocolFees);
     event DynamicLPFeeUpdated(PoolId indexed id, uint24 dynamicLPFee);
@@ -69,6 +98,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
     function test_bytecodeSize() public {
         snapSize("CLPoolManagerBytecodeSize", address(poolManager));
+        if (address(poolManager).code.length > 24576) {
+            revert ContractSizeTooLarge(address(poolManager).code.length - 24576);
+        }
     }
 
     // **************              *************** //

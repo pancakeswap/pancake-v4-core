@@ -52,6 +52,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     error PoolNotInitialized();
     error CurrenciesInitializedOutOfOrder();
     error MaxBinStepTooSmall(uint16 maxBinStep);
+    error ContractSizeTooLarge(uint256 diff);
 
     event ProtocolFeeUpdated(PoolId indexed id, uint24 protocolFees);
     event SetMaxBinStep(uint16 maxBinStep);
@@ -110,6 +111,9 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
     function test_bytecodeSize() public {
         snapSize("BinPoolManagerBytecodeSize", address(poolManager));
+        if (address(poolManager).code.length > 24576) {
+            revert ContractSizeTooLarge(address(poolManager).code.length - 24576);
+        }
     }
 
     function testInitialize_gasCheck_withoutHooks() public {
