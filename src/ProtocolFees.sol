@@ -16,7 +16,7 @@ abstract contract ProtocolFees is IProtocolFees, PausableRole {
     using ProtocolFeeLibrary for uint24;
 
     /// @inheritdoc IProtocolFees
-    mapping(Currency currency => uint256) public protocolFeesAccrued;
+    mapping(Currency currency => uint256 amount) public protocolFeesAccrued;
 
     /// @inheritdoc IProtocolFees
     IProtocolFeeController public protocolFeeController;

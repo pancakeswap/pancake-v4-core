@@ -10,14 +10,15 @@ import {IVault} from "../interfaces/IVault.sol";
 ///  - 1: uint256 unsettledDeltasCount
 ///  - 2: mapping(address, mapping(Currency => int256)) currencyDelta
 library SettlementGuard {
-    /// @dev uint256 constant LOCKER_SLOT = uint256(keccak256("SETTLEMENT_LOCKER")) - 1;
-    uint256 constant LOCKER_SLOT = 0xedda7c051899c54dd66eaf5e13c031326ab4729812a579bed198ab93fd313d70;
+    /// @dev uint256 internal constant LOCKER_SLOT = uint256(keccak256("SETTLEMENT_LOCKER")) - 1;
+    uint256 internal constant LOCKER_SLOT = 0xedda7c051899c54dd66eaf5e13c031326ab4729812a579bed198ab93fd313d70;
 
-    /// @dev uint256 constant UNSETTLED_DELTAS_COUNT = uint256(keccak256("SETTLEMENT_UNSETTLEMENTD_DELTAS_COUNT")) - 1;
-    uint256 constant UNSETTLED_DELTAS_COUNT = 0xa88ffc6a483ae852b901fb1c3a0df606e2e4461b493434e6643ebdc3ffabd151;
+    /// @dev uint256 internal constant UNSETTLED_DELTAS_COUNT = uint256(keccak256("SETTLEMENT_UNSETTLEMENTD_DELTAS_COUNT")) - 1;
+    uint256 internal constant UNSETTLED_DELTAS_COUNT =
+        0xa88ffc6a483ae852b901fb1c3a0df606e2e4461b493434e6643ebdc3ffabd151;
 
-    /// @dev uint256 constant CURRENCY_DELTA = uint256(keccak256("SETTLEMENT_CURRENCY_DELTA")) - 1;
-    uint256 constant CURRENCY_DELTA = 0x6dc13502b9ba2a9e8e42c53a1856d632b29d5aab3bcb4a2476bfec06cbd9cf22;
+    /// @dev uint256 internal constant CURRENCY_DELTA = uint256(keccak256("SETTLEMENT_CURRENCY_DELTA")) - 1;
+    uint256 internal constant CURRENCY_DELTA = 0x6dc13502b9ba2a9e8e42c53a1856d632b29d5aab3bcb4a2476bfec06cbd9cf22;
 
     /// @notice Update the locker address stored in the transient store
     /// @param newLocker The new locker address

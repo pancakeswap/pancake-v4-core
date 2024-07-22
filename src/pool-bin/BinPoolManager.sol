@@ -38,9 +38,9 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
     /// @inheritdoc IBinPoolManager
     uint16 public override MAX_BIN_STEP = 100;
 
-    mapping(PoolId id => BinPool.State) public pools;
+    mapping(PoolId id => BinPool.State poolState) public pools;
 
-    mapping(PoolId id => PoolKey) public poolIdToPoolKey;
+    mapping(PoolId id => PoolKey poolKey) public poolIdToPoolKey;
 
     constructor(IVault vault, uint256 controllerGasLimit) ProtocolFees(vault, controllerGasLimit) {}
 

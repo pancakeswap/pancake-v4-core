@@ -36,8 +36,6 @@ contract ProtocolFeesTest is Test {
     MockERC20 token0;
     MockERC20 token1;
 
-    event ProtocolFeeControllerUpdated(address protocolFeeController);
-
     function setUp() public {
         vault = new MockVault();
         poolManager = new MockFeePoolManager(IVault(address(vault)), 500_000);
@@ -63,7 +61,7 @@ contract ProtocolFeesTest is Test {
 
     function testSetProtocolFeeController() public {
         vm.expectEmit();
-        emit ProtocolFeeControllerUpdated(address(feeController));
+        emit IProtocolFees.ProtocolFeeControllerUpdated(address(feeController));
 
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
         assertEq(address(poolManager.protocolFeeController()), address(feeController));

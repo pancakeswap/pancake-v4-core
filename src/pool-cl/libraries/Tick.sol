@@ -60,7 +60,7 @@ library Tick {
         int24 MAX_TICK = TickMath.MAX_TICK;
         int24 MIN_TICK = TickMath.MIN_TICK;
         // tick spacing will never be 0 since TickMath.MIN_TICK_SPACING is 1
-        assembly {
+        assembly ("memory-safe") {
             let minTick := mul(sdiv(MIN_TICK, tickSpacing), tickSpacing)
             let maxTick := mul(sdiv(MAX_TICK, tickSpacing), tickSpacing)
             let numTicks := add(sdiv(sub(maxTick, minTick), tickSpacing), 1)

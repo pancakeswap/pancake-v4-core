@@ -11,10 +11,10 @@ library VaultReserves {
     error ReserveNotSync();
 
     // uint256 constant RESERVE_OF_VAULT_SLOT = uint256(keccak256("reservesOfVault")) - 1;
-    uint256 constant RESERVE_OF_VAULT_SLOT = 0xb54c65c0f448723e3496562a0e878a1341c4dd2511ef542b5fd5f19cebc47663;
+    uint256 internal constant RESERVE_OF_VAULT_SLOT = 0xb54c65c0f448723e3496562a0e878a1341c4dd2511ef542b5fd5f19cebc47663;
 
     /// @notice Set balance to the max as a sentinel to track that it has been set if amount == 0
-    uint256 constant ZERO_BALANCE = type(uint256).max;
+    uint256 internal constant ZERO_BALANCE = type(uint256).max;
 
     /// @notice Transient store the currency reserve
     /// @dev if the amount is 0, the value stored would be ZERO_BALANCE, a sentinel value
