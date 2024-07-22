@@ -152,7 +152,7 @@ contract Vault is IVault, VaultToken, Ownable {
     }
 
     /// @inheritdoc IVault
-    function reservesOfVault(Currency currency) external view returns (uint256 amount) {
+    function reservesOfVault(Currency currency) external view returns (uint256) {
         return currency.getVaultReserves();
     }
 
