@@ -66,9 +66,9 @@ library CLPool {
         uint256 feeGrowthGlobal1X128;
         /// @dev current active liquidity
         uint128 liquidity;
-        mapping(int24 => Tick.Info) ticks;
-        mapping(int16 => uint256) tickBitmap;
-        mapping(bytes32 => CLPosition.Info) positions;
+        mapping(int24 tick => Tick.Info info) ticks;
+        mapping(int16 pos => uint256 bitmap) tickBitmap;
+        mapping(bytes32 positionHash => CLPosition.Info info) positions;
     }
 
     function initialize(State storage self, uint160 sqrtPriceX96, uint24 protocolFee, uint24 lpFee)
@@ -283,12 +283,12 @@ library CLPool {
                 }
 
                 /// @dev amountCalculated is the amount of output token, hence neg in this case
-                state.amountCalculated = state.amountCalculated + step.amountOut.toInt256();
+                state.amountCalculated += step.amountOut.toInt256();
             } else {
                 unchecked {
                     state.amountSpecifiedRemaining -= step.amountOut.toInt256();
                 }
-                state.amountCalculated = state.amountCalculated - (step.amountIn + step.feeAmount).toInt256();
+                state.amountCalculated -= (step.amountIn + step.feeAmount).toInt256();
             }
 
             /// @dev if the protocol fee is on, calculate how much is owed, decrement feeAmount, and increment protocolFee

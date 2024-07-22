@@ -19,11 +19,11 @@ abstract contract VaultToken is IVaultToken {
                              ERC6909 STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    mapping(address => mapping(address => bool)) public isOperator;
+    mapping(address owner => mapping(address operator => bool isOperator)) public isOperator;
 
-    mapping(address => mapping(Currency currency => uint256)) public balanceOf;
+    mapping(address owner => mapping(Currency currency => uint256 balance)) public balanceOf;
 
-    mapping(address => mapping(address => mapping(Currency currency => uint256))) public allowance;
+    mapping(address owner => mapping(address spender => mapping(Currency currency => uint256 amount))) public allowance;
 
     /*//////////////////////////////////////////////////////////////
                               ERC6909 LOGIC
@@ -46,7 +46,7 @@ abstract contract VaultToken is IVaultToken {
     {
         if (msg.sender != sender && !isOperator[sender][msg.sender]) {
             uint256 allowed = allowance[sender][msg.sender][currency];
-            if (allowed != type(uint256).max) allowance[sender][msg.sender][currency] = allowed - amount;
+            if (allowed != type(uint256).max) allowance[sender][msg.sender][currency] -= amount;
         }
 
         balanceOf[sender][currency] -= amount;
@@ -102,7 +102,7 @@ abstract contract VaultToken is IVaultToken {
     function _burnFrom(address from, Currency currency, uint256 amount) internal virtual {
         if (msg.sender != from && !isOperator[from][msg.sender]) {
             uint256 allowed = allowance[from][msg.sender][currency];
-            if (allowed != type(uint256).max) allowance[from][msg.sender][currency] = allowed - amount;
+            if (allowed != type(uint256).max) allowance[from][msg.sender][currency] -= amount;
         }
 
         _burn(from, currency, amount);

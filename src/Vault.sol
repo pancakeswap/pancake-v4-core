@@ -20,10 +20,10 @@ contract Vault is IVault, VaultToken, Ownable {
     using CurrencyLibrary for Currency;
     using VaultReserves for Currency;
 
-    mapping(address => bool) public override isAppRegistered;
+    mapping(address app => bool isRegistered) public override isAppRegistered;
 
     /// @dev keep track of each app's reserves
-    mapping(address => mapping(Currency currency => uint256 reserve)) public reservesOfApp;
+    mapping(address app => mapping(Currency currency => uint256 reserve)) public reservesOfApp;
 
     /// @notice only registered app is allowed to perform accounting
     modifier onlyRegisteredApp() {
@@ -152,7 +152,7 @@ contract Vault is IVault, VaultToken, Ownable {
     }
 
     /// @inheritdoc IVault
-    function reservesOfVault(Currency currency) external view returns (uint256 amount) {
+    function reservesOfVault(Currency currency) external view returns (uint256) {
         return currency.getVaultReserves();
     }
 

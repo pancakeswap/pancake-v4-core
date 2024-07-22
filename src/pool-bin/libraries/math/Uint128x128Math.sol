@@ -12,9 +12,9 @@ library Uint128x128Math {
     error Uint128x128Math__LogUnderflow();
     error Uint128x128Math__PowUnderflow(uint256 x, int256 y);
 
-    uint256 constant LOG_SCALE_OFFSET = 127;
-    uint256 constant LOG_SCALE = 1 << LOG_SCALE_OFFSET;
-    uint256 constant LOG_SCALE_SQUARED = LOG_SCALE * LOG_SCALE;
+    uint256 internal constant LOG_SCALE_OFFSET = 127;
+    uint256 internal constant LOG_SCALE = 1 << LOG_SCALE_OFFSET;
+    uint256 internal constant LOG_SCALE_SQUARED = LOG_SCALE * LOG_SCALE;
 
     /// @notice Calculates the binary logarithm of x.
     /// @dev Based on the iterative approximation algorithm.

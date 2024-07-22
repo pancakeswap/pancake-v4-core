@@ -9,10 +9,10 @@ library Constants {
     uint160 public constant SQRT_RATIO_4_1 = 158456325028528675187087900672;
     uint160 public constant SQRT_RATIO_121_100 = 87150978765690771352898345369;
 
-    uint256 constant MAX_UINT256 = type(uint256).max;
-    uint128 constant MAX_UINT128 = type(uint128).max;
-    uint160 constant MAX_UINT160 = type(uint160).max;
+    uint256 public constant MAX_UINT256 = type(uint256).max;
+    uint128 public constant MAX_UINT128 = type(uint128).max;
+    uint160 public constant MAX_UINT160 = type(uint160).max;
 
-    int24 constant MIN_TICK = -887272;
-    int24 constant MAX_TICK = 887272;
+    int24 public constant MIN_TICK = -887272;
+    int24 public constant MAX_TICK = 887272;
 }

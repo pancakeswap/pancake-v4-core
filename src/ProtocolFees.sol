@@ -15,7 +15,7 @@ abstract contract ProtocolFees is IProtocolFees, PausableRole {
     using PoolIdLibrary for PoolKey;
     using ProtocolFeeLibrary for uint24;
 
-    mapping(Currency currency => uint256) public protocolFeesAccrued;
+    mapping(Currency currency => uint256 amount) public protocolFeesAccrued;
 
     IProtocolFeeController public protocolFeeController;
     IVault public immutable vault;

@@ -39,9 +39,9 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     /// @inheritdoc ICLPoolManager
     int24 public constant override MIN_TICK_SPACING = 1;
 
-    mapping(PoolId id => CLPool.State) public pools;
+    mapping(PoolId id => CLPool.State poolState) public pools;
 
-    mapping(PoolId id => PoolKey) public poolIdToPoolKey;
+    mapping(PoolId id => PoolKey poolKey) public poolIdToPoolKey;
 
     constructor(IVault _vault, uint256 controllerGasLimit) ProtocolFees(_vault, controllerGasLimit) {}
 
