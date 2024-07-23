@@ -178,4 +178,47 @@ contract CLProtocolFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
         /// The following assertion makes sure this doesn't happen.
         assertLe(gasConsumed, 800_000, "gas griefing vector");
     }
+
+    function testProtocolFeeController() public {
+        IProtocolFeeController controller = IProtocolFeeController(address(new MaliciousProtocolFeeController()));
+        manager.setProtocolFeeController(controller);
+
+        // the original pool has already been initialized, hence we need to pick a new pool
+        key.fee = 6000;
+
+        snapStart("testProtocolFeeController#initialize");
+        manager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
+        snapEnd();
+
+        (uint160 sqrtPriceX96,, uint24 protocolFee,) = manager.getSlot0(key.toId());
+        assertEq(protocolFee, 10);
+        assertEq(sqrtPriceX96, SQRT_RATIO_1_1);
+    }
+
+    function testProtocolFeeControllerWithNotEnoughGasLimit() public {
+        IProtocolFeeController controller = IProtocolFeeController(address(new MaliciousProtocolFeeController()));
+        manager.setProtocolFeeController(controller);
+
+        // the original pool has already been initialized, hence we need to pick a new pool
+        key.fee = 6000;
+
+        vm.expectRevert(IProtocolFees.ProtocolFeeCannotBeFetched.selector);
+        manager.initialize{gas: 500000}(key, SQRT_RATIO_1_1, ZERO_BYTES);
+    }
+
+    function testProtocolFeeControllerWithEnoughGaslimit() public {
+        IProtocolFeeController controller = IProtocolFeeController(address(new MaliciousProtocolFeeController()));
+        manager.setProtocolFeeController(controller);
+
+        // the original pool has already been initialized, hence we need to pick a new pool
+        key.fee = 6000;
+
+        snapStart("testProtocolFeeControllerWithEnoughGaslimit#initialize");
+        manager.initialize{gas: 520000}(key, SQRT_RATIO_1_1, ZERO_BYTES);
+        snapEnd();
+
+        (uint160 sqrtPriceX96,, uint24 protocolFee,) = manager.getSlot0(key.toId());
+        assertEq(protocolFee, 10);
+        assertEq(sqrtPriceX96, SQRT_RATIO_1_1);
+    }
 }

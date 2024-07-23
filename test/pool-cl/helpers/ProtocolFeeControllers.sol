@@ -21,12 +21,16 @@ contract MockProtocolFeeController is IProtocolFeeController {
 }
 
 contract MaliciousProtocolFeeController {
-    function protocolFeeForPool(PoolKey memory) external pure returns (bytes memory payload) {
-        /// @dev return a payload that is large enough but not to cause OOG in current calling context
-        /// The function should successfully return so that the payload will be copied to the caller
-        /// context which maximize the gas consumes and makes it larger than simply running out of gas
-        /// in current contex.
-        payload = new bytes(230_000);
-        payload[payload.length - 1] = 0x01;
+    // function protocolFeeForPool(PoolKey memory) external pure returns (bytes memory payload) {
+    //     /// @dev return a payload that is large enough but not to cause OOG in current calling context
+    //     /// The function should successfully return so that the payload will be copied to the caller
+    //     /// context which maximize the gas consumes and makes it larger than simply running out of gas
+    //     /// in current contex.
+    //     payload = new bytes(230_000);
+    //     payload[payload.length - 1] = 0x01;
+    // }
+
+    function protocolFeeForPool(PoolKey memory) external pure returns (uint24) {
+        return 10;
     }
 }
