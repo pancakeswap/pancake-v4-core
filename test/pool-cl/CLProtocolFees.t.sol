@@ -173,8 +173,9 @@ contract CLProtocolFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         manager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
         uint256 gasConsumed = gasBefore - gasleft();
-        /// @dev given _controllerGasLimit = 500K, roughy estimate the gas consumed by the call to be less than 800K
-        /// if the payload is copied to the caller context, the following makes sure that the payload is not copied to the caller context
+        /// @dev Return data size 230k would consume almost all the gas speicified in the controllerGasLimit i.e. 500k
+        /// And the gas consumed by the tx would be more than 800K if the payload is copied to the caller context.
+        /// The following assertion makes sure this doesn't happen.
         assertLe(gasConsumed, 800_000, "gas griefing vector");
     }
 }
