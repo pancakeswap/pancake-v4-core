@@ -20,15 +20,16 @@ import {MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
 import {MockHooks} from "./helpers/MockHooks.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {CLPoolManagerRouter} from "./helpers/CLPoolManagerRouter.sol";
-import {ProtocolFeeControllerTest} from "./helpers/ProtocolFeeControllerTest.sol";
+import {MockProtocolFeeController, MaliciousProtocolFeeController} from "./helpers/ProtocolFeeControllers.sol";
 import {IProtocolFeeController} from "../../src/interfaces/IProtocolFeeController.sol";
 import {ProtocolFees} from "../../src/ProtocolFees.sol";
 import {BalanceDelta} from "../../src/types/BalanceDelta.sol";
 import {PoolKey} from "../../src/types/PoolKey.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
 import {ProtocolFeeLibrary} from "../../src/libraries/ProtocolFeeLibrary.sol";
+import {console2} from "forge-std/Console2.sol";
 
-contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
+contract CLProtocolFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
     using Hooks for IHooks;
     using CLPool for CLPool.State;
     using PoolIdLibrary for PoolKey;
@@ -38,7 +39,7 @@ contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
     CLPoolManager manager;
 
     CLPoolManagerRouter router;
-    ProtocolFeeControllerTest protocolFeeController;
+    MockProtocolFeeController protocolFeeController;
 
     MockHooks hook;
     PoolKey key;
@@ -51,7 +52,7 @@ contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
         (vault, manager) = Deployers.createFreshManager();
 
         router = new CLPoolManagerRouter(vault, manager);
-        protocolFeeController = new ProtocolFeeControllerTest();
+        protocolFeeController = new MockProtocolFeeController();
         MockERC20(Currency.unwrap(currency0)).approve(address(router), 10 ether);
         MockERC20(Currency.unwrap(currency1)).approve(address(router), 10 ether);
 
@@ -161,5 +162,17 @@ contract CLFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
         vm.prank(address(protocolFeeController));
         manager.collectProtocolFees(address(protocolFeeController), currency1, 0);
         assertEq(currency1.balanceOf(address(protocolFeeController)), expectedProtocolFees);
+    }
+
+    function testMaliciousProtocolFeeControllerReturnHugeData() public {
+        IProtocolFeeController controller = IProtocolFeeController(address(new MaliciousProtocolFeeController()));
+        manager.setProtocolFeeController(controller);
+
+        // the original pool has already been initialized
+        key.fee = 6000;
+        uint256 gasBefore = gasleft();
+        manager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
+        uint256 gasConsumed = gasBefore - gasleft();
+        assertLe(gasConsumed, 800_000, "gas griefing vecto");
     }
 }
