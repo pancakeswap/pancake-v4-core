@@ -168,11 +168,14 @@ contract CLProtocolFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
         IProtocolFeeController controller = IProtocolFeeController(address(new MaliciousProtocolFeeController()));
         manager.setProtocolFeeController(controller);
 
-        // the original pool has already been initialized
+        // the original pool has already been initialized, hence we need to pick a new pool
         key.fee = 6000;
         uint256 gasBefore = gasleft();
+
         manager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
         uint256 gasConsumed = gasBefore - gasleft();
-        assertLe(gasConsumed, 800_000, "gas griefing vecto");
+        /// @dev given _controllerGasLimit = 500K, roughy estimate the gas consumed by the call to be less than 800K
+        /// if the payload is copied to the caller context, the following makes sure that the payload is not copied to the caller context
+        assertLe(gasConsumed, 800_000, "gas griefing vector");
     }
 }
