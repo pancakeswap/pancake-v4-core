@@ -27,7 +27,6 @@ import {BalanceDelta} from "../../src/types/BalanceDelta.sol";
 import {PoolKey} from "../../src/types/PoolKey.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
 import {ProtocolFeeLibrary} from "../../src/libraries/ProtocolFeeLibrary.sol";
-import {console2} from "forge-std/Console2.sol";
 
 contract CLProtocolFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
     using Hooks for IHooks;
