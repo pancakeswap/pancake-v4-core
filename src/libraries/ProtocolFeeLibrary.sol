@@ -44,7 +44,7 @@ library ProtocolFeeLibrary {
 
     /// @notice The protocol fee is taken from the input amount first and then the LP fee is taken from the remaining
     /// Equivalent to `protocolFee + lpFee(1_000_000 - protocolFee) / 1_000_000`
-    /// Hence the swap fee is capped at 1_000_000 (100%) for cl pool and 100_000 (10%) for bin pool
+    /// Also note the swap fee is capped at 1_000_000 (100%) for cl pool and 100_000 (10%) for bin pool
     /// @param self The single direction protocol fee to calculate the swap fee from
     /// @param lpFee The LP fee to calculate the swap fee from
     /// @return swapFee The composite swap fee
