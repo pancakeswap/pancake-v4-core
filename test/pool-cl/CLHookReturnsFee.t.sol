@@ -84,7 +84,7 @@ contract CLHookReturnsFeeTest is Test, Deployers, TokenFixture, GasSnapshot {
         int256 amountSpecified = -10000;
         BalanceDelta result;
         if (actualFee > LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE) {
-            vm.expectRevert(LPFeeLibrary.FeeTooLarge.selector);
+            vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, actualFee));
             result = router.swap(
                 key,
                 ICLPoolManager.SwapParams({
@@ -210,7 +210,7 @@ contract CLHookReturnsFeeTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         // a large fee is not used
         int256 amountSpecified = 10000;
-        vm.expectRevert(LPFeeLibrary.FeeTooLarge.selector);
+        vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, 1000001));
         router.swap(
             key,
             ICLPoolManager.SwapParams({

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Copyright (C) 2024 PancakeSwap
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.0;
 
 import {CLPosition} from "./CLPosition.sol";
 import {TickMath} from "./TickMath.sol";
@@ -16,6 +16,7 @@ import {LiquidityMath} from "./LiquidityMath.sol";
 import {ProtocolFeeLibrary} from "../../libraries/ProtocolFeeLibrary.sol";
 import {LPFeeLibrary} from "../../libraries/LPFeeLibrary.sol";
 
+/// @notice a library with all actions that can be performed on cl pool
 library CLPool {
     using SafeCast for int256;
     using SafeCast for uint256;
@@ -26,6 +27,7 @@ library CLPool {
     using LiquidityMath for uint128;
     using CLPool for State;
     using ProtocolFeeLibrary for uint24;
+    using ProtocolFeeLibrary for uint16;
     using LPFeeLibrary for uint24;
 
     /// @notice Thrown when trying to initalize an already initialized pool
@@ -144,7 +146,7 @@ library CLPool {
             delta = toBalanceDelta(amount0, amount1);
         }
 
-        // Fees earned from LPing are removed from the pool balance.
+        // Fees earned from LPing are removed from the pool balance and returned separately
         feeDelta = toBalanceDelta(feesOwed0.toInt128(), feesOwed1.toInt128());
     }
 
@@ -160,8 +162,8 @@ library CLPool {
         int24 tick;
         // the swapFee (the total percentage charged within a swap, including the protocol fee and the LP fee)
         uint24 swapFee;
-        // the protocol fee for the swap
-        uint24 protocolFee;
+        // the single direction protocol fee for the swap
+        uint16 protocolFee;
         // the global fee growth of the input token
         uint256 feeGrowthGlobalX128;
         // amount of input token paid as protocol fee
@@ -232,7 +234,7 @@ library CLPool {
                 amountCalculated: 0,
                 sqrtPriceX96: slot0Start.sqrtPriceX96,
                 tick: slot0Start.tick,
-                swapFee: protocolFee == 0 ? lpFee : uint24(protocolFee).calculateSwapFee(lpFee),
+                swapFee: protocolFee == 0 ? lpFee : protocolFee.calculateSwapFee(lpFee),
                 protocolFee: protocolFee,
                 feeGrowthGlobalX128: zeroForOne ? self.feeGrowthGlobal0X128 : self.feeGrowthGlobal1X128,
                 feeForProtocol: 0,
@@ -242,7 +244,7 @@ library CLPool {
 
         /// @dev If amountSpecified is the output, also given amountSpecified cant be 0,
         /// then the tx will always revert if the swap fee is 100%
-        if (!exactInput && (state.swapFee == LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE)) {
+        if ((state.swapFee == LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE) && !exactInput) {
             revert InvalidFeeForExactOut();
         }
 

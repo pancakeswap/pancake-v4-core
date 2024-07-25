@@ -25,6 +25,7 @@ import {LPFeeLibrary} from "../../../src/libraries/LPFeeLibrary.sol";
 import {BinTestHelper} from "../helpers/BinTestHelper.sol";
 import {BinFeeManagerHook} from "../helpers/BinFeeManagerHook.sol";
 import {HOOKS_AFTER_INITIALIZE_OFFSET, HOOKS_BEFORE_MINT_OFFSET} from "../../../src/pool-bin/interfaces/IBinHooks.sol";
+import {Hooks} from "../../../src/libraries/Hooks.sol";
 
 /**
  * @dev tests around fee for mint(), swap() and burn()
@@ -35,26 +36,6 @@ contract BinPoolFeeTest is BinTestHelper {
     using PackedUint128Math for uint128;
     using BinPoolParametersHelper for bytes32;
     using SafeCast for uint256;
-
-    event Mint(
-        PoolId indexed id,
-        address indexed sender,
-        uint256[] ids,
-        bytes32 salt,
-        bytes32[] amounts,
-        bytes32 compositionFee,
-        bytes32 pFee
-    );
-    event Burn(PoolId indexed id, address indexed sender, uint256[] ids, bytes32 salt, bytes32[] amounts);
-    event Swap(
-        PoolId indexed id,
-        address indexed sender,
-        int128 amount0,
-        int128 amount1,
-        uint24 activeId,
-        uint24 fee,
-        uint24 pFees
-    );
 
     MockVault public vault;
     BinPoolManager public poolManager;
@@ -122,7 +103,7 @@ contract BinPoolFeeTest is BinTestHelper {
         ids[0] = binId;
         amounts[0] = expectedAmtInBin;
         vm.expectEmit();
-        emit Mint(key.toId(), bob, ids, 0, amounts, expectedFee, protocolFee);
+        emit IBinPoolManager.Mint(key.toId(), bob, ids, 0, amounts, expectedFee, protocolFee);
         addLiquidityToBin(key, poolManager, bob, binId, amountX, amountY, 4e17, 5e17, "");
     }
 
@@ -145,8 +126,13 @@ contract BinPoolFeeTest is BinTestHelper {
         uint24 activeId = ID_ONE; // where token price are the same
         poolManager.initialize(key, activeId, new bytes(0));
 
-        vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
         bytes memory data = abi.encode(true, uint24(swapFee));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Hooks.FailedHookCall.selector,
+                abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, uint24(swapFee))
+            )
+        );
         addLiquidityToBin(key, poolManager, bob, activeId, 10_000 ether, 10_000 ether, 1e18, 1e18, data);
     }
 
@@ -188,7 +174,7 @@ contract BinPoolFeeTest is BinTestHelper {
         ids[0] = binId;
         amounts[0] = expectedAmtInBin;
         vm.expectEmit();
-        emit Mint(key.toId(), bob, ids, 0, amounts, expectedFee, protocolFee);
+        emit IBinPoolManager.Mint(key.toId(), bob, ids, 0, amounts, expectedFee, protocolFee);
         addLiquidityToBin(key, poolManager, bob, binId, amountX, amountY, 4e17, 5e17, "");
     }
 
@@ -217,7 +203,7 @@ contract BinPoolFeeTest is BinTestHelper {
         ids[0] = binId;
         amounts[0] = expectedAmtInBin;
         vm.expectEmit();
-        emit Mint(key.toId(), bob, ids, 0, amounts, expectedFee, protocolFee);
+        emit IBinPoolManager.Mint(key.toId(), bob, ids, 0, amounts, expectedFee, protocolFee);
 
         addLiquidityToBin(key, poolManager, bob, binId, amountX, amountY, 4e17, 5e17, "");
 
@@ -259,7 +245,7 @@ contract BinPoolFeeTest is BinTestHelper {
 
         vm.startPrank(bob);
         vm.expectEmit();
-        emit Swap(key.toId(), bob, -1e18, (1e18 * 997) / 1000, activeId, 3000, 0);
+        emit IBinPoolManager.Swap(key.toId(), bob, -1e18, (1e18 * 997) / 1000, activeId, 3000, 0);
 
         // swap: 1e18 X for Y. pool is 0.3% fee
         BalanceDelta delta = poolManager.swap(key, true, -int128(1e18), "0x");
@@ -325,8 +311,13 @@ contract BinPoolFeeTest is BinTestHelper {
         poolManager.initialize(key, activeId, new bytes(0));
         addLiquidityToBin(key, poolManager, bob, activeId, 10_000e18, 10_000e18, 1e18, 1e18, "");
 
-        vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
         bytes memory data = abi.encode(true, uint24(swapFee));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Hooks.FailedHookCall.selector,
+                abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, uint24(swapFee))
+            )
+        );
         poolManager.swap(key, true, 1e18, data);
     }
 
