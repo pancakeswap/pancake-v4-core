@@ -31,13 +31,16 @@ library BinPosition {
         // ref: https://github.com/Vectorized/solady/blob/main/src/tokens/ERC20.sol#L95
         // memory will be 12 bytes of zeros, the 20 bytes of address, 3 bytes for uint24
         assembly ("memory-safe") {
-            mstore(0x23, salt)
-            mstore(0x03, binId)
-            mstore(0x00, owner)
-            key := keccak256(0x0c, 0x37)
-            // 0x00 - 0x3f is scratch space
-            // 0x40 ~ 0x46 should be clear to avoid polluting free pointer
-            mstore(0x23, 0)
+            let fmp := mload(0x40)
+            mstore(add(fmp, 0x23), salt) // [0x23, 0x43)
+            mstore(add(fmp, 0x03), binId) // [0x03, 0x23)
+            mstore(fmp, owner) // [0x0c, 0x20)
+            key := keccak256(add(fmp, 0x0c), 0x37) // len is 55 bytes
+
+            // now clean the memory we used
+            mstore(add(fmp, 0x40), 0) // fmp+0x40 held salt
+            mstore(add(fmp, 0x20), 0) // fmp+0x20 held binId, salt
+            mstore(fmp, 0) // fmp held owner
         }
         position = self[key];
     }
