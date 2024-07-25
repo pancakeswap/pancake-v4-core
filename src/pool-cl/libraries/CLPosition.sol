@@ -39,14 +39,17 @@ library CLPosition {
         // make use of memory scratch space
         // ref: https://github.com/Vectorized/solady/blob/main/src/tokens/ERC20.sol#L95
         assembly ("memory-safe") {
-            mstore(0x26, salt)
-            mstore(0x06, tickUpper)
-            mstore(0x03, tickLower)
-            mstore(0x00, owner)
-            key := keccak256(0x0c, 0x3a)
-            // 0x00 - 0x3f is scratch space
-            // 0x40 ~ 0x46 should be clear to avoid polluting free pointer
-            mstore(0x26, 0)
+            let fmp := mload(0x40)
+            mstore(add(fmp, 0x26), salt) // [0x26, 0x46)
+            mstore(add(fmp, 0x06), tickUpper) // [0x23, 0x26)
+            mstore(add(fmp, 0x03), tickLower) // [0x20, 0x23)
+            mstore(fmp, owner) // [0x0c, 0x20)
+            key := keccak256(add(fmp, 0x0c), 0x3a) // len is 58 bytes
+
+            // now clean the memory we used
+            mstore(add(fmp, 0x40), 0) // fmp+0x40 held salt
+            mstore(add(fmp, 0x20), 0) // fmp+0x20 held tickLower, tickUpper, salt
+            mstore(fmp, 0) // fmp held owner
         }
         position = self[key];
     }
