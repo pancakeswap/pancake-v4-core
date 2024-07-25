@@ -44,27 +44,30 @@ contract TickMathTestTest is Test {
     }
 
     function test_getSqrtRatioAtTick_throwsForInt24Min() public {
-        vm.expectRevert(TickMath.InvalidTick.selector);
-        tickMath.getSqrtRatioAtTick(type(int24).min);
+        int24 tick = type(int24).min;
+        vm.expectRevert(abi.encodeWithSelector(TickMath.InvalidTick.selector, tick));
+        tickMath.getSqrtRatioAtTick(tick);
     }
 
     function test_getSqrtRatioAtTick_throwsForTooLow() public {
-        vm.expectRevert(TickMath.InvalidTick.selector);
-        tickMath.getSqrtRatioAtTick(MIN_TICK - 1);
+        int24 tick = MIN_TICK - 1;
+        vm.expectRevert(abi.encodeWithSelector(TickMath.InvalidTick.selector, tick));
+        tickMath.getSqrtRatioAtTick(tick);
     }
 
     function test_getSqrtRatioAtTick_throwsForTooHigh() public {
-        vm.expectRevert(TickMath.InvalidTick.selector);
-        tickMath.getSqrtRatioAtTick(MAX_TICK + 1);
+        int24 tick = MAX_TICK + 1;
+        vm.expectRevert(abi.encodeWithSelector(TickMath.InvalidTick.selector, tick));
+        tickMath.getSqrtRatioAtTick(tick);
     }
 
-    function testFuzz_getSqrtRatioAtTick_throwsForTooLarge(int24 tick) public {
+    function test_fuzz_getSqrtRatioAtTick_throwsForTooLarge(int24 tick) public {
         if (tick > 0) {
             tick = int24(bound(tick, MAX_TICK + 1, type(int24).max));
         } else {
             tick = int24(bound(tick, type(int24).min, MIN_TICK - 1));
         }
-        vm.expectRevert(TickMath.InvalidTick.selector);
+        vm.expectRevert(abi.encodeWithSelector(TickMath.InvalidTick.selector, tick));
         tickMath.getSqrtRatioAtTick(tick);
     }
 
@@ -101,13 +104,15 @@ contract TickMathTestTest is Test {
     }
 
     function test_getTickAtSqrtRatio_throwsForTooLow() public {
-        vm.expectRevert(TickMath.InvalidSqrtRatio.selector);
-        tickMath.getTickAtSqrtRatio(MIN_SQRT_RATIO - 1);
+        uint160 sqrtPriceX96 = MIN_SQRT_RATIO - 1;
+        vm.expectRevert(abi.encodeWithSelector(TickMath.InvalidSqrtRatio.selector, sqrtPriceX96));
+        tickMath.getTickAtSqrtRatio(sqrtPriceX96);
     }
 
     function test_getTickAtSqrtRatio_throwsForTooHigh() public {
-        vm.expectRevert(TickMath.InvalidSqrtRatio.selector);
-        tickMath.getTickAtSqrtRatio(MAX_SQRT_RATIO + 1);
+        uint160 sqrtPriceX96 = MAX_SQRT_RATIO;
+        vm.expectRevert(abi.encodeWithSelector(TickMath.InvalidSqrtRatio.selector, sqrtPriceX96));
+        tickMath.getTickAtSqrtRatio(sqrtPriceX96);
     }
 
     function testFuzz_getTickAtSqrtPrice_throwsForInvalid(uint160 sqrtPriceX96, bool gte) public {
@@ -116,7 +121,7 @@ contract TickMathTestTest is Test {
         } else {
             sqrtPriceX96 = uint160(bound(sqrtPriceX96, 0, MIN_SQRT_RATIO - 1));
         }
-        vm.expectRevert(TickMath.InvalidSqrtRatio.selector);
+        vm.expectRevert(abi.encodeWithSelector(TickMath.InvalidSqrtRatio.selector, sqrtPriceX96));
         tickMath.getTickAtSqrtRatio(sqrtPriceX96);
     }
 
