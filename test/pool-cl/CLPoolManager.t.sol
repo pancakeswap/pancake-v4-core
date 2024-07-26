@@ -46,38 +46,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
     error ContractSizeTooLarge(uint256 diff);
 
-    event Initialize(
-        PoolId indexed id,
-        Currency indexed currency0,
-        Currency indexed currency1,
-        IHooks hooks,
-        uint24 fee,
-        bytes32 parameters
-    );
-    event ModifyLiquidity(
-        PoolId indexed poolId,
-        address indexed sender,
-        int24 tickLower,
-        int24 tickUpper,
-        bytes32 salt,
-        int256 liquidityDelta
-    );
-    event Swap(
-        PoolId indexed poolId,
-        address indexed sender,
-        int128 amount0,
-        int128 amount1,
-        uint160 sqrtPriceX96,
-        uint128 liquidity,
-        int24 tick,
-        uint24 fee,
-        uint24 protocolFee
-    );
     event Transfer(address caller, address indexed from, address indexed to, Currency indexed currency, uint256 amount);
-
     event ProtocolFeeUpdated(PoolId indexed id, uint24 protocolFees);
     event DynamicLPFeeUpdated(PoolId indexed id, uint24 dynamicLPFee);
-    event Donate(PoolId indexed id, address indexed sender, uint256 amount0, uint256 amount1, int24 tick);
 
     IVault public vault;
     CLPoolManager public poolManager;
@@ -174,7 +145,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
                 parameters: bytes32(uint256(0xa0000))
             });
 
-            vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
+            vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, uint24(1000001)));
             poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
         }
     }
@@ -191,7 +162,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
                 parameters: bytes32(uint256(0x0000))
             });
 
-            vm.expectRevert(ICLPoolManager.TickSpacingTooSmall.selector);
+            vm.expectRevert(abi.encodeWithSelector(ICLPoolManager.TickSpacingTooSmall.selector, int24(0)));
             poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
         }
 
@@ -248,7 +219,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
                 parameters: bytes32(uint256(0x80000000))
             });
 
-            vm.expectRevert(ICLPoolManager.TickSpacingTooLarge.selector);
+            vm.expectRevert(abi.encodeWithSelector(ICLPoolManager.TickSpacingTooLarge.selector, int24(0x8000)));
             poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
         }
     }
@@ -265,7 +236,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
                 parameters: bytes32(uint256(0x18000010000))
             });
 
-            vm.expectRevert(abi.encodeWithSelector(ICLPoolManager.TickSpacingTooSmall.selector));
+            // 0x800001 = -8388607
+            vm.expectRevert(abi.encodeWithSelector(ICLPoolManager.TickSpacingTooSmall.selector, -8388607));
             poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
         }
 
@@ -413,13 +385,21 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         key.poolManager = poolManager;
 
         if (key.parameters.getTickSpacing() > poolManager.MAX_TICK_SPACING()) {
-            vm.expectRevert(abi.encodeWithSelector(ICLPoolManager.TickSpacingTooLarge.selector));
+            vm.expectRevert(
+                abi.encodeWithSelector(ICLPoolManager.TickSpacingTooLarge.selector, key.parameters.getTickSpacing())
+            );
             poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
         } else if (key.parameters.getTickSpacing() < poolManager.MIN_TICK_SPACING()) {
-            vm.expectRevert(abi.encodeWithSelector(ICLPoolManager.TickSpacingTooSmall.selector));
+            vm.expectRevert(
+                abi.encodeWithSelector(ICLPoolManager.TickSpacingTooSmall.selector, key.parameters.getTickSpacing())
+            );
             poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
         } else if (key.currency0 > key.currency1 || key.currency0 == key.currency1) {
-            vm.expectRevert(abi.encodeWithSelector(IPoolManager.CurrenciesInitializedOutOfOrder.selector));
+            vm.expectRevert(
+                abi.encodeWithSelector(
+                    IPoolManager.CurrenciesInitializedOutOfOrder.selector, key.currency0, key.currency1
+                )
+            );
             poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
         } else if (!checkUnusedBitsAllZero(key.parameters)) {
             vm.expectRevert(abi.encodeWithSelector(ParametersHelper.UnusedBitsNonZero.selector));
@@ -431,11 +411,11 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             vm.expectRevert(abi.encodeWithSelector(Hooks.HookPermissionsValidationError.selector));
             poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
         } else if (key.fee > LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE) {
-            vm.expectRevert(abi.encodeWithSelector(IProtocolFees.FeeTooLarge.selector));
+            vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, key.fee));
             poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
         } else {
             vm.expectEmit(true, true, true, true);
-            emit Initialize(key.toId(), key.currency0, key.currency1, key.hooks, key.fee, key.parameters);
+            emit ICLPoolManager.Initialize(key.toId(), key.currency0, key.currency1, key.hooks, key.fee, key.parameters);
             poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
 
             (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
@@ -458,7 +438,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         vm.expectEmit(true, true, true, true);
-        emit Initialize(key.toId(), key.currency0, key.currency1, key.hooks, key.fee, key.parameters);
+        emit ICLPoolManager.Initialize(key.toId(), key.currency0, key.currency1, key.hooks, key.fee, key.parameters);
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
 
         (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
@@ -521,7 +501,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         vm.expectEmit(true, true, true, true);
-        emit Initialize(key.toId(), key.currency0, key.currency1, key.hooks, key.fee, key.parameters);
+        emit ICLPoolManager.Initialize(key.toId(), key.currency0, key.currency1, key.hooks, key.fee, key.parameters);
 
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
     }
@@ -560,7 +540,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             parameters: bytes32(uint256(60 << 16))
         });
 
-        vm.expectRevert(IPoolManager.CurrenciesInitializedOutOfOrder.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(IPoolManager.CurrenciesInitializedOutOfOrder.selector, key.currency0, key.currency1)
+        );
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
     }
 
@@ -587,7 +569,13 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
-        vm.expectRevert(IPoolManager.CurrenciesInitializedOutOfOrder.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IPoolManager.CurrenciesInitializedOutOfOrder.selector,
+                keyInvertedCurrency.currency0,
+                keyInvertedCurrency.currency1
+            )
+        );
         poolManager.initialize(keyInvertedCurrency, sqrtPriceX96, ZERO_BYTES);
     }
 
@@ -650,7 +638,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         mockHooks.setReturnValue(mockHooks.afterInitialize.selector, mockHooks.afterInitialize.selector);
 
         vm.expectEmit(true, true, true, true);
-        emit Initialize(key.toId(), key.currency0, key.currency1, key.hooks, key.fee, key.parameters);
+        emit ICLPoolManager.Initialize(key.toId(), key.currency0, key.currency1, key.hooks, key.fee, key.parameters);
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
     }
@@ -668,7 +656,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             parameters: bytes32(uint256((int256((poolManager.MAX_TICK_SPACING())) + 1) << 16))
         });
 
-        vm.expectRevert(abi.encodeWithSelector(ICLPoolManager.TickSpacingTooLarge.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(ICLPoolManager.TickSpacingTooLarge.selector, poolManager.MAX_TICK_SPACING() + 1)
+        );
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
     }
 
@@ -685,7 +675,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             parameters: bytes32(uint256(0))
         });
 
-        vm.expectRevert(abi.encodeWithSelector(ICLPoolManager.TickSpacingTooSmall.selector));
+        vm.expectRevert(abi.encodeWithSelector(ICLPoolManager.TickSpacingTooSmall.selector, 0));
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
     }
 
@@ -703,7 +693,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             parameters: bytes32(uint256(0xffffff) << 16)
         });
 
-        vm.expectRevert(abi.encodeWithSelector(ICLPoolManager.TickSpacingTooSmall.selector));
+        vm.expectRevert(abi.encodeWithSelector(ICLPoolManager.TickSpacingTooSmall.selector, -1));
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
     }
 
@@ -723,8 +713,12 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         clFeeManagerHook.setFee(dynamicSwapFee);
-
-        vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Hooks.FailedHookCall.selector,
+                abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, dynamicSwapFee)
+            )
+        );
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
     }
 
@@ -741,7 +735,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             )
         });
 
-        vm.expectRevert(LPFeeLibrary.FeeTooLarge.selector);
+        vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, LPFeeLibrary.DYNAMIC_FEE_FLAG + 1));
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
     }
 
@@ -1338,7 +1332,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
 
         vm.expectEmit(true, true, true, true);
-        emit ModifyLiquidity(key.toId(), address(router), 0, 60, 0, 100);
+        emit ICLPoolManager.ModifyLiquidity(key.toId(), address(router), 0, 60, 0, 100);
 
         router.modifyPosition(
             key,
@@ -1361,7 +1355,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
         vm.expectEmit(true, true, true, true);
-        emit ModifyLiquidity(key.toId(), address(router), 0, 60, 0, 100);
+        emit ICLPoolManager.ModifyLiquidity(key.toId(), address(router), 0, 60, 0, 100);
 
         router.modifyPosition{value: 100}(
             key,
@@ -1463,7 +1457,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         mockHooks.setReturnValue(mockHooks.afterAddLiquidity.selector, mockHooks.afterAddLiquidity.selector);
 
         vm.expectEmit(true, true, true, true);
-        emit ModifyLiquidity(key.toId(), address(router), 0, 60, 0, 100);
+        emit ICLPoolManager.ModifyLiquidity(key.toId(), address(router), 0, 60, 0, 100);
 
         router.modifyPosition(key, params, ZERO_BYTES);
     }
@@ -1792,7 +1786,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         router.modifyPosition(key, modifyPositionParams, ZERO_BYTES);
 
         vm.expectEmit(true, true, true, true);
-        emit Swap(
+        emit ICLPoolManager.Swap(
             key.toId(), address(router), -100, 98, 79228162514264329749955861424, 1000000000000000000, -1, 3000, 0
         );
 
@@ -1828,7 +1822,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         // similar result to testSwap_succeedsIfInitialized above, except swapFee is twice due to dynamic fee
         vm.expectEmit(true, true, true, true);
-        emit Swap(
+        emit ICLPoolManager.Swap(
             key.toId(), address(router), -100, 97, 79228162514264329829184023939, 1000000000000000000, -1, 12000, 0
         );
 
@@ -1869,7 +1863,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         // 0.1% protocol fee first then 0.3% lp fee charged for the remaining i.e. 0.3997% in total
         vm.expectEmit(true, true, true, true);
-        emit Swap(
+        emit ICLPoolManager.Swap(
             key.toId(),
             address(router),
             // amt0 = -3013394245478362 and amt1 = 2995354955910780 if it goes without protocol fee
@@ -1914,7 +1908,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
         vm.expectEmit(true, true, true, true);
-        emit Swap(key.toId(), address(router), 0, 0, SQRT_RATIO_1_2, 0, -6932, 3000, 0);
+        emit ICLPoolManager.Swap(key.toId(), address(router), 0, 0, SQRT_RATIO_1_2, 0, -6932, 3000, 0);
 
         router.swap(key, params, testSettings, ZERO_BYTES);
     }
@@ -2026,7 +2020,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         mockHooks.setReturnValue(mockHooks.afterSwap.selector, mockHooks.afterSwap.selector);
 
         vm.expectEmit(true, true, true, true);
-        emit Swap(key.toId(), address(router), 0, 0, SQRT_RATIO_1_2, 0, -6932, 100, 0);
+        emit ICLPoolManager.Swap(key.toId(), address(router), 0, 0, SQRT_RATIO_1_2, 0, -6932, 100, 0);
 
         router.swap(key, swapParams, testSettings, ZERO_BYTES);
     }
@@ -2502,7 +2496,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         (, int24 tick,,) = poolManager.getSlot0(key.toId());
 
         vm.expectEmit();
-        emit Donate(key.toId(), address(router), 100, 0, tick);
+        emit ICLPoolManager.Donate(key.toId(), address(router), 100, 0, tick);
 
         router.donate(key, 100, 0, ZERO_BYTES);
     }
@@ -2802,7 +2796,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         clFeeManagerHook.setFee(LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1);
 
-        vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1)
+        );
         vm.prank(address(clFeeManagerHook));
         poolManager.updateDynamicLPFee(key, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1);
     }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Copyright (C) 2024 PancakeSwap
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.0;
 
 import "../interfaces/IBinHooks.sol";
 import {PoolKey} from "../../types/PoolKey.sol";
@@ -145,6 +145,9 @@ library BinHooks {
         bytes memory result = Hooks.callHook(
             hooks, abi.encodeCall(IBinHooks.beforeSwap, (msg.sender, key, swapForY, amountSpecified, hookData))
         );
+
+        // A length of 96 bytes is required to return a bytes4, a 32 byte delta, and an LP fee
+        if (result.length != 96) revert Hooks.InvalidHookResponse();
 
         if (key.fee.isDynamicLPFee()) {
             lpFeeOverride = result.parseFee();

@@ -58,7 +58,7 @@ contract LPFeeLibraryTest is Test {
 
     function testFuzzValidate(uint24 self, uint24 maxFee) public {
         if (self > maxFee) {
-            vm.expectRevert(LPFeeLibrary.FeeTooLarge.selector);
+            vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, self));
         }
         LPFeeLibrary.validate(self, maxFee);
     }
@@ -88,7 +88,7 @@ contract LPFeeLibraryTest is Test {
 
     function testFuzzRemoveOverrideAndValidate(uint24 self, uint24 maxFee) public {
         if ((self & 0xBFFFFF) > maxFee) {
-            vm.expectRevert(LPFeeLibrary.FeeTooLarge.selector);
+            vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, self & 0xBFFFFF));
         }
 
         uint24 fee = self.removeOverrideAndValidate(maxFee);

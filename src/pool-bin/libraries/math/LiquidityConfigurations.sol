@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Copyright (C) 2024 PancakeSwap
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.0;
 
 import {PackedUint128Math} from "./PackedUint128Math.sol";
 import {Encoded} from "../../../libraries/math/Encoded.sol";

@@ -32,7 +32,7 @@ contract PoolTest is Test {
         lpFee = uint24(bound(lpFee, 0, 999999));
 
         if (sqrtPriceX96 < TickMath.MIN_SQRT_RATIO || sqrtPriceX96 >= TickMath.MAX_SQRT_RATIO) {
-            vm.expectRevert(TickMath.InvalidSqrtRatio.selector);
+            vm.expectRevert(abi.encodeWithSelector(TickMath.InvalidSqrtRatio.selector, sqrtPriceX96));
             state.initialize(sqrtPriceX96, protocolFee, lpFee);
         } else {
             state.initialize(sqrtPriceX96, protocolFee, lpFee);

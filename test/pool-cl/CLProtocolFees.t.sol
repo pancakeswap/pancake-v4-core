@@ -82,7 +82,7 @@ contract CLProtocolFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
         uint24 protocolFee1 = protocolFee >> 12;
 
         if (protocolFee0 > ProtocolFeeLibrary.MAX_PROTOCOL_FEE || protocolFee1 > ProtocolFeeLibrary.MAX_PROTOCOL_FEE) {
-            vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
+            vm.expectRevert(abi.encodeWithSelector(IProtocolFees.ProtocolFeeTooLarge.selector, protocolFee));
             vm.prank(address(protocolFeeController));
             manager.setProtocolFee(key, protocolFee);
             return;

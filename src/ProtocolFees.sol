@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Copyright (C) 2024 PancakeSwap
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.0;
 
 import {PausableRole} from "./PausableRole.sol";
 import {Currency} from "./types/Currency.sol";
@@ -15,9 +15,13 @@ abstract contract ProtocolFees is IProtocolFees, PausableRole {
     using PoolIdLibrary for PoolKey;
     using ProtocolFeeLibrary for uint24;
 
+    /// @inheritdoc IProtocolFees
     mapping(Currency currency => uint256 amount) public protocolFeesAccrued;
 
+    /// @inheritdoc IProtocolFees
     IProtocolFeeController public protocolFeeController;
+
+    /// @inheritdoc IProtocolFees
     IVault public immutable vault;
 
     uint256 private immutable controllerGasLimit;
@@ -32,7 +36,7 @@ abstract contract ProtocolFees is IProtocolFees, PausableRole {
     /// @inheritdoc IProtocolFees
     function setProtocolFee(PoolKey memory key, uint24 newProtocolFee) external virtual {
         if (msg.sender != address(protocolFeeController)) revert InvalidCaller();
-        if (!newProtocolFee.validate()) revert FeeTooLarge();
+        if (!newProtocolFee.validate()) revert ProtocolFeeTooLarge(newProtocolFee);
         PoolId id = key.toId();
         _setProtocolFee(id, newProtocolFee);
         emit ProtocolFeeUpdated(id, newProtocolFee);
