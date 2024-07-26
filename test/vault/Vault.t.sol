@@ -253,420 +253,352 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
         vault.lock(new bytes(0));
     }
 
-    // function testLockWhenMoreThanOnePoolManagers() public noIsolate {
-    //     // router => vault.lock
-    //     // vault.lock => periphery.lockAcquired
-    //     // periphery.lockAcquired => FakePoolManager.XXX => vault.accountAppBalanceDelta
-
-    //     vault.sync(currency0);
-    //     vault.sync(currency1);
-    //     currency0.transfer(address(vault), 10 ether);
-    //     currency1.transfer(address(vault), 10 ether);
-    //     vm.startPrank(address(fakePoolManagerRouter));
-    //     vault.lock(hex"02");
-    //     vm.stopPrank();
-
-    //     currency0.transfer(address(vault), 10 ether);
-    //     currency1.transfer(address(vault), 10 ether);
-    //     vm.startPrank(address(fakePoolManagerRouter2));
-    //     vault.lock(hex"02");
-    //     vm.stopPrank();
-
-    //     assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 20 ether);
-    //     assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 20 ether);
-    //     assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency0), 10 ether);
-    //     assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency1), 10 ether);
-    //     assertEq(vault.reservesOfApp(address(poolKey2.poolManager), currency0), 10 ether);
-    //     assertEq(vault.reservesOfApp(address(poolKey2.poolManager), currency1), 10 ether);
-
-    //     currency0.transfer(address(vault), 3 ether);
-    //     vm.prank(address(fakePoolManagerRouter));
-    //     snapStart("VaultTest#lockSettledWhenMultiHopSwap");
-    //     vault.lock(hex"03");
-    //     snapEnd();
-
-    //     assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 23 ether);
-    //     assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 17 ether);
-    //     assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency0), 13 ether);
-    //     assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency1), 7 ether);
-    //     assertEq(vault.reservesOfApp(address(poolKey2.poolManager), currency0), 10 ether);
-    //     assertEq(vault.reservesOfApp(address(poolKey2.poolManager), currency1), 10 ether);
-
-    //     assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(fakePoolManagerRouter)), 3 ether);
-    // }
-
-    // function testVaultFuzz_mint(uint256 amt) public noIsolate {
-    //     amt = bound(amt, 0, 10 ether);
-    //     // make sure router has enough tokens
-    //     vault.sync(currency0);
-    //     currency0.transfer(address(vault), amt);
-
-    //     vm.prank(address(fakePoolManagerRouter));
-    //     vault.lock(hex"13");
-
-    //     assertEq(vault.balanceOf(address(fakePoolManagerRouter), currency0), amt);
-    // }
-
-    // function testVaultFuzz_mint_toSomeoneElse(uint256 amt) public noIsolate {
-    //     amt = bound(amt, 0, 10 ether);
-    //     // make sure router has enough tokens
-    //     vault.sync(currency0);
-    //     currency0.transfer(address(vault), amt);
-
-    //     vm.prank(address(fakePoolManagerRouter));
-    //     vault.lock(hex"14");
-
-    //     assertEq(vault.balanceOf(Currency.unwrap(poolKey1.currency1), currency0), amt);
-    // }
-
-    // function testVaultFuzz_burn(uint256 amt) public noIsolate {
-    //     amt = bound(amt, 0, 10 ether);
-    //     // make sure router has enough tokens
-    //     vault.sync(currency0);
-    //     currency0.transfer(address(vault), amt);
-
-    //     vm.prank(address(fakePoolManagerRouter));
-    //     vault.lock(hex"15");
-
-    //     assertEq(vault.balanceOf(address(fakePoolManagerRouter), currency0), 0);
-    // }
-
-    // function testVaultFuzz_burnHalf(uint256 amt) public noIsolate {
-    //     amt = bound(amt, 0, 10 ether);
-    //     // make sure router has enough tokens
-    //     vault.sync(currency0);
-    //     currency0.transfer(address(vault), amt);
-
-    //     vm.prank(address(fakePoolManagerRouter));
-    //     vault.lock(hex"16");
-
-    //     assertEq(vault.balanceOf(address(fakePoolManagerRouter), currency0), amt - amt / 2);
-    // }
-
-    // function testVaultFuzz_burnFrom_withoutApprove(uint256 amt) public noIsolate {
-    //     amt = bound(amt, 0, 10 ether);
-    //     // make sure router has enough tokens
-    //     vault.sync(currency0);
-    //     currency0.transfer(address(vault), amt);
-
-    //     if (amt != 0) {
-    //         vm.expectRevert();
-    //     }
-
-    //     vm.startPrank(address(fakePoolManagerRouter));
-    //     vault.lock(hex"20");
-    //     vm.stopPrank();
-
-    //     assertEq(vault.balanceOf(address(fakePoolManagerRouter), currency0), 0);
-    // }
-
-    // function testVaultFuzz_burnFrom_withApprove(uint256 amt) public noIsolate {
-    //     amt = bound(amt, 0, 10 ether);
-    //     // make sure router has enough tokens
-    //     vault.sync(currency0);
-    //     currency0.transfer(address(vault), amt);
-
-    //     vm.startPrank(address(0x01));
-    //     vault.approve(address(fakePoolManagerRouter), currency0, amt);
-    //     vm.stopPrank();
-    //     assertEq(vault.allowance(address(0x01), address(fakePoolManagerRouter), currency0), amt);
-
-    //     vm.startPrank(address(fakePoolManagerRouter));
-    //     vault.lock(hex"20");
-    //     vm.stopPrank();
-
-    //     assertEq(vault.balanceOf(address(fakePoolManagerRouter), currency0), 0);
-    //     assertEq(vault.allowance(address(0x01), address(fakePoolManagerRouter), currency0), 0);
-
-    //     // approve max
-    //     {
-    //         vault.sync(currency0);
-    //         currency0.transfer(address(vault), amt);
-
-    //         vm.startPrank(address(0x01));
-    //         vault.approve(address(fakePoolManagerRouter), currency0, type(uint256).max);
-    //         vm.stopPrank();
-
-    //         vm.startPrank(address(fakePoolManagerRouter));
-    //         vault.lock(hex"20");
-    //         vm.stopPrank();
-
-    //         assertEq(vault.balanceOf(address(fakePoolManagerRouter), currency0), 0);
-    //         assertEq(vault.allowance(address(0x01), address(fakePoolManagerRouter), currency0), type(uint256).max);
-    //     }
-
-    //     // operator
-    //     {
-    //         vault.sync(currency0);
-    //         currency0.transfer(address(vault), amt);
-
-    //         // set a insufficient allowance
-    //         vm.startPrank(address(0x01));
-    //         vault.approve(address(fakePoolManagerRouter), currency0, 1);
-    //         vm.stopPrank();
-
-    //         vm.startPrank(address(0x01));
-    //         vault.setOperator(address(fakePoolManagerRouter), true);
-    //         vm.stopPrank();
-
-    //         vm.startPrank(address(fakePoolManagerRouter));
-    //         vault.lock(hex"20");
-    //         vm.stopPrank();
-
-    //         assertEq(vault.balanceOf(address(fakePoolManagerRouter), currency0), 0);
-    //         // transfer from operator don't consume allowance
-    //         assertEq(vault.allowance(address(0x01), address(fakePoolManagerRouter), currency0), 1);
-    //     }
-    // }
-
-    // function testLockInSufficientBalanceWhenMoreThanOnePoolManagers() public noIsolate {
-    //     // router => vault.lock
-    //     // vault.lock => periphery.lockAcquired
-    //     // periphery.lockAcquired => FakePoolManager.XXX => vault.accountAppBalanceDelta
-
-    //     // ensure vault tload the currency in reserve first
-    //     vault.sync(currency0);
-    //     vault.sync(currency1);
-
-    //     currency0.transfer(address(vault), 10 ether);
-    //     currency1.transfer(address(vault), 10 ether);
-    //     vm.startPrank(address(fakePoolManagerRouter));
-    //     vault.lock(hex"02");
-    //     vm.stopPrank();
-
-    //     currency0.transfer(address(vault), 10 ether);
-    //     currency1.transfer(address(vault), 10 ether);
-    //     vm.startPrank(address(fakePoolManagerRouter2));
-    //     vault.lock(hex"02");
-    //     vm.stopPrank();
-
-    //     assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 20 ether);
-    //     assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 20 ether);
-    //     assertEq(vault.reservesOfVault(currency0), 20 ether);
-    //     assertEq(vault.reservesOfVault(currency1), 20 ether);
-    //     assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency0), 10 ether);
-    //     assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency1), 10 ether);
-    //     assertEq(vault.reservesOfApp(address(poolKey2.poolManager), currency0), 10 ether);
-    //     assertEq(vault.reservesOfApp(address(poolKey2.poolManager), currency1), 10 ether);
-
-    //     assertEq(currency0.balanceOfSelf(), 80 ether);
-    //     currency0.transfer(address(vault), 15 ether);
-
-    //     vm.expectRevert(stdError.arithmeticError);
-    //     vm.startPrank(address(fakePoolManagerRouter));
-    //     vault.lock(hex"04");
-    //     vm.stopPrank();
-    // }
-
-    // function testLockFlashloanCrossMoreThanOnePoolManagers() public noIsolate {
-    //     // router => vault.lock
-    //     // vault.lock => periphery.lockAcquired
-    //     // periphery.lockAcquired => FakePoolManager.XXX => vault.accountAppBalanceDelta
-
-    //     // ensure vault tload the currency in reserve first
-    //     vault.sync(currency0);
-    //     vault.sync(currency1);
-
-    //     currency0.transfer(address(vault), 10 ether);
-    //     currency1.transfer(address(vault), 10 ether);
-    //     vm.startPrank(address(fakePoolManagerRouter));
-    //     vault.lock(hex"02");
-    //     vm.stopPrank();
-
-    //     currency0.transfer(address(vault), 10 ether);
-    //     currency1.transfer(address(vault), 10 ether);
-    //     vm.startPrank(address(fakePoolManagerRouter2));
-    //     vault.lock(hex"02");
-    //     vm.stopPrank();
-
-    //     assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 20 ether);
-    //     assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 20 ether);
-    //     assertEq(vault.reservesOfVault(currency0), 20 ether);
-    //     assertEq(vault.reservesOfVault(currency1), 20 ether);
-    //     assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency0), 10 ether);
-    //     assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency1), 10 ether);
-    //     assertEq(vault.reservesOfApp(address(poolKey2.poolManager), currency0), 10 ether);
-    //     assertEq(vault.reservesOfApp(address(poolKey2.poolManager), currency1), 10 ether);
-
-    //     vm.startPrank(address(fakePoolManagerRouter));
-    //     snapStart("VaultTest#lockSettledWhenFlashloan");
-    //     vault.lock(hex"05");
-    //     snapEnd();
-    //     vm.stopPrank();
-    // }
-
-    // function test_CollectFee() public noIsolate {
-    //     vault.sync(currency0);
-    //     vault.sync(currency1);
-    //     currency0.transfer(address(vault), 10 ether);
-    //     currency1.transfer(address(vault), 10 ether);
-    //     vm.prank(address(fakePoolManagerRouter));
-    //     vault.lock(hex"02");
-
-    //     // before collectFee assert
-    //     assertEq(vault.reservesOfVault(currency0), 10 ether);
-    //     assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency0), 10 ether);
-    //     assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(poolManagerA)), 0 ether);
-
-    //     // collectFee
-    //     vm.prank(address(poolManagerA));
-    //     snapStart("VaultTest#collectFee");
-    //     vault.collectFee(currency0, 10 ether, address(poolManagerA));
-    //     snapEnd();
-
-    //     // after collectFee assert
-    //     assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 0 ether);
-    //     assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency0), 0 ether);
-    //     assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(poolManagerA)), 10 ether);
-    // }
-
-    // function test_CollectFeeFromRandomUser() public {
-    //     currency0.transfer(address(vault), 10 ether);
-
-    //     address bob = makeAddr("bob");
-    //     vm.startPrank(bob);
-
-    //     // expected revert as bob is not a valid pool manager
-    //     vm.expectRevert(IVault.AppUnregistered.selector);
-    //     vault.collectFee(currency0, 10 ether, bob);
-    // }
-
-    // function testTake_failsWithNoLiquidity() public {
-    //     vm.expectRevert();
-    //     vm.prank(address(fakePoolManagerRouter));
-    //     vault.lock(hex"09");
-    // }
-
-    // function testLock_NoOpIsOk() public {
-    //     vm.prank(address(fakePoolManagerRouter));
-    //     snapStart("VaultTest#testLock_NoOp");
-    //     vault.lock(hex"00");
-    //     snapEnd();
-    // }
-
-    // function testLock_EmitsCorrectId() public {
-    //     vm.expectEmit(false, false, false, true);
-    //     emit LockAcquired();
-    //     vm.prank(address(fakePoolManagerRouter));
-    //     vault.lock(hex"00");
-    // }
-
-    // function testVault_ethSupport_transferInAndSettle() public noIsolate {
-    //     FakePoolManagerRouter router = new FakePoolManagerRouter(
-    //         vault,
-    //         PoolKey({
-    //             currency0: CurrencyLibrary.NATIVE,
-    //             currency1: currency1,
-    //             hooks: IHooks(address(0)),
-    //             poolManager: poolManagerA,
-    //             fee: 0,
-    //             parameters: 0x00
-    //         })
-    //     );
-
-    //     // transfer in & settle
-    //     {
-    //         // ETH to router as router call .settle{value}
-    //         // only way to settle NATIVE token is to call .settle{value}
-    //         CurrencyLibrary.NATIVE.transfer(address(router), 10 ether);
-
-    //         vault.sync(currency1);
-    //         currency1.transfer(address(vault), 10 ether);
-
-    //         vm.prank(address(router));
-    //         vault.lock(hex"21");
-
-    //         assertEq(CurrencyLibrary.NATIVE.balanceOf(address(vault)), 10 ether);
-    //         assertEq(vault.reservesOfApp(address(poolManagerA), CurrencyLibrary.NATIVE), 10 ether);
-    //     }
-    // }
-
-    // function testVault_ethSupport_SettleNonNativeCurrencyWithValue() public {
-    //     FakePoolManagerRouter router = new FakePoolManagerRouter(
-    //         vault,
-    //         PoolKey({
-    //             currency0: currency1,
-    //             currency1: CurrencyLibrary.NATIVE,
-    //             hooks: IHooks(address(0)),
-    //             poolManager: poolManagerA,
-    //             fee: 0,
-    //             parameters: 0x00
-    //         })
-    //     );
-
-    //     // transfer in & settle
-    //     {
-    //         // ETH to router as router call .settle{value}
-    //         currency0.transfer(address(vault), 10 ether);
-    //         CurrencyLibrary.NATIVE.transfer(address(router), 10 ether);
-
-    //         vm.expectRevert(IVault.SettleNonNativeCurrencyWithValue.selector);
-    //         vm.prank(address(router));
-    //         vault.lock(hex"21"); // 0x02 assume both token are ERC20, so it call settle for ETH without value
-    //     }
-    // }
-
-    // function testVault_ethSupport_settleAndTake() public noIsolate {
-    //     FakePoolManagerRouter router = new FakePoolManagerRouter(
-    //         vault,
-    //         PoolKey({
-    //             currency0: CurrencyLibrary.NATIVE,
-    //             currency1: currency1,
-    //             hooks: IHooks(address(0)),
-    //             poolManager: poolManagerA,
-    //             fee: 0,
-    //             parameters: 0x00
-    //         })
-    //     );
-
-    //     CurrencyLibrary.NATIVE.transfer(address(router), 5 ether);
-
-    //     // take and settle
-    //     {
-    //         vm.prank(address(router));
-    //         vault.lock(hex"17");
-
-    //         assertEq(CurrencyLibrary.NATIVE.balanceOf(address(vault)), 0);
-    //         assertEq(vault.reservesOfApp(address(poolManagerA), CurrencyLibrary.NATIVE), 0);
-    //     }
-    // }
-
-    // function testVault_ethSupport_flashloan() public noIsolate {
-    //     FakePoolManagerRouter router = new FakePoolManagerRouter(
-    //         vault,
-    //         PoolKey({
-    //             currency0: CurrencyLibrary.NATIVE,
-    //             currency1: currency1,
-    //             hooks: IHooks(address(0)),
-    //             poolManager: poolManagerA,
-    //             fee: 0,
-    //             parameters: 0x00
-    //         })
-    //     );
-
-    //     // make sure vault has enough tokens and ETH to router as router call .settle{value}
-    //     CurrencyLibrary.NATIVE.transfer(address(router), 10 ether);
-
-    //     vault.sync(currency1);
-    //     currency1.transfer(address(vault), 10 ether);
-
-    //     vm.startPrank(address(router));
-    //     vault.lock(hex"21");
-    //     vm.stopPrank();
-
-    //     CurrencyLibrary.NATIVE.transfer(address(router), 10 ether);
-    //     currency1.transfer(address(vault), 10 ether);
-    //     vm.startPrank(address(router));
-    //     vault.lock(hex"21");
-    //     vm.stopPrank();
-
-    //     // take and settle
-    //     {
-    //         vm.startPrank(address(router));
-    //         vault.lock(hex"22");
-    //         vm.stopPrank();
-    //     }
-    // }
+    function testLockWhenMoreThanOnePoolManagers() public noIsolate {
+        vault.lock(abi.encodeCall(VaultTest._testLockWhenMoreThanOnePoolManagers, ()));
+    }
+
+    function _testLockWhenMoreThanOnePoolManagers() external {
+        currency0.settle(vault, address(this), 10 ether, false);
+        currency1.settle(vault, address(this), 10 ether, false);
+        poolManager1.mockAccounting(poolKey1, -10 ether, -10 ether);
+
+        currency0.settle(vault, address(this), 10 ether, false);
+        currency1.settle(vault, address(this), 10 ether, false);
+        poolManager2.mockAccounting(poolKey2, -10 ether, -10 ether);
+
+        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 20 ether);
+        assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 20 ether);
+        assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency0), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency1), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey2.poolManager), currency0), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey2.poolManager), currency1), 10 ether);
+    }
+
+    function testVaultFuzz_mint(uint256 amt) public noIsolate {
+        amt = bound(amt, 0, 10 ether);
+        vault.lock(abi.encodeCall(VaultTest._testVaultFuzz_mint, (amt)));
+    }
+
+    function _testVaultFuzz_mint(uint256 amt) external {
+        currency0.settle(vault, address(this), amt, false);
+        vault.mint(address(this), currency0, amt);
+        assertEq(vault.balanceOf(address(this), currency0), amt);
+    }
+
+    function testVaultFuzz_mint_toSomeoneElse(uint256 amt) public noIsolate {
+        amt = bound(amt, 0, 10 ether);
+        vault.lock(abi.encodeCall(VaultTest._testVaultFuzz_mint_toSomeoneElse, (amt)));
+    }
+
+    function _testVaultFuzz_mint_toSomeoneElse(uint256 amt) external {
+        currency0.settle(vault, address(this), amt, false);
+        vault.mint(makeAddr("someone"), currency0, amt);
+        assertEq(vault.balanceOf(makeAddr("someone"), currency0), amt);
+    }
+
+    function testVaultFuzz_burn(uint256 amt) public noIsolate {
+        amt = bound(amt, 0, 10 ether);
+        vault.lock(abi.encodeCall(VaultTest._testVaultFuzz_burn, (amt)));
+    }
+
+    function _testVaultFuzz_burn(uint256 amt) external {
+        // make sure router has enough tokens
+        currency0.settle(vault, address(this), amt, false);
+        vault.mint(address(this), currency0, amt);
+
+        vault.burn(address(this), currency0, amt);
+        currency0.take(vault, address(this), amt, false);
+        assertEq(vault.balanceOf(address(this), currency0), 0);
+    }
+
+    function testVaultFuzz_burnHalf(uint256 amt) public noIsolate {
+        amt = bound(amt, 0, 10 ether);
+        vault.lock(abi.encodeCall(VaultTest._testVaultFuzz_burnHalf, (amt)));
+    }
+
+    function _testVaultFuzz_burnHalf(uint256 amt) external {
+        // make sure router has enough tokens
+        currency0.settle(vault, address(this), amt, false);
+        vault.mint(address(this), currency0, amt);
+
+        vault.burn(address(this), currency0, amt / 2);
+        currency0.take(vault, address(this), amt / 2, false);
+        assertEq(vault.balanceOf(address(this), currency0), amt - amt / 2);
+    }
+
+    function testVaultFuzz_burnFrom_withoutApprove(uint256 amt) public noIsolate {
+        amt = bound(amt, 1, 10 ether);
+        vault.lock(abi.encodeCall(VaultTest._testVaultFuzz_burnFrom_withoutApprove, (amt)));
+    }
+
+    function _testVaultFuzz_burnFrom_withoutApprove(uint256 amt) external {
+        // make sure router has enough tokens
+        currency0.settle(vault, address(this), amt, false);
+        vault.mint(makeAddr("someone"), currency0, amt);
+
+        vm.expectRevert(stdError.arithmeticError);
+        vault.burn(makeAddr("someone"), currency0, amt);
+    }
+
+    function testVaultFuzz_burnFrom_withApprove(uint256 amt) public noIsolate {
+        amt = bound(amt, 10, 10 ether);
+        vault.lock(abi.encodeCall(VaultTest._testVaultFuzz_burnFrom_withApprove, (amt)));
+    }
+
+    function _testVaultFuzz_burnFrom_withApprove(uint256 amt) external {
+        address someone = makeAddr("someone");
+        // make sure router has enough tokens
+        currency0.settle(vault, address(this), amt, false);
+        vault.mint(someone, currency0, amt);
+
+        vm.prank(someone);
+        vault.approve(address(this), currency0, amt);
+        assertEq(vault.allowance(someone, address(this), currency0), amt);
+
+        vault.burn(someone, currency0, amt);
+        currency0.take(vault, someone, amt, false);
+
+        // burn from someone and consumed all the allowance
+        assertEq(vault.balanceOf(someone, currency0), 0);
+        assertEq(vault.allowance(someone, address(this), currency0), 0);
+
+        // approve max
+        {
+            someone = makeAddr("someone2");
+            // make sure router has enough tokens
+            currency0.settle(vault, address(this), amt, false);
+            vault.mint(someone, currency0, amt);
+
+            vm.prank(someone);
+            vault.approve(address(this), currency0, type(uint256).max);
+
+            vault.burn(someone, currency0, amt);
+            currency0.take(vault, someone, amt, false);
+
+            // approve max will never consume allowance
+            assertEq(vault.balanceOf(someone, currency0), 0);
+            assertEq(vault.allowance(someone, address(this), currency0), type(uint256).max);
+        }
+
+        // operator
+        {
+            someone = makeAddr("someone3");
+            // make sure router has enough tokens
+            currency0.settle(vault, address(this), amt, false);
+            vault.mint(someone, currency0, amt);
+
+            // set a insufficient allowance
+            vm.prank(someone);
+            vault.approve(address(this), currency0, 1);
+
+            // set this as operator
+            vm.prank(someone);
+            vault.setOperator(address(this), true);
+
+            vault.burn(someone, currency0, amt);
+            currency0.take(vault, someone, amt, false);
+
+            // transfer from operator don't consume allowance
+            assertEq(vault.balanceOf(someone, currency0), 0);
+            assertEq(vault.allowance(someone, address(this), currency0), 1);
+        }
+    }
+
+    function testLockInSufficientBalanceWhenMoreThanOnePoolManagers() public noIsolate {
+        vault.lock(abi.encodeCall(VaultTest._testLockInSufficientBalanceWhenMoreThanOnePoolManagers, ()));
+    }
+
+    function _testLockInSufficientBalanceWhenMoreThanOnePoolManagers() external {
+        currency0.settle(vault, address(this), 10 ether, false);
+        currency1.settle(vault, address(this), 10 ether, false);
+        poolManager1.mockAccounting(poolKey1, -10 ether, -10 ether);
+
+        currency0.settle(vault, address(this), 10 ether, false);
+        currency1.settle(vault, address(this), 10 ether, false);
+        poolManager2.mockAccounting(poolKey2, -10 ether, -10 ether);
+
+        // now pool1 and pool2 both have 10 ether of each currency
+        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 20 ether);
+        assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 20 ether);
+        assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency0), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency1), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey2.poolManager), currency0), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey2.poolManager), currency1), 10 ether);
+
+        // try to get more than 10 ether from pool1
+        vm.expectRevert(stdError.arithmeticError);
+        poolManager1.mockAccounting(poolKey1, 15 ether, -10 ether);
+    }
+
+    function testLockFlashloanCrossMoreThanOnePoolManagers() public noIsolate {
+        vault.lock(abi.encodeCall(VaultTest._testLockFlashloanCrossMoreThanOnePoolManagers, ()));
+    }
+
+    function _testLockFlashloanCrossMoreThanOnePoolManagers() external {
+        currency0.settle(vault, address(this), 10 ether, false);
+        currency1.settle(vault, address(this), 10 ether, false);
+        poolManager1.mockAccounting(poolKey1, -10 ether, -10 ether);
+
+        currency0.settle(vault, address(this), 10 ether, false);
+        currency1.settle(vault, address(this), 10 ether, false);
+        poolManager2.mockAccounting(poolKey2, -10 ether, -10 ether);
+
+        // now pool1 and pool2 both have 10 ether of each currency
+        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 20 ether);
+        assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 20 ether);
+        assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency0), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency1), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey2.poolManager), currency0), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey2.poolManager), currency1), 10 ether);
+
+        // flashloan are allowed to take more than the pool has
+        vault.take(currency0, address(this), 20 ether);
+        vault.take(currency1, address(this), 20 ether);
+
+        // ... flashloan logic
+
+        currency0.settle(vault, address(this), 20 ether, false);
+        currency1.settle(vault, address(this), 20 ether, false);
+    }
+
+    function test_CollectFee() public noIsolate {
+        vault.lock(abi.encodeCall(VaultTest._test_CollectFee, ()));
+    }
+
+    function _test_CollectFee() external {
+        currency0.settle(vault, address(this), 10 ether, false);
+        currency1.settle(vault, address(this), 10 ether, false);
+        poolManager1.mockAccounting(poolKey1, -10 ether, -10 ether);
+
+        // before collectFee assert
+        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency0), 10 ether);
+        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(poolManager1)), 0 ether);
+
+        // collectFee
+        vm.prank(address(poolManager1));
+        vault.collectFee(currency0, 10 ether, address(poolManager1));
+
+        // after collectFee assert
+        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 0 ether);
+        assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency0), 0 ether);
+        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(poolManager1)), 10 ether);
+    }
+
+    function test_CollectFeeFromRandomUser() public {
+        address bob = makeAddr("bob");
+        vm.startPrank(bob);
+        // expected revert as bob is not a valid pool manager
+        vm.expectRevert(IVault.AppUnregistered.selector);
+        vault.collectFee(currency0, 10 ether, bob);
+    }
+
+    function testTake_failsWithNoLiquidity() public {
+        vault.lock(abi.encodeCall(VaultTest._testTake_failsWithNoLiquidity, ()));
+    }
+
+    function _testTake_failsWithNoLiquidity() external {
+        vm.expectRevert();
+        vault.take(currency1, address(this), 5 ether);
+    }
+
+    function testLock_NoOperation() public {
+        vault.lock(abi.encodeCall(VaultTest._testLock_NoOperation, ()));
+    }
+
+    function _testLock_NoOperation() external {}
+
+    function testVault_ethSupport_transferInAndSettle() public noIsolate {
+        vault.lock(abi.encodeCall(VaultTest._testVault_ethSupport_transferInAndSettle, ()));
+    }
+
+    function _testVault_ethSupport_transferInAndSettle() external {
+        PoolKey memory poolKeyWithNativeToken = PoolKey({
+            currency0: CurrencyLibrary.NATIVE,
+            currency1: currency1,
+            hooks: IHooks(address(0)),
+            poolManager: poolManager1,
+            fee: 0,
+            parameters: 0x00
+        });
+
+        // transfer in & settle
+        CurrencyLibrary.NATIVE.settle(vault, address(this), 10 ether, false);
+        currency1.settle(vault, address(this), 10 ether, false);
+
+        poolManager1.mockAccounting(poolKeyWithNativeToken, -10 ether, -10 ether);
+
+        assertEq(CurrencyLibrary.NATIVE.balanceOf(address(vault)), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolManager1), CurrencyLibrary.NATIVE), 10 ether);
+    }
+
+    function testVault_ethSupport_SettleNonNativeCurrencyWithValue() public {
+        vault.lock(abi.encodeCall(VaultTest._testVault_ethSupport_SettleNonNativeCurrencyWithValue, ()));
+    }
+
+    function _testVault_ethSupport_SettleNonNativeCurrencyWithValue() external {
+        vault.sync(currency0);
+        vm.expectRevert(IVault.SettleNonNativeCurrencyWithValue.selector);
+        vault.settle{value: 10}();
+    }
+
+    function testVault_ethSupport_settleAndTake() public noIsolate {
+        vault.lock(abi.encodeCall(VaultTest._testVault_ethSupport_settleAndTake, ()));
+    }
+
+    function _testVault_ethSupport_settleAndTake() external {
+        CurrencyLibrary.NATIVE.settle(vault, address(this), 10 ether, false);
+        CurrencyLibrary.NATIVE.take(vault, makeAddr("receiver"), 10 ether, false);
+    }
+
+    function testVault_ethSupport_flashloan() public noIsolate {
+        vault.lock(abi.encodeCall(VaultTest._testVault_ethSupport_flashloan, ()));
+    }
+
+    function _testVault_ethSupport_flashloan() external {
+        PoolKey memory poolKeyWithNativeToken1 = PoolKey({
+            currency0: CurrencyLibrary.NATIVE,
+            currency1: currency1,
+            hooks: IHooks(address(0)),
+            poolManager: poolManager1,
+            fee: 0,
+            parameters: 0x00
+        });
+
+        PoolKey memory poolKeyWithNativeToken2 = PoolKey({
+            currency0: CurrencyLibrary.NATIVE,
+            currency1: currency1,
+            hooks: IHooks(address(0)),
+            poolManager: poolManager2,
+            fee: 0,
+            parameters: 0x00
+        });
+
+        CurrencyLibrary.NATIVE.settle(vault, address(this), 10 ether, false);
+        currency1.settle(vault, address(this), 10 ether, false);
+        poolManager1.mockAccounting(poolKeyWithNativeToken1, -10 ether, -10 ether);
+
+        CurrencyLibrary.NATIVE.settle(vault, address(this), 10 ether, false);
+        currency1.settle(vault, address(this), 10 ether, false);
+        poolManager2.mockAccounting(poolKeyWithNativeToken2, -10 ether, -10 ether);
+
+        // flashloan are allowed to take more than the pool has
+        address borrower = makeAddr("borrower");
+        vm.startPrank(borrower);
+        vault.take(CurrencyLibrary.NATIVE, borrower, 20 ether);
+        vault.take(currency1, borrower, 20 ether);
+
+        // ... flashloan logic
+
+        vault.settle{value: 20 ether}();
+        vault.sync(currency1);
+        currency1.transfer(address(vault), 20 ether);
+        vault.settle();
+        vm.stopPrank();
+
+        assertEq(CurrencyLibrary.NATIVE.balanceOf(borrower), 0 ether);
+        assertEq(currency1.balanceOf(borrower), 0 ether);
+    }
 
     function lockAcquired(bytes calldata data) external returns (bytes memory result) {
         // forward the call and bubble up the error if revert

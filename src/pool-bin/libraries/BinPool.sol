@@ -37,6 +37,7 @@ library BinPool {
 
     error PoolNotInitialized();
     error PoolAlreadyInitialized();
+    error PoolInvalidParameter();
     error BinPool__EmptyLiquidityConfigs();
     error BinPool__ZeroShares(uint24 id);
     error BinPool__InvalidBurnInput();
@@ -79,6 +80,7 @@ library BinPool {
     function initialize(State storage self, uint24 activeId, uint24 protocolFee, uint24 lpFee) internal {
         /// An initialized pool will not have activeId: 0
         if (self.slot0.activeId != 0) revert PoolAlreadyInitialized();
+        if (activeId == 0) revert PoolInvalidParameter();
 
         self.slot0 = Slot0({activeId: activeId, protocolFee: protocolFee, lpFee: lpFee});
     }

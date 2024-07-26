@@ -26,7 +26,6 @@ library SettlementGuard {
         address currentLocker = getLocker();
 
         // either set from non-zero to zero (set) or from zero to non-zero (reset)
-        if (currentLocker == newLocker) return;
         if (currentLocker != address(0) && newLocker != address(0)) revert IVault.LockerAlreadySet(currentLocker);
 
         assembly ("memory-safe") {
