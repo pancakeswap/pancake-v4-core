@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Copyright (C) 2024 PancakeSwap
-pragma solidity ^0.8.24;
+pragma solidity 0.8.26;
 
 import {ProtocolFees} from "../ProtocolFees.sol";
 import {Hooks} from "../libraries/Hooks.sol";
@@ -99,9 +99,11 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         poolManagerMatch(address(key.poolManager))
     {
         uint16 binStep = key.parameters.getBinStep();
-        if (binStep < MIN_BIN_STEP) revert BinStepTooSmall();
-        if (binStep > MAX_BIN_STEP) revert BinStepTooLarge();
-        if (key.currency0 >= key.currency1) revert CurrenciesInitializedOutOfOrder();
+        if (binStep < MIN_BIN_STEP) revert BinStepTooSmall(binStep);
+        if (binStep > MAX_BIN_STEP) revert BinStepTooLarge(binStep);
+        if (key.currency0 >= key.currency1) {
+            revert CurrenciesInitializedOutOfOrder(Currency.unwrap(key.currency0), Currency.unwrap(key.currency1));
+        }
 
         ParametersHelper.checkUnusedBitsAllZero(
             key.parameters, BinPoolParametersHelper.OFFSET_MOST_SIGNIFICANT_UNUSED_BITS

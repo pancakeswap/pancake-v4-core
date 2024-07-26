@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Copyright (C) 2024 PancakeSwap
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.0;
 
 import {BalanceDelta, toBalanceDelta} from "../../types/BalanceDelta.sol";
 import {LiquidityConfigurations} from "./math/LiquidityConfigurations.sol";
@@ -16,6 +16,7 @@ import {FeeHelper} from "./FeeHelper.sol";
 import {ProtocolFeeLibrary} from "../../libraries/ProtocolFeeLibrary.sol";
 import {LPFeeLibrary} from "../../libraries/LPFeeLibrary.sol";
 
+/// @notice a library with all actions that can be performed on bin pool
 library BinPool {
     using BinHelper for bytes32;
     using LiquidityConfigurations for bytes32;
@@ -31,10 +32,12 @@ library BinPool {
     using FeeHelper for uint128;
     using BinPool for State;
     using ProtocolFeeLibrary for uint24;
+    using ProtocolFeeLibrary for uint16;
     using LPFeeLibrary for uint24;
 
     error PoolNotInitialized();
     error PoolAlreadyInitialized();
+    error PoolInvalidParameter();
     error BinPool__EmptyLiquidityConfigs();
     error BinPool__ZeroShares(uint24 id);
     error BinPool__InvalidBurnInput();
@@ -77,6 +80,7 @@ library BinPool {
     function initialize(State storage self, uint24 activeId, uint24 protocolFee, uint24 lpFee) internal {
         /// An initialized pool will not have activeId: 0
         if (self.slot0.activeId != 0) revert PoolAlreadyInitialized();
+        if (activeId == 0) revert PoolInvalidParameter();
 
         self.slot0 = Slot0({activeId: activeId, protocolFee: protocolFee, lpFee: lpFee});
     }
@@ -103,8 +107,8 @@ library BinPool {
     struct SwapState {
         // current activeId
         uint24 activeId;
-        // the protocol fee for the swap
-        uint24 protocolFee;
+        // the protocol fee for the swap (single direction)
+        uint16 protocolFee;
         // the swapFee (the total percentage charged within a swap, including the protocol fee and the LP fee)
         uint24 swapFee;
         // how much protocol fee has been charged

@@ -5,6 +5,8 @@ import {Test} from "forge-std/Test.sol";
 import {MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
 import {Currency, CurrencyLibrary} from "../../src/types/Currency.sol";
 import {TokenRejecter} from "../helpers/TokenRejecter.sol";
+import {TokenSender} from "../helpers/TokenSender.sol";
+import {stdError} from "forge-std/StdError.sol";
 
 contract TestCurrency is Test {
     using CurrencyLibrary for uint256;
@@ -101,5 +103,21 @@ contract TestCurrency is Test {
 
         assertEq(balanceAfter - balanceBefore, sentBalance);
         assertEq(senderBalanceBefore - senderBalanceAfter, sentBalance);
+    }
+
+    function testCurrency_transfer_native_insufficientBalance() public {
+        TokenSender sender = new TokenSender();
+        deal(address(sender), 10 ether);
+
+        vm.expectRevert(abi.encodeWithSelector(CurrencyLibrary.NativeTransferFailed.selector, new bytes(0)));
+        sender.send(nativeCurrency, otherAddress, 10 ether + 1);
+    }
+
+    function testCurrency_transfer_token_insufficientBalance() public {
+        TokenSender sender = new TokenSender();
+        erc20Currency.transfer(address(sender), 100);
+
+        vm.expectRevert(abi.encodeWithSelector(CurrencyLibrary.ERC20TransferFailed.selector, stdError.arithmeticError));
+        sender.send(erc20Currency, otherAddress, 101);
     }
 }

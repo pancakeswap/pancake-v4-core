@@ -1,14 +1,15 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.0;
 
 import {Currency} from "../types/Currency.sol";
 import {IProtocolFeeController} from "./IProtocolFeeController.sol";
 import {PoolId} from "../types/PoolId.sol";
 import {PoolKey} from "../types/PoolKey.sol";
+import {IVault} from "./IVault.sol";
 
 interface IProtocolFees {
     /// @notice Thrown when the protocol fee exceeds the upper limit.
-    error FeeTooLarge();
+    error ProtocolFeeTooLarge(uint24 fee);
     /// @notice Thrown when not enough gas is provided to look up the protocol fee
     error ProtocolFeeCannotBeFetched();
     /// @notice Thrown when user not authorized to set or collect protocol fee
@@ -29,6 +30,10 @@ interface IProtocolFees {
     /// @return amount The amount of protocol fees accrued in the given currency
     function protocolFeesAccrued(Currency currency) external view returns (uint256 amount);
 
+    /// @notice Returns the current protocol fee controller address
+    /// @return IProtocolFeeController The currency protocol fee controller
+    function protocolFeeController() external view returns (IProtocolFeeController);
+
     /// @notice Sets the protocol's swap fee for the given pool
     /// @param key The pool key for which to set the protocol fee
     /// @param newProtocolFee The new protocol fee to set
@@ -46,4 +51,8 @@ interface IProtocolFees {
     function collectProtocolFees(address recipient, Currency currency, uint256 amount)
         external
         returns (uint256 amountCollected);
+
+    /// @notice Returns the vault where the protocol fees are safely stored
+    /// @return IVault The address of the vault
+    function vault() external view returns (IVault);
 }

@@ -33,18 +33,6 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
     PoolKey dynamicFeeKey;
     PoolKey staticFeeKey;
 
-    event Swap(
-        PoolId indexed poolId,
-        address indexed sender,
-        int128 amount0,
-        int128 amount1,
-        uint160 sqrtPriceX96,
-        uint128 liquidity,
-        int24 tick,
-        uint24 fee,
-        uint24 protocolFee
-    );
-
     function setUp() public {
         initializeTokens();
 
@@ -79,8 +67,8 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
     }
 
     function testPoolInitializeFailsWithTooLargeFee() public {
-        vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
         staticFeeKey.fee = LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1;
+        vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, staticFeeKey.fee));
         poolManager.initialize(staticFeeKey, SQRT_RATIO_1_1, ZERO_BYTES);
     }
 
@@ -90,7 +78,9 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
         poolManager.initialize(dynamicFeeKey, SQRT_RATIO_1_1, ZERO_BYTES);
 
         hook.setFee(LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1);
-        vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1)
+        );
         vm.prank(address(dynamicFeeKey.hooks));
         poolManager.updateDynamicLPFee(dynamicFeeKey, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1);
     }
@@ -107,7 +97,7 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
         router.modifyPosition(dynamicFeeKey, modifyPositionParams, ZERO_BYTES);
 
         vm.expectEmit(true, true, true, true);
-        emit Swap(
+        emit ICLPoolManager.Swap(
             dynamicFeeKey.toId(),
             address(router),
             -100,
@@ -137,7 +127,7 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
         router.modifyPosition(staticFeeKey, modifyPositionParams, ZERO_BYTES);
 
         vm.expectEmit(true, true, true, true);
-        emit Swap(
+        emit ICLPoolManager.Swap(
             staticFeeKey.toId(),
             address(router),
             -100,
@@ -171,7 +161,9 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
 
         vm.expectEmit(true, true, true, true);
         // price does not move but tick decreased by 1 because of it hits exactly the lower bound
-        emit Swap(dynamicFeeKey.toId(), address(router), -100, 0, SQRT_RATIO_1_1, 1000000000000000000, -1, 999999, 0);
+        emit ICLPoolManager.Swap(
+            dynamicFeeKey.toId(), address(router), -100, 0, SQRT_RATIO_1_1, 1000000000000000000, -1, 999999, 0
+        );
 
         ICLPoolManager.SwapParams memory params =
             ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: -100, sqrtPriceLimitX96: SQRT_RATIO_1_2});
