@@ -30,7 +30,7 @@ import {CLPoolParametersHelper} from "../../src/pool-cl/libraries/CLPoolParamete
 import {ParametersHelper} from "../../src/libraries/math/ParametersHelper.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../../src/types/BalanceDelta.sol";
 import {NonStandardERC20} from "./helpers/NonStandardERC20.sol";
-import {ProtocolFeeControllerTest} from "./helpers/ProtocolFeeControllerTest.sol";
+import {MockProtocolFeeController} from "./helpers/ProtocolFeeControllers.sol";
 import {IProtocolFeeController} from "../../src/interfaces/IProtocolFeeController.sol";
 import {CLFeeManagerHook} from "./helpers/CLFeeManagerHook.sol";
 import {ProtocolFeeLibrary} from "../../src/libraries/ProtocolFeeLibrary.sol";
@@ -53,16 +53,14 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
     IVault public vault;
     CLPoolManager public poolManager;
     CLPoolManagerRouter public router;
-    ProtocolFeeControllerTest public protocolFeeController;
-    ProtocolFeeControllerTest public feeController;
+    MockProtocolFeeController public feeController;
     CLFeeManagerHook public clFeeManagerHook;
 
     function setUp() public {
         initializeTokens();
         (vault, poolManager) = createFreshManager();
         router = new CLPoolManagerRouter(vault, poolManager);
-        protocolFeeController = new ProtocolFeeControllerTest();
-        feeController = new ProtocolFeeControllerTest();
+        feeController = new MockProtocolFeeController();
         clFeeManagerHook = new CLFeeManagerHook(poolManager);
 
         IERC20(Currency.unwrap(currency0)).approve(address(router), 10 ether);
