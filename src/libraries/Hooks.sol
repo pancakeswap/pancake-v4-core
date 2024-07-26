@@ -99,8 +99,10 @@ library Hooks {
             returndatacopy(add(result, 0x20), 0, returndatasize())
         }
 
-        // Check expected selector and returned selector match.
-        if (result.parseSelector() != data.parseSelector()) revert Hooks.InvalidHookResponse();
+        // Length must be at least 32 to contain the selector. Check expected selector and returned selector match.
+        if (result.length < 32 || result.parseSelector() != data.parseSelector()) {
+            revert InvalidHookResponse();
+        }
     }
 
     /// @notice performs a hook call using the given calldata on the given hook
@@ -113,6 +115,9 @@ library Hooks {
 
         // If this hook wasnt meant to return something, default to 0 delta
         if (!parseReturn) return 0;
+
+        // A length of 64 bytes is required to return a bytes4, and a 32 byte delta
+        if (result.length != 64) revert InvalidHookResponse();
         return result.parseReturnDelta();
     }
 }

@@ -13,6 +13,7 @@ import {VaultReserve} from "../../src/libraries/VaultReserve.sol";
 import {FakePoolManager} from "./FakePoolManager.sol";
 import {PoolKey} from "../../src/types/PoolKey.sol";
 import {IHooks} from "../../src/interfaces/IHooks.sol";
+import {NativeERC20} from "../helpers/NativeERC20.sol";
 
 contract VaultSyncTest is Test, TokenFixture, GasSnapshot, NoIsolate {
     Vault public vault;
@@ -154,6 +155,33 @@ contract VaultSyncTest is Test, TokenFixture, GasSnapshot, NoIsolate {
         assertEq(Currency.unwrap(currency), Currency.unwrap(currency0));
         assertEq(amount, 20 ether);
         assertEq(vault.balanceOf(address(this), currency0), 10 ether);
+    }
+
+    function test_settle_NativeERC20() public noIsolate {
+        vault.lock(abi.encodeCall(VaultSyncTest._test_settle_NativeERC20, ()));
+    }
+
+    function _test_settle_NativeERC20() external {
+        Currency currency = Currency.wrap(address(new NativeERC20()));
+        vault.sync(currency);
+
+        // mixing those two are not allowed
+        vm.expectRevert(IVault.SettleNonNativeCurrencyWithValue.selector);
+        vault.settle{value: 1 ether}();
+
+        // erc20 way of settling
+        currency.transfer(address(vault), 1 ether);
+        vault.settle();
+
+        // native way of settling
+        vault.settle{value: 1 ether}();
+
+        // from vault perspective they are two different currencies
+        vault.mint(address(this), currency, 1 ether);
+        vault.mint(address(this), CurrencyLibrary.NATIVE, 1 ether);
+
+        assertEq(address(vault).balance, 2 ether);
+        assertEq(currency.balanceOf(address(vault)), 2 ether);
     }
 
     function lockAcquired(bytes calldata data) external returns (bytes memory result) {
