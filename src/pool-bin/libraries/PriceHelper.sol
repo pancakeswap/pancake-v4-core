@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Copyright (C) 2024 PancakeSwap
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.0;
 
 import {Uint128x128Math} from "./math/Uint128x128Math.sol";
 import {Uint256x256Math} from "./math/Uint256x256Math.sol";

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Copyright (C) 2024 PancakeSwap
-pragma solidity ^0.8.24;
+pragma solidity 0.8.26;
 
 import "./interfaces/ICLHooks.sol";
 import {ProtocolFees} from "../ProtocolFees.sol";
@@ -22,6 +22,7 @@ import {SafeCast} from "../libraries/SafeCast.sol";
 import {CLPoolGetters} from "./libraries/CLPoolGetters.sol";
 import {CLHooks} from "./libraries/CLHooks.sol";
 import {BeforeSwapDelta} from "../types/BeforeSwapDelta.sol";
+import {Currency} from "../types/Currency.sol";
 
 contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     using SafeCast for int256;
@@ -95,9 +96,11 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         returns (int24 tick)
     {
         int24 tickSpacing = key.parameters.getTickSpacing();
-        if (tickSpacing > MAX_TICK_SPACING) revert TickSpacingTooLarge();
-        if (tickSpacing < MIN_TICK_SPACING) revert TickSpacingTooSmall();
-        if (key.currency0 >= key.currency1) revert CurrenciesInitializedOutOfOrder();
+        if (tickSpacing > MAX_TICK_SPACING) revert TickSpacingTooLarge(tickSpacing);
+        if (tickSpacing < MIN_TICK_SPACING) revert TickSpacingTooSmall(tickSpacing);
+        if (key.currency0 >= key.currency1) {
+            revert CurrenciesInitializedOutOfOrder(Currency.unwrap(key.currency0), Currency.unwrap(key.currency1));
+        }
 
         ParametersHelper.checkUnusedBitsAllZero(
             key.parameters, CLPoolParametersHelper.OFFSET_MOST_SIGNIFICANT_UNUSED_BITS
@@ -153,6 +156,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         emit ModifyLiquidity(id, msg.sender, params.tickLower, params.tickUpper, params.salt, params.liquidityDelta);
 
         BalanceDelta hookDelta;
+        // notice that both generated delta and feeDelta (from lpFee) will both be counted on the user
         (delta, hookDelta) = CLHooks.afterModifyLiquidity(key, params, delta + feeDelta, hookData);
 
         if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
