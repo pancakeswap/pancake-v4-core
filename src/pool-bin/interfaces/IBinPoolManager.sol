@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.0;
 
 import {Currency} from "../../types/Currency.sol";
 import {IProtocolFees} from "../../interfaces/IProtocolFees.sol";
@@ -16,10 +16,10 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     error PoolManagerMismatch();
 
     /// @notice Pool binStep cannot be lesser than 1. Otherwise there will be no price jump between bin
-    error BinStepTooSmall();
+    error BinStepTooSmall(uint16 binStep);
 
     /// @notice Pool binstep cannot be greater than the limit set at MAX_BIN_STEP
-    error BinStepTooLarge();
+    error BinStepTooLarge(uint16 binStep);
 
     /// @notice Error thrown when owner set max bin step too small
     error MaxBinStepTooSmall(uint16 maxBinStep);
@@ -58,7 +58,7 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @param amount1 The delta of the currency1 balance of the pool
     /// @param activeId The activeId of the pool after the swap
     /// @param fee The fee collected upon every swap in the pool (including protocol fee and LP fee), denominated in hundredths of a bip
-    /// @param protocolFee Protocol fee from the swap, also denominated in hundredths of a bip
+    /// @param protocolFee Single direction protocol fee from the swap, also denominated in hundredths of a bip
     event Swap(
         PoolId indexed id,
         address indexed sender,
@@ -66,7 +66,7 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
         int128 amount1,
         uint24 activeId,
         uint24 fee,
-        uint24 protocolFee
+        uint16 protocolFee
     );
 
     /// @notice Emitted when liquidity is added

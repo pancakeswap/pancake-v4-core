@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.0;
 
 import {IHooks} from "./IHooks.sol";
 import {PoolKey} from "../types/PoolKey.sol";
@@ -11,7 +11,7 @@ interface IPoolManager {
     error PoolNotInitialized();
 
     /// @notice PoolKey must have currencies where address(currency0) < address(currency1)
-    error CurrenciesInitializedOutOfOrder();
+    error CurrenciesInitializedOutOfOrder(address currency0, address currency1);
 
     /// @notice Thrown when a call to updateDynamicLPFee is made by an address that is not the hook,
     /// or on a pool is not a dynamic fee pool.

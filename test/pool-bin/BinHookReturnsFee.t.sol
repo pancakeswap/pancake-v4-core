@@ -107,7 +107,7 @@ contract BinHookReturnsFeeTest is Test, BinTestHelper {
         int128 amountSpecified = -int128(10000);
         BalanceDelta result;
         if (actualFee > LPFeeLibrary.TEN_PERCENT_FEE) {
-            vm.expectRevert(LPFeeLibrary.FeeTooLarge.selector);
+            vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, actualFee));
             result =
                 binSwapHelper.swap(key, true, amountSpecified, BinSwapHelper.TestSettings(true, true), new bytes(0));
             return;
@@ -194,7 +194,7 @@ contract BinHookReturnsFeeTest is Test, BinTestHelper {
 
         // a large fee is not used
         int128 amountSpecified = -10000;
-        vm.expectRevert(LPFeeLibrary.FeeTooLarge.selector);
+        vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, 1000001));
         binSwapHelper.swap(key, true, amountSpecified, BinSwapHelper.TestSettings(true, true), new bytes(0));
     }
 

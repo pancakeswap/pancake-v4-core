@@ -165,8 +165,8 @@ contract ProtocolFeesTest is Test {
         }
 
         {
-            vm.expectRevert(IProtocolFees.FeeTooLarge.selector);
             uint24 protocolFee = _buildProtocolFee(ProtocolFeeLibrary.MAX_PROTOCOL_FEE + 1, 100);
+            vm.expectRevert(abi.encodeWithSelector(IProtocolFees.ProtocolFeeTooLarge.selector, protocolFee));
             vm.prank(address(feeController));
             poolManager.setProtocolFee(key, protocolFee);
         }
