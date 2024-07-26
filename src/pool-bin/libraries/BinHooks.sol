@@ -146,6 +146,9 @@ library BinHooks {
             hooks, abi.encodeCall(IBinHooks.beforeSwap, (msg.sender, key, swapForY, amountSpecified, hookData))
         );
 
+        // A length of 96 bytes is required to return a bytes4, a 32 byte delta, and an LP fee
+        if (result.length != 96) revert Hooks.InvalidHookResponse();
+
         if (key.fee.isDynamicLPFee()) {
             lpFeeOverride = result.parseFee();
         }
