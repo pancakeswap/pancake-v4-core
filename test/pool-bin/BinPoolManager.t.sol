@@ -50,6 +50,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
     error PoolAlreadyInitialized();
     error PoolNotInitialized();
+    error PoolInvalidParameter();
     error CurrenciesInitializedOutOfOrder();
     error MaxBinStepTooSmall(uint16 maxBinStep);
     error ContractSizeTooLarge(uint256 diff);
@@ -261,6 +262,11 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
         vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, key.fee));
         poolManager.initialize(key, 10, new bytes(0));
+    }
+
+    function testInitializeInvalidId() public {
+        vm.expectRevert(PoolInvalidParameter.selector);
+        poolManager.initialize(key, 0, new bytes(0));
     }
 
     function testInitializeSwapFeeTooLarge() public {
