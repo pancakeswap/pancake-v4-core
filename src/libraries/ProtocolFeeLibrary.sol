@@ -45,9 +45,10 @@ library ProtocolFeeLibrary {
     /// @notice The protocol fee is taken from the input amount first and then the LP fee is taken from the remaining
     /// Equivalent to `protocolFee + lpFee(1_000_000 - protocolFee) / 1_000_000`
     /// Also note the swap fee is capped at 1_000_000 (100%) for cl pool and 100_000 (10%) for bin pool
+    /// @dev Assume self (protocol fee) is 1000 (0.1%) and lpFee is 3000 (0.3%), swap fee should be 3997 (0.3997%)
     /// @param self The single direction protocol fee to calculate the swap fee from
     /// @param lpFee The LP fee to calculate the swap fee from
-    /// @return swapFee The composite swap fee
+    /// @return swapFee The composite swap fee inclusive of protocol and swap fee
     function calculateSwapFee(uint16 self, uint24 lpFee) internal pure returns (uint24 swapFee) {
         assembly ("memory-safe") {
             let numerator := mul(self, lpFee)

@@ -212,24 +212,29 @@ library PackedUint128Math {
         return x1 > y1 || x2 > y2;
     }
 
-    /// @dev given amount and protocolFee, calculate and return external protocol fee amt
-    /// @param amount encoded bytes with (x, y)
-    /// @param protocolFee Protocol fee from the swap, also denominated in hundredths of a bip
-    /// @param swapFee The fee collected upon every swap in the pool (including protocol fee and LP fee), denominated in hundredths of a bip
-    function getProtocolFeeAmt(bytes32 amount, uint24 protocolFee, uint24 swapFee) internal pure returns (bytes32 z) {
+    /// @notice given amount and protocolFee, calculate and return external protocol fee amt
+    /// @param totalFeeAmounts total fee (swap and protocol fee) encoded bytes with (x, y)
+    /// @param protocolFee Upper 12 bits for protocol tokenY fee and lower 12 bit protocol tokenX fee. (1000 << 12) + 1000 represent 0.1% for both tokenX and tokenY
+    /// @param swapFee Inclusive of protocolFee and swapFee. If protocol fee is 1000 < 12 + 1000 (0.1%), lp fee is 3000 (0.3%), then swapFee is 3997 (0.39%)
+    function getProtocolFeeAmt(bytes32 totalFeeAmounts, uint24 protocolFee, uint24 swapFee)
+        internal
+        pure
+        returns (bytes32 z)
+    {
         if (protocolFee == 0 || swapFee == 0) return 0;
 
-        (uint128 amountX, uint128 amountY) = decode(amount);
-        uint16 fee0 = protocolFee.getZeroForOneFee();
-        uint16 fee1 = protocolFee.getOneForZeroFee();
+        (uint128 totalFeeAmountX, uint128 totalFeeAmountY) = decode(totalFeeAmounts);
+        uint16 pFee0 = protocolFee.getZeroForOneFee();
+        uint16 pFee1 = protocolFee.getOneForZeroFee();
 
-        uint128 feeForX;
-        uint128 feeForY;
+        uint128 pFeeForX;
+        uint128 pFeeForY;
+
         unchecked {
-            feeForX = fee0 == 0 ? 0 : (uint256(amountX) * fee0 / swapFee).safe128();
-            feeForY = fee1 == 0 ? 0 : (uint256(amountY) * fee1 / swapFee).safe128();
+            pFeeForX = pFee0 == 0 ? 0 : (uint256(totalFeeAmountX) * pFee0 / swapFee).safe128();
+            pFeeForY = pFee1 == 0 ? 0 : (uint256(totalFeeAmountY) * pFee1 / swapFee).safe128();
         }
 
-        return encode(feeForX, feeForY);
+        return encode(pFeeForX, pFeeForY);
     }
 }
