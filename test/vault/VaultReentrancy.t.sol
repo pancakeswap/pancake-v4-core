@@ -266,4 +266,17 @@ contract VaultReentrancyTest is Test, TokenFixture {
             delta = vault.currencyDelta(callerAddr, currency0);
         }
     }
+
+    function testVault_reentrance_byCurrentLocker() public {
+        vm.expectRevert(abi.encodeWithSelector(IVault.LockerAlreadySet.selector, locker));
+        locker.exec(abi.encodeWithSignature("_testVault_reentrance_byCurrentLocker(bool)", true));
+    }
+
+    function _testVault_reentrance_byCurrentLocker(bool reentrance) public {
+        if (reentrance) {
+            locker.exec(abi.encodeWithSignature("_testVault_reentrance_byCurrentLocker(bool)", false));
+        } else {
+            // reentrance succeeded
+        }
+    }
 }
