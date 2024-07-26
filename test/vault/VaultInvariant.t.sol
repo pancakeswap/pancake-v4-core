@@ -153,8 +153,8 @@ contract VaultPoolManager is Test {
             token0.transfer(address(vault), action.amt0);
             token1.transfer(address(vault), action.amt1);
 
-            vault.settle(currency0);
-            vault.settle(currency1);
+            vault.settle();
+            vault.settle();
         } else if (action.actionType == ActionType.Burn) {
             BalanceDelta delta = toBalanceDelta(int128(action.amt0), int128(action.amt1));
             vault.accountAppBalanceDelta(poolKey, delta, address(this));
@@ -196,15 +196,6 @@ contract VaultInvariant is Test, NoIsolate, GasSnapshot {
         targetSelector(FuzzSelector({addr: address(vaultPoolManager), selectors: selectors}));
     }
 
-    function invariant_TokenbalanceInVaultGeReserveOfVault() public noIsolate {
-        (uint256 amt0Bal, uint256 amt1Bal) = getTokenBalanceInVault();
-
-        vault.sync(vaultPoolManager.currency0());
-        vault.sync(vaultPoolManager.currency1());
-        assertGe(amt0Bal, vault.reservesOfVault(vaultPoolManager.currency0()));
-        assertGe(amt1Bal, vault.reservesOfVault(vaultPoolManager.currency1()));
-    }
-
     function invariant_TokenbalanceInVaultGeReserveOfPoolManagerPlusSurplusToken() public view {
         (uint256 amt0Bal, uint256 amt1Bal) = getTokenBalanceInVault();
 
@@ -214,23 +205,6 @@ contract VaultInvariant is Test, NoIsolate, GasSnapshot {
         IPoolManager manager = IPoolManager(address(vaultPoolManager));
         assertGe(amt0Bal, vault.reservesOfApp(address(manager), vaultPoolManager.currency0()) + totalMintedCurrency0);
         assertGe(amt1Bal, vault.reservesOfApp(address(manager), vaultPoolManager.currency1()) + totalMintedCurrency1);
-    }
-
-    function invariant_ReserveOfVaultEqReserveOfPoolManagerPlusSurplusToken() public noIsolate {
-        uint256 totalMintedCurrency0 = vaultPoolManager.totalMintedCurrency0();
-        uint256 totalMintedCurrency1 = vaultPoolManager.totalMintedCurrency1();
-
-        IPoolManager manager = IPoolManager(address(vaultPoolManager));
-        vault.sync(vaultPoolManager.currency0());
-        vault.sync(vaultPoolManager.currency1());
-        assertEq(
-            vault.reservesOfVault(vaultPoolManager.currency0()),
-            vault.reservesOfApp(address(manager), vaultPoolManager.currency0()) + totalMintedCurrency0
-        );
-        assertEq(
-            vault.reservesOfVault(vaultPoolManager.currency1()),
-            vault.reservesOfApp(address(manager), vaultPoolManager.currency1()) + totalMintedCurrency1
-        );
     }
 
     function invariant_LockDataLengthZero() public view {

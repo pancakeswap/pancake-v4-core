@@ -28,9 +28,6 @@ interface IVault is IVaultToken {
 
     function isAppRegistered(address app) external returns (bool);
 
-    /// @notice Returns the reserves for a currency thats sync in transient storage
-    function reservesOfVault(Currency currency) external view returns (uint256);
-
     /// @notice Returns the reserves for a a given pool type and currency
     function reservesOfApp(address app, Currency currency) external view returns (uint256);
 
@@ -39,6 +36,9 @@ interface IVault is IVaultToken {
 
     /// @notice Returns the locker who is locking the vault
     function getLocker() external view returns (address locker);
+
+    /// @notice Returns the reserve and its amount that is currently being stored in trnasient storage
+    function getVaultReserve() external view returns (Currency, uint256);
 
     /// @notice Returns lock data
     function getUnsettledDeltasCount() external view returns (uint256 count);
@@ -70,10 +70,10 @@ interface IVault is IVaultToken {
     function take(Currency currency, address to, uint256 amount) external;
 
     /// @notice Called before erc20 transfer to tstore the current reserve balance
-    function sync(Currency token0) external returns (uint256 balance);
+    function sync(Currency token0) external;
 
     /// @notice Called by the user to pay what is owed
-    function settle(Currency token) external payable returns (uint256 paid);
+    function settle() external payable returns (uint256 paid);
 
     /// @notice Called by app to collect any fee related
     /// @dev no restriction on caller, underflow happen if caller collect more than the reserve
