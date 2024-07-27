@@ -43,7 +43,7 @@ contract BaseBinTestHook is IBinHooks {
     function beforeMint(address, PoolKey calldata, IBinPoolManager.MintParams calldata, bytes calldata)
         external
         virtual
-        returns (bytes4)
+        returns (bytes4, uint24)
     {
         revert HookNotImplemented();
     }

@@ -225,6 +225,7 @@ library BinPool {
         bytes32[] liquidityConfigs;
         bytes32 amountIn;
         uint16 binStep;
+        uint24 lpFeeOverride;
         bytes32 salt;
     }
 
@@ -432,9 +433,13 @@ library BinPool {
         if (id == activeId) {
             // Fees happens when user try to add liquidity in active bin but with different ratio of (x, y)
             /// eg. current bin is 40/60 (a,b) but user tries to add liquidity with 50/50 ratio
+            uint24 lpFee = params.lpFeeOverride.isOverride()
+                ? params.lpFeeOverride.removeOverrideAndValidate(LPFeeLibrary.TEN_PERCENT_FEE)
+                : slot0Cache.lpFee;
+
             bytes32 fees;
             (fees, feeForProtocol) =
-                binReserves.getCompositionFees(slot0Cache.protocolFee, slot0Cache.lpFee, amountsIn, supply, shares);
+                binReserves.getCompositionFees(slot0Cache.protocolFee, lpFee, amountsIn, supply, shares);
             compositionFee = fees;
             if (fees != 0) {
                 {

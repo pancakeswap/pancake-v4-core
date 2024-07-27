@@ -215,10 +215,10 @@ contract BinSkipCallbackHook is BaseBinTestHook {
     function beforeMint(address, PoolKey calldata, IBinPoolManager.MintParams calldata, bytes calldata)
         external
         override
-        returns (bytes4)
+        returns (bytes4, uint24)
     {
         hookCounterCallbackCount++;
-        return BinSkipCallbackHook.beforeMint.selector;
+        return (BinSkipCallbackHook.beforeMint.selector, 0);
     }
 
     function afterMint(address, PoolKey calldata, IBinPoolManager.MintParams calldata, BalanceDelta, bytes calldata)
