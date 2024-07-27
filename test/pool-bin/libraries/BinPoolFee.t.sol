@@ -59,7 +59,7 @@ contract BinPoolFeeTest is BinTestHelper {
         vault = new MockVault();
         poolManager = new BinPoolManager(IVault(address(vault)), 500000);
         binFeeManagerHook = new BinFeeManagerHook(poolManager);
-        
+
         token0 = new MockERC20("TestA", "A", 18);
         token1 = new MockERC20("TestB", "B", 18);
         currency0 = Currency.wrap(address(token0));

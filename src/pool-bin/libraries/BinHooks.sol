@@ -80,7 +80,7 @@ library BinHooks {
         bytes memory result =
             Hooks.callHook(hooks, abi.encodeCall(IBinHooks.beforeMint, (msg.sender, key, params, hookData)));
 
-        // A length of 96 bytes is required to return a bytes4, and an LP fee
+        // A length of 64 bytes is required to return a bytes4, and an LP fee
         if (result.length != 64) revert Hooks.InvalidHookResponse();
 
         if (key.fee.isDynamicLPFee()) {
