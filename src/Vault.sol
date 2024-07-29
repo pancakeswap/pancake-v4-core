@@ -20,6 +20,8 @@ contract Vault is IVault, VaultToken, Ownable {
     using CurrencyLibrary for Currency;
     using VaultReserves for Currency;
 
+    constructor() Ownable(msg.sender) {}
+
     mapping(address app => bool isRegistered) public override isAppRegistered;
 
     /// @dev keep track of each app's reserves
