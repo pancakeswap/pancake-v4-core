@@ -408,8 +408,11 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, key.fee));
             poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
         } else {
+            int24 tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96);
             vm.expectEmit(true, true, true, true);
-            emit ICLPoolManager.Initialize(key.toId(), key.currency0, key.currency1, key.hooks, key.fee, key.parameters);
+            emit ICLPoolManager.Initialize(
+                key.toId(), key.currency0, key.currency1, key.hooks, key.fee, key.parameters, sqrtPriceX96, tick
+            );
             poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
 
             (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
@@ -432,7 +435,16 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         vm.expectEmit(true, true, true, true);
-        emit ICLPoolManager.Initialize(key.toId(), key.currency0, key.currency1, key.hooks, key.fee, key.parameters);
+        emit ICLPoolManager.Initialize(
+            key.toId(),
+            key.currency0,
+            key.currency1,
+            key.hooks,
+            key.fee,
+            key.parameters,
+            sqrtPriceX96,
+            TickMath.getTickAtSqrtRatio(sqrtPriceX96)
+        );
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
 
         (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
@@ -495,7 +507,16 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         vm.expectEmit(true, true, true, true);
-        emit ICLPoolManager.Initialize(key.toId(), key.currency0, key.currency1, key.hooks, key.fee, key.parameters);
+        emit ICLPoolManager.Initialize(
+            key.toId(),
+            key.currency0,
+            key.currency1,
+            key.hooks,
+            key.fee,
+            key.parameters,
+            sqrtPriceX96,
+            TickMath.getTickAtSqrtRatio(sqrtPriceX96)
+        );
 
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
     }
@@ -630,9 +651,6 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         mockHooks.setReturnValue(mockHooks.beforeInitialize.selector, mockHooks.beforeInitialize.selector);
         mockHooks.setReturnValue(mockHooks.afterInitialize.selector, mockHooks.afterInitialize.selector);
-
-        vm.expectEmit(true, true, true, true);
-        emit ICLPoolManager.Initialize(key.toId(), key.currency0, key.currency1, key.hooks, key.fee, key.parameters);
 
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
     }
