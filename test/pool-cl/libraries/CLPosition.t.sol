@@ -91,6 +91,14 @@ contract CLPositionTest is Test, GasSnapshot {
         }
     }
 
+    function test_fuzz_calculatePositionKey(address owner, int24 tickLower, int24 tickUpper, bytes32 salt)
+        public
+        pure
+    {
+        bytes32 positionKey = CLPosition.calculatePositionKey(owner, tickLower, tickUpper, salt);
+        assertEq(positionKey, keccak256(abi.encodePacked(owner, tickLower, tickUpper, salt)));
+    }
+
     function test_MixFuzz(address owner, int24 tickLower, int24 tickUpper, bytes32 salt, int128 liquidityDelta)
         public
     {
