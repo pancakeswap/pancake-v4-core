@@ -600,6 +600,99 @@ contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
         assertEq(currency1.balanceOf(borrower), 0 ether);
     }
 
+    function testVault_clear_existingDeltaNegative() public noIsolate {
+        vault.lock(abi.encodeCall(VaultTest._testVault_clear_existingDeltaNegative, ()));
+    }
+
+    function _testVault_clear_existingDeltaNegative() external {
+        poolManager1.mockAccounting(poolKey1, -10 ether, 0 ether);
+        // clear with negative delta
+        vm.expectRevert(IVault.MustClearExactPositiveDelta.selector);
+        vault.clear(currency0, 10 ether);
+
+        currency0.settle(vault, address(this), 10 ether, false);
+    }
+
+    function testVault_clear_existingDeltaGreaterThanInput() public noIsolate {
+        vault.lock(abi.encodeCall(VaultTest._testVault_clear_existingDeltaGreaterThanInput, ()));
+    }
+
+    function _testVault_clear_existingDeltaGreaterThanInput() external {
+        // make sure vault has enough balance
+        currency0.settle(vault, address(this), 20 ether, false);
+        poolManager1.mockAccounting(poolKey1, -20 ether, 0);
+
+        poolManager1.mockAccounting(poolKey1, 11 ether, 0 ether);
+        // clear with smaller delta
+        vm.expectRevert(IVault.MustClearExactPositiveDelta.selector);
+        vault.clear(currency0, 10 ether);
+
+        currency0.take(vault, address(this), 11 ether, true);
+    }
+
+    function testVault_clear_existingDeltaLessThanInput() public noIsolate {
+        vault.lock(abi.encodeCall(VaultTest._testVault_clear_existingDeltaLessThanInput, ()));
+    }
+
+    function _testVault_clear_existingDeltaLessThanInput() external {
+        // make sure vault has enough balance
+        currency0.settle(vault, address(this), 20 ether, false);
+        poolManager1.mockAccounting(poolKey1, -20 ether, 0);
+
+        poolManager1.mockAccounting(poolKey1, 9 ether, 0 ether);
+        // clear with greater delta
+        vm.expectRevert(IVault.MustClearExactPositiveDelta.selector);
+        vault.clear(currency0, 10 ether);
+
+        currency0.take(vault, address(this), 9 ether, true);
+    }
+
+    function testVault_clear_withAmountZero() public noIsolate {
+        vault.lock(abi.encodeCall(VaultTest._testVault_clear_withAmountZero, ()));
+    }
+
+    function _testVault_clear_withAmountZero() external {
+        // make sure vault has enough balance
+        currency0.settle(vault, address(this), 20 ether, false);
+        poolManager1.mockAccounting(poolKey1, -20 ether, 0);
+
+        poolManager1.mockAccounting(poolKey1, 10 ether, 0 ether);
+        // clear with 0 amount
+        vm.expectRevert(IVault.MustClearExactPositiveDelta.selector);
+        vault.clear(currency0, 0);
+
+        currency0.take(vault, address(this), 10 ether, true);
+    }
+
+    function testVault_clear_successWithNonZeroExistingDelta() public noIsolate {
+        vault.lock(abi.encodeCall(VaultTest._testVault_clear_successWithNonZeroExistingDelta, ()));
+    }
+
+    function _testVault_clear_successWithNonZeroExistingDelta() external {
+        // make sure vault has enough balance
+        currency0.settle(vault, address(this), 20 ether, false);
+        poolManager1.mockAccounting(poolKey1, -20 ether, 0);
+
+        poolManager1.mockAccounting(poolKey1, 10 ether, 0 ether);
+        snapStart("VaultTest#testVault_clear_successWithNonZeroExistingDelta");
+        vault.clear(currency0, 10 ether);
+        snapEnd();
+    }
+
+    function testVault_clear_successWithZeroExistingDelta() public noIsolate {
+        vault.lock(abi.encodeCall(VaultTest._testVault_clear_successWithZeroExistingDelta, ()));
+    }
+
+    function _testVault_clear_successWithZeroExistingDelta() external {
+        // make sure vault has enough balance
+        currency0.settle(vault, address(this), 20 ether, false);
+        poolManager1.mockAccounting(poolKey1, -20 ether, 0);
+
+        snapStart("VaultTest#testVault_clear_successWithZeroExistingDelta");
+        vault.clear(currency0, 0);
+        snapEnd();
+    }
+
     function lockAcquired(bytes calldata data) external returns (bytes memory result) {
         // forward the call and bubble up the error if revert
         bool success;
