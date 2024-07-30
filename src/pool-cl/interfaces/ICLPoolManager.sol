@@ -32,13 +32,17 @@ interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @param hooks The hooks contract address for the pool, or address(0) if none
     /// @param fee The lp fee collected upon every swap in the pool, denominated in hundredths of a bip
     /// @param parameters Includes hooks callback bitmap and tickSpacing
+    /// @param sqrtPriceX96 The sqrt(price) of the pool on initialization, as a Q64.96
+    /// @param tick The tick corresponding to the price of the pool on initialization
     event Initialize(
         PoolId indexed id,
         Currency indexed currency0,
         Currency indexed currency1,
         IHooks hooks,
         uint24 fee,
-        bytes32 parameters
+        bytes32 parameters,
+        uint160 sqrtPriceX96,
+        int24 tick
     );
 
     /// @notice Emitted when a liquidity position is modified
