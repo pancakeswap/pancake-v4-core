@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
-import {ERC20PresetFixedSupply} from "@openzeppelin/contracts/token/ERC20/presets/ERC20PresetFixedSupply.sol";
+import {MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
 import {Vault} from "../../src/Vault.sol";
 import {IPoolManager} from "../../src/interfaces/IPoolManager.sol";
 import {ICLPoolManager} from "../../src/pool-cl/interfaces/ICLPoolManager.sol";
@@ -36,6 +36,7 @@ import {CLFeeManagerHook} from "./helpers/CLFeeManagerHook.sol";
 import {ProtocolFeeLibrary} from "../../src/libraries/ProtocolFeeLibrary.sol";
 import {SafeCast} from "../../src/libraries/SafeCast.sol";
 import {NoIsolate} from "../helpers/NoIsolate.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnapshot {
     using PoolIdLibrary for PoolKey;
@@ -353,13 +354,6 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
     }
 
     function testInitialize_gasCheck_withoutHooks() external {
-        Currency currency0 = Currency.wrap(address(new ERC20PresetFixedSupply("C0", "C0", 100 ether, address(this))));
-        Currency currency1 = Currency.wrap(address(new ERC20PresetFixedSupply("C1", "C1", 100 ether, address(this))));
-
-        if (currency0 > currency1) {
-            (currency0, currency1) = (currency1, currency0);
-        }
-
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
@@ -744,12 +738,12 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
     // **************                  *************** //
 
     function testModifyPosition_addLiquidity() external {
-        Currency currency0 = Currency.wrap(address(new ERC20PresetFixedSupply("C0", "C0", 1e10 ether, address(this))));
-        Currency currency1 = Currency.wrap(address(new ERC20PresetFixedSupply("C1", "C1", 1e10 ether, address(this))));
+        // make sure enough balance for the test
+        MockERC20(Currency.unwrap(currency0)).mint(address(this), 1e10 ether);
+        MockERC20(Currency.unwrap(currency1)).mint(address(this), 1e10 ether);
 
-        if (currency0 > currency1) {
-            (currency0, currency1) = (currency1, currency0);
-        }
+        uint256 token0Before = IERC20(Currency.unwrap(currency0)).balanceOf(address(this));
+        uint256 token1Before = IERC20(Currency.unwrap(currency1)).balanceOf(address(this));
 
         PoolKey memory key = PoolKey({
             currency0: currency0,
@@ -788,8 +782,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             // consume both X and Y, python:
             // >>> X = ((1.0001 ** tick0) ** -0.5 - (1.0001 ** tick1) ** -0.5) * 1e24
             // >>> Y = ((1.0001 ** tick1) ** 0.5 - (1.0001 ** tick0) ** 0.5) * 1e24
-            assertEq(1e10 ether - token0Left, 99999999999999999945788);
-            assertEq(1e10 ether - token1Left, 9999999999999999999945788);
+            assertEq(token0Before - token0Left, 99999999999999999945788);
+            assertEq(token1Before - token1Left, 9999999999999999999945788);
 
             assertEq(poolManager.getLiquidity(key.toId()), 1e24);
             assertEq(
@@ -828,8 +822,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             // consume both X and Y, python:
             // >>> X = ((1.0001 ** tick0) ** -0.5 - (1.0001 ** tick1) ** -0.5) * 1e24
             // >>> Y = ((1.0001 ** tick1) ** 0.5 - (1.0001 ** tick0) ** 0.5) * 1e24
-            assertEq(1e10 ether - token0Left, 99999999999999999946788);
-            assertEq(1e10 ether - token1Left, 10000000000000000000045788);
+            assertEq(token0Before - token0Left, 99999999999999999946788);
+            assertEq(token1Before - token1Left, 10000000000000000000045788);
 
             assertEq(poolManager.getLiquidity(key.toId()), 1e24 + 1e4);
             assertEq(
@@ -851,13 +845,6 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
     }
 
     function testModifyPosition_feeDelta() external {
-        Currency currency0 = Currency.wrap(address(new ERC20PresetFixedSupply("C0", "C0", 1e30 ether, address(this))));
-        Currency currency1 = Currency.wrap(address(new ERC20PresetFixedSupply("C1", "C1", 1e30 ether, address(this))));
-
-        if (currency0 > currency1) {
-            (currency0, currency1) = (currency1, currency0);
-        }
-
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
@@ -979,12 +966,11 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
     }
 
     function testModifyPosition_Liquidity_aboveCurrentTick() external {
-        Currency currency0 = Currency.wrap(address(new ERC20PresetFixedSupply("C0", "C0", 1e30 ether, address(this))));
-        Currency currency1 = Currency.wrap(address(new ERC20PresetFixedSupply("C1", "C1", 1e30 ether, address(this))));
-
-        if (currency0 > currency1) {
-            (currency0, currency1) = (currency1, currency0);
-        }
+        // make sure enough balance for the test
+        MockERC20(Currency.unwrap(currency0)).mint(address(this), 1e30 ether);
+        MockERC20(Currency.unwrap(currency1)).mint(address(this), 1e30 ether);
+        uint256 token0Before = IERC20(Currency.unwrap(currency0)).balanceOf(address(this));
+        uint256 token1Before = IERC20(Currency.unwrap(currency1)).balanceOf(address(this));
 
         PoolKey memory key = PoolKey({
             currency0: currency0,
@@ -1015,8 +1001,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         // consume X only, python:
         // >>> ((1.0001 ** tick0) ** -0.5 - (1.0001 ** tick1) ** -0.5) * 1e9
         // 24994.381475337836
-        assertEq(1e30 ether - token0Left, 24995);
-        assertEq(1e30 ether - token1Left, 0);
+        assertEq(token0Before - token0Left, 24995);
+        assertEq(token1Before - token1Left, 0);
 
         // no active liquidity
         assertEq(poolManager.getLiquidity(key.toId()), 0);
@@ -1027,13 +1013,11 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
     }
 
     function testModifyPosition_addLiquidity_belowCurrentTick() external {
-        Currency currency0 = Currency.wrap(address(new ERC20PresetFixedSupply("C0", "C0", 1e30 ether, address(this))));
-        Currency currency1 = Currency.wrap(address(new ERC20PresetFixedSupply("C1", "C1", 1e30 ether, address(this))));
-
-        if (currency0 > currency1) {
-            (currency0, currency1) = (currency1, currency0);
-        }
-
+        // make sure enough balance for the test
+        MockERC20(Currency.unwrap(currency0)).mint(address(this), 1e30 ether);
+        MockERC20(Currency.unwrap(currency1)).mint(address(this), 1e30 ether);
+        uint256 token0Before = IERC20(Currency.unwrap(currency0)).balanceOf(address(this));
+        uint256 token1Before = IERC20(Currency.unwrap(currency1)).balanceOf(address(this));
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
@@ -1063,8 +1047,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         // consume Y only, python:
         //>>> ((1.0001 ** tick1) ** 0.5 - (1.0001 ** tick0) ** 0.5) * 1e9
         // 24962530.97288914
-        assertEq(1e30 ether - token0Left, 0);
-        assertEq(1e30 ether - token1Left, 24962531);
+        assertEq(token0Before - token0Left, 0);
+        assertEq(token1Before - token1Left, 24962531);
 
         // no active liquidity
         assertEq(poolManager.getLiquidity(key.toId()), 0);
@@ -1075,13 +1059,6 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
     }
 
     function testModifyPosition_removeLiquidity_fromEmpty() external {
-        Currency currency0 = Currency.wrap(address(new ERC20PresetFixedSupply("C0", "C0", 1e36 ether, address(this))));
-        Currency currency1 = Currency.wrap(address(new ERC20PresetFixedSupply("C1", "C1", 1e36 ether, address(this))));
-
-        if (currency0 > currency1) {
-            (currency0, currency1) = (currency1, currency0);
-        }
-
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
@@ -1108,13 +1085,6 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
     }
 
     function testModifyPosition_removeLiquidity_updateEmptyPosition() external {
-        Currency currency0 = Currency.wrap(address(new ERC20PresetFixedSupply("C0", "C0", 1e36 ether, address(this))));
-        Currency currency1 = Currency.wrap(address(new ERC20PresetFixedSupply("C1", "C1", 1e36 ether, address(this))));
-
-        if (currency0 > currency1) {
-            (currency0, currency1) = (currency1, currency0);
-        }
-
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
@@ -1141,13 +1111,6 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
     }
 
     function testModifyPosition_removeLiquidity_empty() external {
-        Currency currency0 = Currency.wrap(address(new ERC20PresetFixedSupply("C0", "C0", 1e36 ether, address(this))));
-        Currency currency1 = Currency.wrap(address(new ERC20PresetFixedSupply("C1", "C1", 1e36 ether, address(this))));
-
-        if (currency0 > currency1) {
-            (currency0, currency1) = (currency1, currency0);
-        }
-
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
@@ -1202,13 +1165,11 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
     }
 
     function testModifyPosition_removeLiquidity_halfAndThenAll() external {
-        Currency currency0 = Currency.wrap(address(new ERC20PresetFixedSupply("C0", "C0", 1e30 ether, address(this))));
-        Currency currency1 = Currency.wrap(address(new ERC20PresetFixedSupply("C1", "C1", 1e30 ether, address(this))));
-
-        if (currency0 > currency1) {
-            (currency0, currency1) = (currency1, currency0);
-        }
-
+        // make sure enough balance for the test
+        MockERC20(Currency.unwrap(currency0)).mint(address(this), 1e30 ether);
+        MockERC20(Currency.unwrap(currency1)).mint(address(this), 1e30 ether);
+        uint256 token0Before = IERC20(Currency.unwrap(currency0)).balanceOf(address(this));
+        uint256 token1Before = IERC20(Currency.unwrap(currency1)).balanceOf(address(this));
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
@@ -1239,8 +1200,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             // consume Y only, python:
             //>>> ((1.0001 ** tick1) ** 0.5 - (1.0001 ** tick0) ** 0.5) * 1e9
             // 24962530.97288914
-            assertEq(1e30 ether - token0Left, 0);
-            assertEq(1e30 ether - token1Left, 24962531);
+            assertEq(token0Before - token0Left, 0);
+            assertEq(token1Before - token1Left, 24962531);
 
             // no active liquidity
             assertEq(poolManager.getLiquidity(key.toId()), 0);
@@ -1264,8 +1225,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             uint256 token1Left = IERC20(Currency.unwrap(currency1)).balanceOf(address(this));
 
             // half of 24962531
-            assertEq(1e30 ether - token0Left, 0);
-            assertEq(1e30 ether - token1Left, 12481266);
+            assertEq(token0Before - token0Left, 0);
+            assertEq(token1Before - token1Left, 12481266);
 
             // no active liquidity
             assertEq(poolManager.getLiquidity(key.toId()), 0);
@@ -1286,10 +1247,10 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             uint256 token1Left = IERC20(Currency.unwrap(currency1)).balanceOf(address(this));
 
             // back to 0
-            assertEq(1e30 ether - token0Left, 0);
+            assertEq(token0Before - token0Left, 0);
 
             // expected to receive 0, but got 1 because of precision loss
-            assertEq(1e30 ether - token1Left, 1);
+            assertEq(token1Before - token1Left, 1);
 
             // no active liquidity
             assertEq(poolManager.getLiquidity(key.toId()), 0);
@@ -1484,14 +1445,10 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
     }
 
     function testModifyPosition_withSalt_addAndRemove() external {
+        // make sure enough balance for the test
+        MockERC20(Currency.unwrap(currency0)).mint(address(this), 1e30 ether);
+        MockERC20(Currency.unwrap(currency1)).mint(address(this), 1e30 ether);
         bytes32 salt = bytes32(uint256(0x1234));
-        Currency currency0 = Currency.wrap(address(new ERC20PresetFixedSupply("C0", "C0", 1e10 ether, address(this))));
-        Currency currency1 = Currency.wrap(address(new ERC20PresetFixedSupply("C1", "C1", 1e10 ether, address(this))));
-
-        if (currency0 > currency1) {
-            (currency0, currency1) = (currency1, currency0);
-        }
-
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
@@ -1573,16 +1530,13 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
     }
 
     function testModifyPosition_mixWithAndWithoutSalt() external {
+        // make sure enough balance for the test
+        MockERC20(Currency.unwrap(currency0)).mint(address(this), 1e30 ether);
+        MockERC20(Currency.unwrap(currency1)).mint(address(this), 1e30 ether);
+
         bytes32 salt0 = bytes32(0);
         bytes32 salt1 = bytes32(uint256(0x1234));
         bytes32 salt2 = bytes32(uint256(0x5678));
-
-        Currency currency0 = Currency.wrap(address(new ERC20PresetFixedSupply("C0", "C0", 1e10 ether, address(this))));
-        Currency currency1 = Currency.wrap(address(new ERC20PresetFixedSupply("C1", "C1", 1e10 ether, address(this))));
-
-        if (currency0 > currency1) {
-            (currency0, currency1) = (currency1, currency0);
-        }
 
         PoolKey memory key = PoolKey({
             currency0: currency0,
@@ -1688,13 +1642,6 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
     // **************        *************** //
 
     function testSwap_runOutOfLiquidity() external {
-        Currency currency0 = Currency.wrap(address(new ERC20PresetFixedSupply("C0", "C0", 1e30 ether, address(this))));
-        Currency currency1 = Currency.wrap(address(new ERC20PresetFixedSupply("C1", "C1", 1e30 ether, address(this))));
-
-        if (currency0 > currency1) {
-            (currency0, currency1) = (currency1, currency0);
-        }
-
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
@@ -2878,12 +2825,6 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
     }
 
     function testModifyLiquidity_Add_WhenPaused() public {
-        Currency currency0 = Currency.wrap(address(new ERC20PresetFixedSupply("C0", "C0", 1e10 ether, address(this))));
-        Currency currency1 = Currency.wrap(address(new ERC20PresetFixedSupply("C1", "C1", 1e10 ether, address(this))));
-        if (currency0 > currency1) {
-            (currency0, currency1) = (currency1, currency0);
-        }
-
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
@@ -2914,12 +2855,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
     }
 
     function testModifyLiquidity_Remove_WhenPaused() public {
-        Currency currency0 = Currency.wrap(address(new ERC20PresetFixedSupply("C0", "C0", 1e10 ether, address(this))));
-        Currency currency1 = Currency.wrap(address(new ERC20PresetFixedSupply("C1", "C1", 1e10 ether, address(this))));
-        if (currency0 > currency1) {
-            (currency0, currency1) = (currency1, currency0);
-        }
-
+        // make sure enough balance for the test
+        MockERC20(Currency.unwrap(currency0)).mint(address(this), 1e30 ether);
+        MockERC20(Currency.unwrap(currency1)).mint(address(this), 1e30 ether);
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
@@ -2952,12 +2890,6 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
     }
 
     function testSwap_WhenPaused() public {
-        Currency currency0 = Currency.wrap(address(new ERC20PresetFixedSupply("C0", "C0", 1e10 ether, address(this))));
-        Currency currency1 = Currency.wrap(address(new ERC20PresetFixedSupply("C1", "C1", 1e10 ether, address(this))));
-        if (currency0 > currency1) {
-            (currency0, currency1) = (currency1, currency0);
-        }
-
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
@@ -2974,7 +2906,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         // pause
         poolManager.pause();
 
-        vm.expectRevert("Pausable: paused");
+        vm.expectRevert(Pausable.EnforcedPause.selector);
         router.swap(
             key,
             ICLPoolManager.SwapParams({
@@ -3001,7 +2933,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         // pause
         poolManager.pause();
 
-        vm.expectRevert("Pausable: paused");
+        vm.expectRevert(Pausable.EnforcedPause.selector);
         router.donate(key, 100, 200, ZERO_BYTES);
     }
 

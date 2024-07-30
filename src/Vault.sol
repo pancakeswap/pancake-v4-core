@@ -19,6 +19,8 @@ contract Vault is IVault, VaultToken, Ownable {
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
 
+    constructor() Ownable(msg.sender) {}
+
     mapping(address app => bool isRegistered) public override isAppRegistered;
 
     /// @dev keep track of each app's reserves
