@@ -38,6 +38,8 @@ import {ParametersHelper} from "../../src/libraries/math/ParametersHelper.sol";
 import {BinPosition} from "../../src/pool-bin/libraries/BinPosition.sol";
 import {PriceHelper} from "../../src/pool-bin/libraries/PriceHelper.sol";
 import {BinHelper} from "../../src/pool-bin/libraries/BinHelper.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     using PoolIdLibrary for PoolKey;
@@ -929,7 +931,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         poolManager.setMaxBinStep(binStep);
 
         vm.prank(makeAddr("bob"));
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, makeAddr("bob")));
         poolManager.setMaxBinStep(100);
     }
 
@@ -1045,7 +1047,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
         // attempt swap
         token0.mint(address(this), 1 ether);
-        vm.expectRevert("Pausable: paused");
+        vm.expectRevert(Pausable.EnforcedPause.selector);
         testSettings = BinSwapHelper.TestSettings({withdrawTokens: false, settleUsingTransfer: true});
         binSwapHelper.swap(key, true, -int128(1 ether), testSettings, "");
     }
@@ -1063,7 +1065,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         // pause
         poolManager.pause();
 
-        vm.expectRevert("Pausable: paused");
+        vm.expectRevert(Pausable.EnforcedPause.selector);
         binLiquidityHelper.mint(key, mintParams, "");
     }
 
@@ -1107,7 +1109,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         // pause
         poolManager.pause();
 
-        vm.expectRevert("Pausable: paused");
+        vm.expectRevert(Pausable.EnforcedPause.selector);
         binDonateHelper.donate(key, 10 ether, 10 ether, "");
     }
 
