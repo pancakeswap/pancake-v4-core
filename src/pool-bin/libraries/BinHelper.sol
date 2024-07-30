@@ -2,8 +2,6 @@
 // Copyright (C) 2024 PancakeSwap
 pragma solidity ^0.8.0;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
 import {PackedUint128Math} from "./math/PackedUint128Math.sol";
 import {Uint256x256Math} from "./math/Uint256x256Math.sol";
 import {SafeCast} from "./math/SafeCast.sol";

@@ -28,6 +28,7 @@ contract CLRevertHook is BaseCLTestHook {
 
     function afterInitialize(address, PoolKey calldata, uint160, int24, bytes calldata data)
         external
+        pure
         override
         returns (bytes4)
     {

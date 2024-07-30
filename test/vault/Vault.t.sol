@@ -6,7 +6,7 @@ import "forge-std/Test.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Vault} from "../../src/Vault.sol";
 import {BalanceDelta, toBalanceDelta} from "../../src/types/BalanceDelta.sol";
-import {ERC20PresetFixedSupply} from "@openzeppelin/contracts/token/ERC20/presets/ERC20PresetFixedSupply.sol";
+import {MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IPoolManager} from "../../src/interfaces/IPoolManager.sol";
 import {Currency, CurrencyLibrary} from "../../src/types/Currency.sol";
@@ -17,12 +17,13 @@ import {FakePoolManager} from "./FakePoolManager.sol";
 import {IHooks} from "../../src/interfaces/IHooks.sol";
 import {NoIsolate} from "../helpers/NoIsolate.sol";
 import {CurrencySettlement} from "../helpers/CurrencySettlement.sol";
+import {TokenFixture} from "../helpers/TokenFixture.sol";
 
 /**
  * @notice Basic functionality test for Vault
  * More tests in terms of security and edge cases will be covered by VaultReentracy.t.sol & VaultInvariant.t.sol
  */
-contract VaultTest is Test, NoIsolate, GasSnapshot {
+contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
     using PoolIdLibrary for PoolKey;
     using CurrencySettlement for Currency;
 
@@ -32,9 +33,6 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
     FakePoolManager public unRegPoolManager;
     FakePoolManager public poolManager1;
     FakePoolManager public poolManager2;
-
-    Currency public currency0;
-    Currency public currency1;
 
     PoolKey public poolKey1;
     PoolKey public poolKey2;
@@ -49,8 +47,7 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
         vault.registerApp(address(poolManager1));
         vault.registerApp(address(poolManager2));
 
-        currency0 = Currency.wrap(address(new ERC20PresetFixedSupply("C0", "C0", 100 ether, address(this))));
-        currency1 = Currency.wrap(address(new ERC20PresetFixedSupply("C1", "C1", 100 ether, address(this))));
+        initializeTokens();
 
         poolKey1 = PoolKey({
             currency0: currency0,
@@ -426,6 +423,9 @@ contract VaultTest is Test, NoIsolate, GasSnapshot {
         assertEq(vault.reservesOfApp(address(poolKey2.poolManager), currency1), 10 ether);
 
         // try to get more than 10 ether from pool1
+        assertEq(currency0.balanceOfSelf(), 980 ether);
+        currency0.transfer(address(vault), 15 ether);
+
         vm.expectRevert(stdError.arithmeticError);
         poolManager1.mockAccounting(poolKey1, 15 ether, -10 ether);
     }
