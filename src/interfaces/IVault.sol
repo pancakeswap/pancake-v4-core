@@ -75,6 +75,11 @@ interface IVault is IVaultToken {
     /// @notice Called by the user to pay what is owed
     function settle() external payable returns (uint256 paid);
 
+    /// @notice Called by the user to pay on behalf of another address
+    /// @param recipient The address to credit for the payment
+    /// @return paid The amount of currency settled
+    function settleFor(address recipient) external payable returns (uint256 paid);
+
     /// @notice Called by app to collect any fee related
     /// @dev no restriction on caller, underflow happen if caller collect more than the reserve
     function collectFee(Currency currency, uint256 amount, address recipient) external;
