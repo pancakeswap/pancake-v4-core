@@ -47,6 +47,11 @@ contract BinPositionTest is Test {
         assertEq(_self.positions.get(owner, binId, 0).share, share1 - share2, "testFuzz_SubShareMultiple::1");
     }
 
+    function testFuzz_CalculatePositionKey(address owner, uint24 binId, bytes32 salt) public pure {
+        bytes32 positionKey = BinPosition.calculatePositionKey(owner, binId, salt);
+        assertEq(positionKey, keccak256(abi.encodePacked(owner, binId, salt)));
+    }
+
     function testFuzz_GetPosition(address owner, uint24 binId, bytes32 salt, uint256 share) public {
         // manual keccak and add share
         bytes32 key = keccak256(abi.encodePacked(owner, binId, salt));
