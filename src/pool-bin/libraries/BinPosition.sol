@@ -19,13 +19,14 @@ library BinPosition {
     /// @param binId The bin id where the position's liquidity is added
     /// @param salt A unique value to differentiate between multiple positions in the same binId, by the same owner. Passed in by the caller.
     function calculatePositionKey(address owner, uint24 binId, bytes32 salt) internal pure returns (bytes32 key) {
-        // same as `positionKey = keccak256(abi.encodePacked(owner, binId, salt))`
-        // memory will be 12 bytes of zeros, the 20 bytes of address, 3 bytes for uint24
+        // dev same as `positionKey = keccak256(abi.encodePacked(owner, binId, salt))`
+        // make salt, binId, owner to be tightly packed in memory
+        // mstore in reverse order make sure latter can make use of the empty space in the former
         assembly ("memory-safe") {
             let fmp := mload(0x40)
-            mstore(add(fmp, 0x23), salt) // [0x23, 0x43)
-            mstore(add(fmp, 0x03), binId) // [0x03, 0x23)
-            mstore(fmp, owner) // [0x0c, 0x20)
+            mstore(add(fmp, 0x23), salt) // salt at [0x23, 0x43)
+            mstore(add(fmp, 0x03), binId) // binId at [0x20, 0x23)
+            mstore(fmp, owner) // owner at [0x0c, 0x20)
             key := keccak256(add(fmp, 0x0c), 0x37) // len is 55 bytes
 
             // now clean the memory we used
