@@ -439,7 +439,8 @@ library BinPool {
             if (fees != 0) {
                 {
                     uint256 userLiquidity = amountsIn.sub(fees).getLiquidity(price);
-                    uint256 binLiquidity = binReserves.getLiquidity(price);
+                    /// @dev Ensure fee accrued only to existing lp, before calculating new share for minter
+                    uint256 binLiquidity = binReserves.add(fees.sub(feeForProtocol)).getLiquidity(price);
                     shares = userLiquidity.mulDivRoundDown(supply, binLiquidity);
                 }
 

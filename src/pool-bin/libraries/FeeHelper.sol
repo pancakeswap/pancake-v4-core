@@ -8,7 +8,7 @@ import {Constants} from "./Constants.sol";
 library FeeHelper {
     /// @dev Calculates the fee amount from the amount with fees, rounding up
     /// @param amountWithFees The amount with fees
-    /// @param feeBips feeBips - 100 = 0.01%, 1_000 = 0.1%, 1_000_000 = 100%
+    /// @param feeBips feeBips - 100 = 0.01%, 1_000 = 0.1%, 100_000 = 10% (max)
     /// @return feeAmount The fee amount
     function getFeeAmountFrom(uint128 amountWithFees, uint24 feeBips) internal pure returns (uint128) {
         unchecked {
@@ -20,7 +20,7 @@ library FeeHelper {
 
     /// @dev Calculates the fee amount that will be charged, rounding up
     /// @param amount The amount
-    /// @param feeBips feeBips - 100 = 0.01%, 1_000 = 0.1%, 1_000_000 = 100%
+    /// @param feeBips feeBips - 100 = 0.01%, 1_000 = 0.1%, 100_000 = 10% (max)
     /// @return feeAmount The fee amount
     function getFeeAmount(uint128 amount, uint24 feeBips) internal pure returns (uint128) {
         unchecked {
@@ -31,9 +31,10 @@ library FeeHelper {
         }
     }
 
-    /// @dev Calculates the composition fee amount from the amount with fees, rounding down
+    /// @notice Calculates the composition fee amount from the amount with fees, rounding down
+    /// @dev Composition fee is higher than swapFee to ensure user do not does an implicit swap through mint to take advantage of lower fees
     /// @param amountWithFees The amount with fees
-    /// @param feeBips The total fee, 100 = 0.01%, 10_000 = 1%, 1_000_000 = 100%
+    /// @param feeBips The total fee, 100 = 0.01%, 10_000 = 1%, 100_000 = 10% (max)
     /// @return The amount with fees
     function getCompositionFee(uint128 amountWithFees, uint24 feeBips) internal pure returns (uint128) {
         unchecked {
