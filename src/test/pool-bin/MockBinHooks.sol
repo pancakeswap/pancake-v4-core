@@ -55,11 +55,11 @@ contract MockBinHooks is IBinHooks {
     function beforeMint(address, PoolKey calldata, IBinPoolManager.MintParams calldata, bytes calldata hookData)
         external
         override
-        returns (bytes4)
+        returns (bytes4, uint24)
     {
         beforeMintData = hookData;
         bytes4 selector = MockBinHooks.beforeMint.selector;
-        return returnValues[selector] == bytes4(0) ? selector : returnValues[selector];
+        return (returnValues[selector] == bytes4(0) ? selector : returnValues[selector], 0);
     }
 
     function afterMint(

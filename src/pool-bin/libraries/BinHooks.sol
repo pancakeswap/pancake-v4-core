@@ -69,11 +69,25 @@ library BinHooks {
 
     function beforeMint(PoolKey memory key, IBinPoolManager.MintParams calldata params, bytes calldata hookData)
         internal
+        returns (uint24 lpFeeOverride)
     {
         IBinHooks hooks = IBinHooks(address(key.hooks));
 
-        if (key.parameters.shouldCall(HOOKS_BEFORE_MINT_OFFSET, hooks)) {
+        if (!key.parameters.shouldCall(HOOKS_BEFORE_MINT_OFFSET, hooks)) {
+            return lpFeeOverride;
+        }
+
+        bytes memory result =
             Hooks.callHook(hooks, abi.encodeCall(IBinHooks.beforeMint, (msg.sender, key, params, hookData)));
+
+        // A length of 64 bytes is required to return a bytes4, and an LP fee
+        if (result.length != 64) revert Hooks.InvalidHookResponse();
+
+        if (key.fee.isDynamicLPFee()) {
+            // equivalent: (,, lpFee) = abi.decode(result, (bytes4, uint24));
+            assembly {
+                lpFeeOverride := mload(add(result, 0x40))
+            }
         }
     }
 
