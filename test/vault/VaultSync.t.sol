@@ -5,20 +5,20 @@ import {Test} from "forge-std/Test.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
 
-import {Vault} from "../../src/Vault.sol";
+import {IVault, Vault} from "../../src/Vault.sol";
 import {Currency, CurrencyLibrary} from "../../src/types/Currency.sol";
 import {TokenFixture} from "../helpers/TokenFixture.sol";
 import {NoIsolate} from "../helpers/NoIsolate.sol";
-import {VaultReserves} from "../../src/libraries/VaultReserves.sol";
+import {VaultReserve} from "../../src/libraries/VaultReserve.sol";
 import {FakePoolManager} from "./FakePoolManager.sol";
-import {FakePoolManagerRouter} from "./FakePoolManagerRouter.sol";
 import {PoolKey} from "../../src/types/PoolKey.sol";
 import {IHooks} from "../../src/interfaces/IHooks.sol";
+import {NativeERC20} from "../helpers/NativeERC20.sol";
 
 contract VaultSyncTest is Test, TokenFixture, GasSnapshot, NoIsolate {
     Vault public vault;
     FakePoolManager public fakePoolManager;
-    FakePoolManagerRouter public router;
+    PoolKey public poolKey;
 
     function setUp() public {
         initializeTokens();
@@ -27,7 +27,7 @@ contract VaultSyncTest is Test, TokenFixture, GasSnapshot, NoIsolate {
         fakePoolManager = new FakePoolManager(vault);
         vault.registerApp(address(fakePoolManager));
 
-        PoolKey memory key = PoolKey({
+        poolKey = PoolKey({
             currency0: currency0,
             currency1: currency1,
             hooks: IHooks(address(0)),
@@ -35,124 +35,163 @@ contract VaultSyncTest is Test, TokenFixture, GasSnapshot, NoIsolate {
             fee: 0,
             parameters: 0x00
         });
-
-        router = new FakePoolManagerRouter(vault, key);
     }
 
     function test_sync_balanceIsZero() public noIsolate {
         assertEq(currency0.balanceOf(address(vault)), uint256(0));
-        uint256 balance = vault.sync(currency0);
+        vault.sync(currency0);
 
-        assertEq(uint256(balance), 0);
-        assertEq(vault.reservesOfVault(currency0), 0);
+        (Currency currency, uint256 amount) = vault.getVaultReserve();
+        assertEq(Currency.unwrap(currency), Currency.unwrap(currency0));
+        assertEq(amount, 0);
     }
 
     function test_sync_balanceIsNonZero() public noIsolate {
         // transfer without calling sync ahead cause token lost
         currency0.transfer(address(vault), 10 ether);
-
         uint256 currency0Balance = currency0.balanceOf(address(vault));
-        assertGt(currency0Balance, uint256(0));
-
-        // Without calling sync, getReserves should revert.
-        vm.expectRevert(VaultReserves.ReserveNotSync.selector);
-        vault.reservesOfVault(currency0);
-
-        uint256 balance = vault.sync(currency0);
-        assertEq(balance, currency0Balance, "balance not equal");
-        assertEq(vault.reservesOfVault(currency0), balance);
-    }
-
-    function test_settle_withNoStartingBalance() public noIsolate {
-        assertEq(currency0.balanceOf(address(vault)), uint256(0));
-
-        // Sync has not been called.
-        vm.expectRevert(VaultReserves.ReserveNotSync.selector);
-        vault.reservesOfVault(currency0);
+        assertEq(currency0Balance, 10 ether);
 
         vault.sync(currency0);
+        (Currency currency, uint256 amount) = vault.getVaultReserve();
+        assertEq(Currency.unwrap(currency), Currency.unwrap(currency0));
+        assertEq(amount, currency0Balance, "balance not equal");
+    }
+
+    function test_settle_startWithZeroBalance() public noIsolate {
+        vault.lock(abi.encodeCall(VaultSyncTest._test_settle_startWithZeroBalance, ()));
+    }
+
+    function _test_settle_startWithZeroBalance() external {
+        vault.sync(currency0);
+        (Currency currency, uint256 amount) = vault.getVaultReserve();
+        // it should currently wait for the next settle
+        assertEq(Currency.unwrap(currency), Currency.unwrap(currency0));
+        assertEq(amount, 0);
+
         currency0.transfer(address(vault), 10 ether);
+        vault.settle();
 
-        vm.prank(address(router));
-        vault.lock(hex"13");
+        // make sure it's cleared after settle
+        (currency, amount) = vault.getVaultReserve();
+        assertEq(Currency.unwrap(currency), address(0));
+        assertEq(amount, 0);
 
+        // mint 10 ether currency0
+        vault.mint(address(this), poolKey.currency0, 10 ether);
         assertEq(currency0.balanceOf(address(vault)), 10 ether);
-        assertEq(vault.sync(currency0), 10 ether);
-        assertEq(vault.reservesOfVault(currency0), 10 ether);
-    }
-
-    function test_settle_revertsIfSyncNotCalled() public noIsolate {
-        currency0.transfer(address(vault), 10 ether);
-        currency1.transfer(address(vault), 10 ether);
-
-        vm.expectRevert(VaultReserves.ReserveNotSync.selector);
-        vm.prank(address(router));
-        vault.lock(hex"02");
-    }
-
-    /// @notice When there is no balance and reserves are set to type(uint256).max, no delta should be applied.
-    function test_settle_noBalanceInPool_shouldNotApplyDelta() public noIsolate {
-        assertEq(currency0.balanceOf(address(vault)), uint256(0));
-
-        // Sync has not been called.
-        vm.expectRevert(VaultReserves.ReserveNotSync.selector);
-        vault.reservesOfVault(currency0);
 
         vault.sync(currency0);
-        assertEq(vault.reservesOfVault(currency0), 0);
-
-        vm.prank(address(router));
-        vault.lock(hex"18");
+        (currency, amount) = vault.getVaultReserve();
+        assertEq(Currency.unwrap(currency), Currency.unwrap(currency0));
+        assertEq(amount, 10 ether);
     }
 
-    /// @notice When there is a balance, no delta should be applied.
-    function test_settle_balanceInPool_shouldNotApplyDelta() public noIsolate {
-        currency0.transfer(address(vault), 10 ether);
-
-        uint256 currency0Balance = currency0.balanceOf(address(vault));
-
-        // Sync has not been called.
-        vm.expectRevert(VaultReserves.ReserveNotSync.selector);
-        vault.reservesOfVault(currency0);
-
+    function test_sync_twiceWithoutSettle() public noIsolate {
         vault.sync(currency0);
-        assertEq(vault.reservesOfVault(currency0), currency0Balance);
-
-        vm.prank(address(router));
-        vault.lock(hex"18");
+        vm.expectRevert(abi.encodeWithSelector(VaultReserve.LastSyncNotSettled.selector));
+        vault.sync(currency0);
     }
 
-    /// @notice When there is no actual balance in the pool, the ZERO_BALANCE stored in transient reserves should never actually used in calculating the amount paid in settle.
-    /// This tests check that the reservesNow value is set to 0 not ZERO_BALANCE, by checking that an underflow happens when
-    /// a) the contract balance is 0 and b) the reservesBefore value is out of date (sync isn't called again before settle).
-    /// ie because paid = reservesNow - reservesBefore, and because reservesNow < reservesBefore an underflow should happen.
-    function test_settle_afterTake_doesNotApplyDelta() public noIsolate {
+    function test_settle_nativeTokenWithoutFund() public noIsolate {
+        vault.lock(abi.encodeCall(VaultSyncTest._test_settle_nativeTokenWithoutFund, ()));
+    }
+
+    function _test_settle_nativeTokenWithoutFund() external {
+        (Currency currency, uint256 amount) = vault.getVaultReserve();
+        assertEq(Currency.unwrap(currency), address(0));
+        assertEq(amount, 0);
+        vault.settle();
+        // nothing should happen
+        int256 deltaAfter = vault.currencyDelta(address(this), CurrencyLibrary.NATIVE);
+        assertEq(deltaAfter, 0);
+    }
+
+    function test_settle_nativeTokenWithFund() public noIsolate {
+        vault.lock(abi.encodeCall(VaultSyncTest._test_settle_nativeTokenWithFund, ()));
+    }
+
+    function _test_settle_nativeTokenWithFund() external {
+        (Currency currency, uint256 amount) = vault.getVaultReserve();
+        assertEq(Currency.unwrap(currency), address(0));
+        assertEq(amount, 0);
+        vault.settle{value: 1 ether}();
+        int256 deltaAfter = vault.currencyDelta(address(this), CurrencyLibrary.NATIVE);
+        assertEq(deltaAfter, 1 ether);
+
+        // balance the delta
+        vault.take(CurrencyLibrary.NATIVE, makeAddr("receiver"), 1 ether);
+    }
+
+    function test_settle_ERC20TokenWithValue() public noIsolate {
+        vault.lock(abi.encodeCall(VaultSyncTest._test_settle_ERC20TokenWithValue, ()));
+    }
+
+    function _test_settle_ERC20TokenWithValue() external {
         vault.sync(currency0);
-        uint256 maxBalanceAmt = uint256(int256(type(int128).max));
-        mint(maxBalanceAmt);
-        currency0.transfer(address(vault), maxBalanceAmt);
-
-        // Sync was called before transfer
-        assertEq(vault.reservesOfVault(currency0), 0);
-
-        vm.prank(address(router));
-        vault.lock(hex"19");
+        vm.expectRevert(abi.encodeWithSelector(IVault.SettleNonNativeCurrencyWithValue.selector));
+        vault.settle{value: 1 ether}();
     }
 
     // @notice This tests expected behavior if you DO NOT call sync. (ie. Do not interact with the pool manager properly. You can lose funds.)
-    function test_settle_withoutSync_doesNotRevert_takesUserBalance() public noIsolate {
-        currency0.transfer(address(vault), 10 ether);
+    function test_settle_transferBeforeSync() public noIsolate {
+        vault.lock(abi.encodeCall(VaultSyncTest._test_settle_transferBeforeSync, ()));
+    }
 
+    function _test_settle_transferBeforeSync() external {
+        // the fund is lost and is locked in the vault
+        currency0.transfer(address(vault), 10 ether);
         vault.sync(currency0);
         currency0.transfer(address(vault), 10 ether);
 
-        // mint
-        vm.prank(address(router));
-        vault.lock(hex"23");
+        vault.settle();
+        assertEq(vault.currencyDelta(address(this), currency0), 10 ether);
+        vault.mint(address(this), poolKey.currency0, 10 ether);
 
+        // 20 ether in vault but only 10 belongs to user
         assertEq(currency0.balanceOf(address(vault)), 20 ether);
-        assertEq(vault.sync(currency0), 20 ether);
-        assertEq(vault.reservesOfVault(currency0), 20 ether);
-        assertEq(vault.balanceOf(address(router), currency0), 10 ether);
+        vault.sync(currency0);
+        (Currency currency, uint256 amount) = vault.getVaultReserve();
+        assertEq(Currency.unwrap(currency), Currency.unwrap(currency0));
+        assertEq(amount, 20 ether);
+        assertEq(vault.balanceOf(address(this), currency0), 10 ether);
+    }
+
+    function test_settle_NativeERC20() public noIsolate {
+        vault.lock(abi.encodeCall(VaultSyncTest._test_settle_NativeERC20, ()));
+    }
+
+    function _test_settle_NativeERC20() external {
+        Currency currency = Currency.wrap(address(new NativeERC20()));
+        vault.sync(currency);
+
+        // mixing those two are not allowed
+        vm.expectRevert(IVault.SettleNonNativeCurrencyWithValue.selector);
+        vault.settle{value: 1 ether}();
+
+        // erc20 way of settling
+        currency.transfer(address(vault), 1 ether);
+        vault.settle();
+
+        // native way of settling
+        vault.settle{value: 1 ether}();
+
+        // from vault perspective they are two different currencies
+        vault.mint(address(this), currency, 1 ether);
+        vault.mint(address(this), CurrencyLibrary.NATIVE, 1 ether);
+
+        assertEq(address(vault).balance, 2 ether);
+        assertEq(currency.balanceOf(address(vault)), 2 ether);
+    }
+
+    function lockAcquired(bytes calldata data) external returns (bytes memory result) {
+        // forward the call and bubble up the error if revert
+        bool success;
+        (success, result) = address(this).call(data);
+        if (!success) {
+            assembly ("memory-safe") {
+                revert(add(result, 0x20), mload(result))
+            }
+        }
     }
 }

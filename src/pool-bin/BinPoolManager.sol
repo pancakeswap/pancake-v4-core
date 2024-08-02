@@ -125,7 +125,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         poolIdToPoolKey[id] = key;
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
-        emit Initialize(id, key.currency0, key.currency1, key.hooks, key.fee, key.parameters);
+        emit Initialize(id, key.currency0, key.currency1, key.hooks, key.fee, key.parameters, activeId);
 
         BinHooks.afterInitialize(key, activeId, hookData);
     }

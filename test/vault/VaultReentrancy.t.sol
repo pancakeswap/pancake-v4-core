@@ -69,7 +69,7 @@ contract VaultReentrancyTest is Test, TokenFixture {
         // deposit some tokens
         vault.sync(currency0);
         currency0.transfer(address(vault), 1);
-        vault.settle(currency0);
+        vault.settle();
         nonzeroDeltaCount = vault.getUnsettledDeltasCount();
 
         assertEq(nonzeroDeltaCount, 1);
@@ -110,7 +110,7 @@ contract VaultReentrancyTest is Test, TokenFixture {
 
             address callerAddr = makeAddr(string(abi.encode(i)));
             vm.startPrank(callerAddr);
-            vault.settle(currency0);
+            vault.settle();
             vm.stopPrank();
 
             nonzeroDeltaCount = vault.getUnsettledDeltasCount();
@@ -160,7 +160,7 @@ contract VaultReentrancyTest is Test, TokenFixture {
 
             address callerAddr = makeAddr(string(abi.encode(i % SETTLERS_AMOUNT)));
             vm.startPrank(callerAddr);
-            vault.settle(currency0);
+            vault.settle();
             vault.mint(address(callerAddr), currency0, 1 ether);
             vm.stopPrank();
 
@@ -193,7 +193,7 @@ contract VaultReentrancyTest is Test, TokenFixture {
                 vault.sync(currency0);
                 currency0.transfer(address(vault), paidAmount);
                 vm.startPrank(callerAddr);
-                vault.settle(currency0);
+                vault.settle();
                 vm.stopPrank();
 
                 currencyDelta[i % SETTLERS_AMOUNT] += int256(paidAmount);
@@ -255,7 +255,7 @@ contract VaultReentrancyTest is Test, TokenFixture {
                 vault.sync(currency0);
                 currency0.transfer(address(vault), uint256(-delta));
                 vm.startPrank(callerAddr);
-                vault.settle(currency0);
+                vault.settle();
                 vm.stopPrank();
             } else if (delta > 0) {
                 // vault owes token to the user

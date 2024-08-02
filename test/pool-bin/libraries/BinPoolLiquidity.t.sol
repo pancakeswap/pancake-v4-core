@@ -173,6 +173,26 @@ contract BinPoolLiquidityTest is BinTestHelper {
         }
     }
 
+    /// @dev Ensure composition fee all goes to LP
+    function test_Mint_CompositionFeeGoesToLp() external {
+        poolManager.initialize(key, activeId, new bytes(0));
+
+        uint256 amountX = 100 ether;
+        uint256 amountY = 1 ether;
+
+        // add 100 tokenX and 1 tokenY into active bin
+        addLiquidityToBin(key, poolManager, bob, activeId, amountX, amountY, 1e18, 1e18, "");
+        // add 100 tokenX and 0 tokenY into active bin (trigger compositionFee)
+        addLiquidityToBin(key, poolManager, alice, activeId, amountX, amountY, 1e18, 0, "");
+
+        uint256 bobBal = poolManager.getPosition(key.toId(), bob, activeId, 0).share;
+        BalanceDelta bobDelta = removeLiquidityFromBin(key, poolManager, bob, activeId, bobBal, "");
+        uint256 aliceBal = poolManager.getPosition(key.toId(), alice, activeId, 0).share;
+        BalanceDelta aliceDelta = removeLiquidityFromBin(key, poolManager, alice, activeId, aliceBal, "");
+        assertEq(aliceDelta.amount0() + bobDelta.amount0(), 200 ether);
+        assertEq(aliceDelta.amount1() + bobDelta.amount1(), 1 ether);
+    }
+
     function test_MintWithDifferentBins() external {
         poolManager.initialize(key, activeId, new bytes(0));
 
@@ -201,9 +221,9 @@ contract BinPoolLiquidityTest is BinTestHelper {
                 assertApproxEqRel(
                     poolManager.getPosition(poolId, bob, id, 0).share,
                     2 * balances[i],
-                    1e15,
+                    2e15, // 0.2%
                     "test_MintWithDifferentBins::1"
-                ); // composition fee
+                ); // composition fee, so share will be lesser than 2 * balances[i]
             } else {
                 assertEq(
                     poolManager.getPosition(poolId, bob, id, 0).share, 2 * balances[i], "test_MintWithDifferentBins::2"

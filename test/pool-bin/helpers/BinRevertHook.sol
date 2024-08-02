@@ -28,6 +28,7 @@ contract BinRevertHook is BaseBinTestHook {
 
     function afterInitialize(address, PoolKey calldata, uint24, bytes calldata data)
         external
+        pure
         override
         returns (bytes4)
     {

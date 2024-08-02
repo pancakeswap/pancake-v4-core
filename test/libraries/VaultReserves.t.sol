@@ -1,50 +1,41 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import {VaultReserves} from "../../src/libraries/VaultReserves.sol";
+import {VaultReserve} from "../../src/libraries/VaultReserve.sol";
 import {Test} from "forge-std/Test.sol";
-import {Currency} from "../../src/types/Currency.sol";
+import {Currency, CurrencyLibrary} from "../../src/types/Currency.sol";
 
-contract VaultReservesTest is Test {
-    using VaultReserves for Currency;
-
+contract VaultReserveTest is Test {
     Currency currency0;
 
     function setUp() public {
         currency0 = Currency.wrap(address(0xabcd));
     }
 
-    function test_getVaultReserves_reverts_withoutSet() public {
-        vm.expectRevert(VaultReserves.ReserveNotSync.selector);
-        currency0.getVaultReserves();
+    function test_alreadySettledLastSync() public {
+        VaultReserve.alreadySettledLastSync();
+
+        VaultReserve.setVaultReserve(currency0, 10);
+        vm.expectRevert(VaultReserve.LastSyncNotSettled.selector);
+        VaultReserve.alreadySettledLastSync();
+
+        VaultReserve.setVaultReserve(currency0, 0);
+        VaultReserve.alreadySettledLastSync();
     }
 
-    function test_getVaultReserves_returns0AfterSet() public {
-        currency0.setVaultReserves(0);
-        uint256 value = currency0.getVaultReserves();
-        assertEq(value, 0);
+    function test_slot_correctness() public pure {
+        assertEq(uint256(keccak256("reserveType")) - 1, VaultReserve.RESERVE_TYPE_SLOT);
+        assertEq(uint256(keccak256("reserveAmount")) - 1, VaultReserve.RESERVE_AMOUNT_SLOT);
     }
 
-    function test_getVaultReserves_returns_set() public {
-        currency0.setVaultReserves(100);
-        uint256 value = currency0.getVaultReserves();
-        assertEq(value, 100);
-    }
+    function test_fuzz_get_set(Currency currency, uint256 amount) public {
+        (Currency currencyBefore, uint256 amountBefore) = VaultReserve.getVaultReserve();
+        assertEq(Currency.unwrap(currencyBefore), Currency.unwrap(CurrencyLibrary.NATIVE));
+        assertEq(amountBefore, 0);
 
-    function test_set_twice_returns_correct_value() public {
-        currency0.setVaultReserves(100);
-        currency0.setVaultReserves(200);
-        uint256 value = currency0.getVaultReserves();
-        assertEq(value, 200);
-    }
-
-    function test_reservesOfSlot() public pure {
-        assertEq(uint256(keccak256("reservesOfVault")) - 1, VaultReserves.RESERVE_OF_VAULT_SLOT);
-    }
-
-    function test_fuzz_get_set(Currency currency, uint256 value) public {
-        vm.assume(value != type(uint256).max);
-        currency.setVaultReserves(value);
-        assertEq(currency.getVaultReserves(), value);
+        VaultReserve.setVaultReserve(currency, amount);
+        (Currency currencyAfter, uint256 amountAfter) = VaultReserve.getVaultReserve();
+        assertEq(Currency.unwrap(currencyAfter), Currency.unwrap(currency));
+        assertEq(amountAfter, amount);
     }
 }
