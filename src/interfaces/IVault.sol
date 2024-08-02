@@ -23,6 +23,9 @@ interface IVault is IVaultToken {
     /// @notice Thrown when passing in msg.value for non-native currency
     error SettleNonNativeCurrencyWithValue();
 
+    /// @notice Thrown when `clear` is called with an amount that is not exactly equal to the open currency delta.
+    error MustClearExactPositiveDelta();
+
     /// @notice Thrown when there is no locker
     error NoLocker();
 
@@ -74,6 +77,12 @@ interface IVault is IVaultToken {
 
     /// @notice Called by the user to pay what is owed
     function settle() external payable returns (uint256 paid);
+
+    /// @notice WARNING - Any currency that is cleared, will be non-retreivable, and locked in the contract permanently.
+    /// A call to clear will zero out a positive balance WITHOUT a corresponding transfer.
+    /// @dev This could be used to clear a balance that is considered dust.
+    /// Additionally, the amount must be the exact positive balance. This is to enforce that the caller is aware of the amount being cleared.
+    function clear(Currency currency, uint256 amount) external;
 
     /// @notice Called by app to collect any fee related
     /// @dev no restriction on caller, underflow happen if caller collect more than the reserve
