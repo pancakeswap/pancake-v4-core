@@ -128,25 +128,23 @@ contract BinPoolFeeTest is BinTestHelper {
 
         // initialize both pool
         uint24 binId = ID_ONE; // where token price are the same
-        initialAmt = uint24(bound(initialAmt, 100 ether, 100_000 ether));
-        uint256 amountX = initialAmt;
-        uint256 amountY = initialAmt;
         poolManager.initialize(key, binId, new bytes(0));
         poolManager.initialize(key2, binId, new bytes(0));
 
-        // add same liquidity to both pool
-        addLiquidityToBin(key, poolManager, alice, binId, amountX, amountY, 1e18, 1e18, "");
-        addLiquidityToBin(key2, poolManager, alice, binId, amountX, amountY, 1e18, 1e18, "");
+        // add same liquidity (100 to 100_000 ether) to both pool
+        initialAmt = uint256(bound(initialAmt, 100 ether, 100_000 ether));
+        addLiquidityToBin(key, poolManager, alice, binId, initialAmt, initialAmt, 1e18, 1e18, "");
+        addLiquidityToBin(key2, poolManager, alice, binId, initialAmt, initialAmt, 1e18, 1e18, "");
 
         // pool1: perform an implicit swap of tokenY for tokenX by adding 40 tokenX and 50 tokenY
         addLiquidityToBin(key, poolManager, bob, binId, 100 ether, 100 ether, 4e17, 5e17, "");
         uint256 shares = poolManager.getPosition(key.toId(), bob, binId, 0).share;
-        BalanceDelta removeDela = removeLiquidityFromBin(key, poolManager, bob, binId, shares, "0x");
+        BalanceDelta removeDela = removeLiquidityFromBin(key, poolManager, bob, binId, shares, "");
         uint128 tokenXOut = uint128(removeDela.amount0()) - 40 ether;
         uint128 tokenYIn = 50 ether - uint128(removeDela.amount1());
 
         // pool2: perform a swap. exactInput tokenY for tokenX
-        BalanceDelta swapDelta = poolManager.swap(key, false, -int128(tokenYIn), "0x");
+        BalanceDelta swapDelta = poolManager.swap(key, false, -int128(tokenYIn), "");
 
         // swap tokenOut >= mint with implicit swap
         assertGe(uint128(swapDelta.amount0()), tokenXOut);
