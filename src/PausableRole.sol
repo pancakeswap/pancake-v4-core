@@ -9,30 +9,13 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 /// @notice Allow owner and multiple accounts to pause but only owner can unpause
 /// @dev Potentially allow security partners to programatically pause()
 abstract contract PausableRole is IPausableRole, Ownable, Pausable {
-    mapping(address account => bool hasPausableRole) public hasPausableRole;
-
     constructor() Ownable(msg.sender) {}
 
-    modifier onlyPausableRoleOrOwner() {
-        if (msg.sender != owner() && !hasPausableRole[msg.sender]) revert NoPausableRole();
-        _;
-    }
-
-    function pause() public override onlyPausableRoleOrOwner {
+    function pause() public override onlyOwner {
         _pause();
     }
 
     function unpause() public override onlyOwner {
         _unpause();
-    }
-
-    function grantPausableRole(address account) public override onlyOwner {
-        hasPausableRole[account] = true;
-        emit PausableRoleGranted(account);
-    }
-
-    function revokePausableRole(address account) public override onlyOwner {
-        hasPausableRole[account] = false;
-        emit PausableRoleRevoked(account);
     }
 }
