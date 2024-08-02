@@ -2898,7 +2898,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         IERC20(Currency.unwrap(currency1)).approve(address(router), 1e10 ether);
 
         // pause
-        poolManager.pause();
+        poolManager.setPause(true);
 
         vm.expectRevert(ICLPoolManager.PoolPaused.selector);
         router.modifyPosition(
@@ -2941,7 +2941,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         );
 
         // pause
-        poolManager.pause();
+        poolManager.setPause(true);
 
         // verify no revert
         router.modifyPosition(
@@ -2972,7 +2972,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         IERC20(Currency.unwrap(currency1)).approve(address(router), 1e10 ether);
 
         // pause
-        poolManager.pause();
+        poolManager.setPause(true);
 
         vm.expectRevert("Pausable: paused");
         router.swap(
@@ -2999,7 +2999,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
         // pause
-        poolManager.pause();
+        poolManager.setPause(true);
 
         vm.expectRevert("Pausable: paused");
         router.donate(key, 100, 200, ZERO_BYTES);

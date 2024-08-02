@@ -841,7 +841,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         poolManager.initialize(key, activeId, new bytes(0));
 
         // verify poolId.
-        uint256 POOL_SLOT = 4;
+        uint256 POOL_SLOT = 3;
         snapStart("BinPoolManagerTest#testExtLoadPoolActiveId");
         bytes32 slot0Bytes = poolManager.extsload(keccak256(abi.encode(key.toId(), POOL_SLOT)));
         snapEnd();
@@ -1041,7 +1041,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         binLiquidityHelper.mint(key, mintParams, "");
 
         // pause
-        poolManager.pause();
+        poolManager.setPause(true);
 
         // attempt swap
         token0.mint(address(this), 1 ether);
@@ -1061,7 +1061,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
 
         // pause
-        poolManager.pause();
+        poolManager.setPause(true);
 
         vm.expectRevert("Pausable: paused");
         binLiquidityHelper.mint(key, mintParams, "");
@@ -1079,7 +1079,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         binLiquidityHelper.mint(key, mintParams, "");
 
         // pause
-        poolManager.pause();
+        poolManager.setPause(true);
 
         // burn
         IBinPoolManager.BurnParams memory burnParams =
@@ -1105,7 +1105,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         binLiquidityHelper.mint(key, mintParams, "");
 
         // pause
-        poolManager.pause();
+        poolManager.setPause(true);
 
         vm.expectRevert("Pausable: paused");
         binDonateHelper.donate(key, 10 ether, 10 ether, "");
