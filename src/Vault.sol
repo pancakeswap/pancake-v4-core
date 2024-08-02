@@ -76,6 +76,8 @@ contract Vault is IVault, VaultToken, Ownable {
     }
 
     /// @inheritdoc IVault
+    /// @dev This function doesn't whether the caller is the poolManager specified in the PoolKey
+    /// PoolManager shouldn't expect that behavior
     function accountAppBalanceDelta(PoolKey memory key, BalanceDelta delta, address settler)
         external
         override

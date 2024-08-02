@@ -26,6 +26,7 @@ import {BinTestHelper} from "../helpers/BinTestHelper.sol";
 import {BinFeeManagerHook} from "../helpers/BinFeeManagerHook.sol";
 import {HOOKS_AFTER_INITIALIZE_OFFSET, HOOKS_BEFORE_MINT_OFFSET} from "../../../src/pool-bin/interfaces/IBinHooks.sol";
 import {Hooks} from "../../../src/libraries/Hooks.sol";
+import {SortTokens} from "../../helpers/SortTokens.sol";
 
 /**
  * @dev tests around fee for mint(), swap() and burn()
@@ -45,14 +46,18 @@ contract BinPoolFeeTest is BinTestHelper {
 
     PoolKey key;
     PoolId poolId;
+    PoolKey key2;
+    PoolId poolId2;
     bytes32 poolParam;
 
     address alice = makeAddr("alice");
     address bob = makeAddr("bob");
     MockERC20 token0;
     MockERC20 token1;
+    MockERC20 token2;
     Currency currency0;
     Currency currency1;
+    Currency currency2;
 
     function setUp() public {
         vault = new MockVault();
@@ -61,10 +66,9 @@ contract BinPoolFeeTest is BinTestHelper {
 
         token0 = new MockERC20("TestA", "A", 18);
         token1 = new MockERC20("TestB", "B", 18);
-        currency0 = Currency.wrap(address(token0));
-        currency1 = Currency.wrap(address(token1));
+        token2 = new MockERC20("TestC", "C", 18);
 
-        (currency0, currency1) = currency0 < currency1 ? (currency0, currency1) : (currency1, currency0);
+        (currency0, currency1, currency2) = SortTokens.sort(token0, token1, token2);
 
         poolParam = poolParam.setBinStep(10);
         key = PoolKey({
@@ -76,6 +80,15 @@ contract BinPoolFeeTest is BinTestHelper {
             parameters: poolParam // binStep
         });
         poolId = key.toId();
+
+        key2 = PoolKey({
+            currency0: currency1,
+            currency1: currency2,
+            hooks: IHooks(address(0)),
+            poolManager: IPoolManager(address(poolManager)),
+            fee: uint24(3000), // 3000 = 0.3%
+            parameters: poolParam // binStep
+        });
 
         feeController = new MockProtocolFeeController();
         mockFeeManagerHook = new MockFeeManagerHook();
@@ -105,6 +118,36 @@ contract BinPoolFeeTest is BinTestHelper {
         vm.expectEmit();
         emit IBinPoolManager.Mint(key.toId(), bob, ids, 0, amounts, expectedFee, protocolFee);
         addLiquidityToBin(key, poolManager, bob, binId, amountX, amountY, 4e17, 5e17, "");
+    }
+
+    /// @notice ensure that swapping always give more tokenOut compare to mint with implicit swap
+    function testFuzz_SwapOutputMoreThanMint(uint24 lpFee, uint256 initialAmt) external {
+        lpFee = uint24(bound(lpFee, 0, LPFeeLibrary.TEN_PERCENT_FEE));
+        key.fee = lpFee;
+        key2.fee = lpFee;
+
+        // initialize both pool
+        uint24 binId = ID_ONE; // where token price are the same
+        poolManager.initialize(key, binId, new bytes(0));
+        poolManager.initialize(key2, binId, new bytes(0));
+
+        // add same liquidity (100 to 100_000 ether) to both pool
+        initialAmt = uint256(bound(initialAmt, 100 ether, 100_000 ether));
+        addLiquidityToBin(key, poolManager, alice, binId, initialAmt, initialAmt, 1e18, 1e18, "");
+        addLiquidityToBin(key2, poolManager, alice, binId, initialAmt, initialAmt, 1e18, 1e18, "");
+
+        // pool1: perform an implicit swap of tokenY for tokenX by adding 40 tokenX and 50 tokenY
+        addLiquidityToBin(key, poolManager, bob, binId, 100 ether, 100 ether, 4e17, 5e17, "");
+        uint256 shares = poolManager.getPosition(key.toId(), bob, binId, 0).share;
+        BalanceDelta removeDela = removeLiquidityFromBin(key, poolManager, bob, binId, shares, "");
+        uint128 tokenXOut = uint128(removeDela.amount0()) - 40 ether;
+        uint128 tokenYIn = 50 ether - uint128(removeDela.amount1());
+
+        // pool2: perform a swap. exactInput tokenY for tokenX
+        BalanceDelta swapDelta = poolManager.swap(key, false, -int128(tokenYIn), "");
+
+        // swap tokenOut >= mint with implicit swap
+        assertGe(uint128(swapDelta.amount0()), tokenXOut);
     }
 
     function testFuzz_Mint_WithDynamicFeeTooLarge(uint24 swapFee) external {

@@ -22,6 +22,34 @@ library CLPosition {
         uint256 feeGrowthInside1LastX128;
     }
 
+    /// @notice A helper function to calculate the position key
+    /// @param owner The address of the position owner
+    /// @param tickLower the lower tick boundary of the position
+    /// @param tickUpper the upper tick boundary of the position
+    /// @param salt A unique value to differentiate between multiple positions in the same range, by the same owner. Passed in by the caller.
+    function calculatePositionKey(address owner, int24 tickLower, int24 tickUpper, bytes32 salt)
+        internal
+        pure
+        returns (bytes32 key)
+    {
+        // same as `positionKey = keccak256(abi.encodePacked(owner, tickLower, tickUpper, salt))`
+        // make salt, tickUpper, tickLower, owner to be tightly packed in memory
+        // mstore in reverse order make sure latter can make use of the empty space in the former
+        assembly ("memory-safe") {
+            let fmp := mload(0x40)
+            mstore(add(fmp, 0x26), salt) // salt at [0x26, 0x46)
+            mstore(add(fmp, 0x06), tickUpper) // tickUpper at [0x23, 0x26)
+            mstore(add(fmp, 0x03), tickLower) // tickLower at [0x20, 0x23)
+            mstore(fmp, owner) // owner at [0x0c, 0x20)
+            key := keccak256(add(fmp, 0x0c), 0x3a) // len is 58 bytes
+
+            // now clean the memory we used since we don't need it anymore
+            mstore(add(fmp, 0x40), 0) // fmp+0x40 held salt
+            mstore(add(fmp, 0x20), 0) // fmp+0x20 held tickLower, tickUpper, salt
+            mstore(fmp, 0) // fmp held owner
+        }
+    }
+
     /// @notice Returns the Info struct of a position, given an owner and position boundaries
     /// @param self The mapping containing all user positions
     /// @param owner The address of the position owner
@@ -34,23 +62,7 @@ library CLPosition {
         view
         returns (Info storage position)
     {
-        bytes32 key;
-        // still memory-safe because we've cleared the data that is out of scratch space range
-        // make use of memory scratch space
-        // ref: https://github.com/Vectorized/solady/blob/main/src/tokens/ERC20.sol#L95
-        assembly ("memory-safe") {
-            let fmp := mload(0x40)
-            mstore(add(fmp, 0x26), salt) // [0x26, 0x46)
-            mstore(add(fmp, 0x06), tickUpper) // [0x23, 0x26)
-            mstore(add(fmp, 0x03), tickLower) // [0x20, 0x23)
-            mstore(fmp, owner) // [0x0c, 0x20)
-            key := keccak256(add(fmp, 0x0c), 0x3a) // len is 58 bytes
-
-            // now clean the memory we used
-            mstore(add(fmp, 0x40), 0) // fmp+0x40 held salt
-            mstore(add(fmp, 0x20), 0) // fmp+0x20 held tickLower, tickUpper, salt
-            mstore(fmp, 0) // fmp held owner
-        }
+        bytes32 key = calculatePositionKey(owner, tickLower, tickUpper, salt);
         position = self[key];
     }
 

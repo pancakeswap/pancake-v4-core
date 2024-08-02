@@ -144,7 +144,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
         vm.expectEmit();
         emit IBinPoolManager.Initialize(
-            key.toId(), key.currency0, key.currency1, IHooks(address(mockHooks)), key.fee, key.parameters
+            key.toId(), key.currency0, key.currency1, IHooks(address(mockHooks)), key.fee, key.parameters, activeId
         );
 
         poolManager.initialize(key, activeId, new bytes(0));
