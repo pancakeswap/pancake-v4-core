@@ -53,12 +53,17 @@ interface IBinHooks is IHooks {
     /// @param params The parameters for adding liquidity
     /// @param hookData Arbitrary data handed into the PoolManager by the liquidty provider to be be passed on to the hook
     /// @return bytes4 The function selector for the hook
+    /// @return uint24 Optionally override the lp fee, only used if four conditions are met:
+    ///     1) Liquidity added to active bin in different ratio from current bin (causing an internal swap)
+    ///     2) the Pool has a dynamic fee,
+    ///     3) the value's override flag is set to 1 i.e. vaule & OVERRIDE_FEE_FLAG = 0x400000 != 0
+    ///     4) the value is less than or equal to the maximum fee (100_000) - 10%
     function beforeMint(
         address sender,
         PoolKey calldata key,
         IBinPoolManager.MintParams calldata params,
         bytes calldata hookData
-    ) external returns (bytes4);
+    ) external returns (bytes4, uint24);
 
     /// @notice The hook called after adding liquidity
     /// @param sender The initial msg.sender for the modify position call
