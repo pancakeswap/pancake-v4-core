@@ -11,14 +11,13 @@ import {Currency, CurrencyLibrary} from "./types/Currency.sol";
 import {BalanceDelta} from "./types/BalanceDelta.sol";
 import {ILockCallback} from "./interfaces/ILockCallback.sol";
 import {SafeCast} from "./libraries/SafeCast.sol";
-import {VaultReserves} from "./libraries/VaultReserves.sol";
+import {VaultReserve} from "./libraries/VaultReserve.sol";
 import {VaultToken} from "./VaultToken.sol";
 
 contract Vault is IVault, VaultToken, Ownable {
     using SafeCast for *;
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
-    using VaultReserves for Currency;
 
     constructor() Ownable(msg.sender) {}
 
@@ -77,6 +76,8 @@ contract Vault is IVault, VaultToken, Ownable {
     }
 
     /// @inheritdoc IVault
+    /// @dev This function doesn't whether the caller is the poolManager specified in the PoolKey
+    /// PoolManager shouldn't expect that behavior
     function accountAppBalanceDelta(PoolKey memory key, BalanceDelta delta, address settler)
         external
         override
@@ -122,19 +123,25 @@ contract Vault is IVault, VaultToken, Ownable {
         }
     }
 
-    function sync(Currency currency) public returns (uint256 balance) {
-        balance = currency.balanceOfSelf();
-        currency.setVaultReserves(balance);
+    function sync(Currency currency) public {
+        VaultReserve.alreadySettledLastSync();
+        if (currency.isNative()) return;
+        uint256 balance = currency.balanceOfSelf();
+        VaultReserve.setVaultReserve(currency, balance);
     }
 
     /// @inheritdoc IVault
-    function settle(Currency currency) external payable override isLocked returns (uint256 paid) {
+    function settle() external payable override isLocked returns (uint256 paid) {
+        (Currency currency, uint256 reservesBefore) = VaultReserve.getVaultReserve();
         if (!currency.isNative()) {
             if (msg.value > 0) revert SettleNonNativeCurrencyWithValue();
-            uint256 reservesBefore = currency.getVaultReserves();
-            uint256 reservesNow = sync(currency);
+            uint256 reservesNow = currency.balanceOfSelf();
             paid = reservesNow - reservesBefore;
+
+            /// @dev reset the reserve after settled otherwise next sync() call will throw LastSyncNotSettled
+            VaultReserve.setVaultReserve(CurrencyLibrary.NATIVE, 0);
         } else {
+            // NATIVE token does not require sync call before settle
             paid = msg.value;
         }
 
@@ -154,8 +161,8 @@ contract Vault is IVault, VaultToken, Ownable {
     }
 
     /// @inheritdoc IVault
-    function reservesOfVault(Currency currency) external view returns (uint256) {
-        return currency.getVaultReserves();
+    function getVaultReserve() external view returns (Currency, uint256) {
+        return VaultReserve.getVaultReserve();
     }
 
     function _accountDeltaForApp(address app, Currency currency, int128 delta) internal {

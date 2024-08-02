@@ -20,7 +20,7 @@ library CurrencySettlement {
         if (burn) {
             vault.burn(payer, currency, amount);
         } else if (currency.isNative()) {
-            vault.settle{value: amount}(currency);
+            vault.settle{value: amount}();
         } else {
             vault.sync(currency);
             if (payer != address(this)) {
@@ -28,7 +28,7 @@ library CurrencySettlement {
             } else {
                 IERC20Minimal(Currency.unwrap(currency)).transfer(address(vault), amount);
             }
-            vault.settle(currency);
+            vault.settle();
         }
     }
 
