@@ -17,16 +17,6 @@ pragma solidity ^0.8.20;
 abstract contract Ownable {
     address private _owner;
 
-    /**
-     * @dev The caller account is not authorized to perform an operation.
-     */
-    error OwnableUnauthorizedAccount(address account);
-
-    /**
-     * @dev The owner is not a valid owner account. (eg. `address(0)`)
-     */
-    error OwnableInvalidOwner(address owner);
-
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     /**
@@ -56,7 +46,7 @@ abstract contract Ownable {
      */
     function _checkOwner() internal view virtual {
         if (owner() != msg.sender) {
-            revert OwnableUnauthorizedAccount(msg.sender);
+            revert();
         }
     }
 
@@ -66,7 +56,7 @@ abstract contract Ownable {
      */
     function transferOwnership(address newOwner) public virtual onlyOwner {
         if (newOwner == address(0)) {
-            revert OwnableInvalidOwner(address(0));
+            revert();
         }
         _transferOwnership(newOwner);
     }

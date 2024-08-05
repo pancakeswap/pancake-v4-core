@@ -78,10 +78,6 @@ abstract contract Pausable {
 
     /**
      * @dev Returns to normal state.
-     *
-     * Requirements:
-     *
-     * - The contract must be paused.
      */
     function _unpause() internal virtual {
         _paused = false;
