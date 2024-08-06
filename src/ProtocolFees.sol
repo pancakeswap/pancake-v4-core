@@ -89,7 +89,7 @@ abstract contract ProtocolFees is IProtocolFees, Owner {
         override
         returns (uint256 amountCollected)
     {
-        if (msg.sender != owner() && msg.sender != address(protocolFeeController)) revert InvalidCaller();
+        if (msg.sender != owner && msg.sender != address(protocolFeeController)) revert InvalidCaller();
 
         amountCollected = (amount == 0) ? protocolFeesAccrued[currency] : amount;
         protocolFeesAccrued[currency] -= amountCollected;
