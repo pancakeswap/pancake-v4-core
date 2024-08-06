@@ -12,7 +12,7 @@ pragma solidity ^0.8.20;
  * simply including this module, only once the modifiers are put in place.
  */
 abstract contract Pausable {
-    bool private _paused;
+    bool public paused;
 
     /**
      * @dev Emitted when the pause is triggered by `account`.
@@ -33,7 +33,7 @@ abstract contract Pausable {
      * @dev Initializes the contract in unpaused state.
      */
     constructor() {
-        _paused = false;
+        paused = false;
     }
 
     /**
@@ -51,15 +51,15 @@ abstract contract Pausable {
     /**
      * @dev Returns true if the contract is paused, and false otherwise.
      */
-    function paused() public view virtual returns (bool) {
-        return _paused;
-    }
+    // function paused() public view virtual returns (bool) {
+    //     return paused;
+    // }
 
     /**
      * @dev Throws if the contract is paused.
      */
     function _requireNotPaused() internal view virtual {
-        if (paused()) {
+        if (paused) {
             revert EnforcedPause();
         }
     }
@@ -72,7 +72,7 @@ abstract contract Pausable {
      * - The contract must not be paused.
      */
     function _pause() internal virtual whenNotPaused {
-        _paused = true;
+        paused = true;
         emit Paused(msg.sender);
     }
 
@@ -80,7 +80,7 @@ abstract contract Pausable {
      * @dev Returns to normal state.
      */
     function _unpause() internal virtual {
-        _paused = false;
+        paused = false;
         emit Unpaused(msg.sender);
     }
 }
