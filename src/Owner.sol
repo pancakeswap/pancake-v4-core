@@ -2,8 +2,8 @@
 // Copyright (C) 2024 PancakeSwap
 pragma solidity ^0.8.0;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
+import {Ownable} from "./base/Ownable.sol";
+import {Pausable} from "./base/Pausable.sol";
 
 /// @notice Allow owner to pause in case of emergency
 abstract contract Owner is Ownable, Pausable {
