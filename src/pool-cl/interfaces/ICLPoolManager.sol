@@ -86,12 +86,6 @@ interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @param tick The donated tick
     event Donate(PoolId indexed id, address indexed sender, uint256 amount0, uint256 amount1, int24 tick);
 
-    /// @notice Returns the constant representing the maximum tickSpacing for an initialized pool key
-    function MAX_TICK_SPACING() external view returns (int24);
-
-    /// @notice Returns the constant representing the minimum tickSpacing for an initialized pool key
-    function MIN_TICK_SPACING() external view returns (int24);
-
     /// @notice Get the current value in slot0 of the given pool
     function getSlot0(PoolId id)
         external

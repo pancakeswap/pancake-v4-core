@@ -378,12 +378,12 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         key.hooks = IHooks(address(0));
         key.poolManager = poolManager;
 
-        if (key.parameters.getTickSpacing() > poolManager.MAX_TICK_SPACING()) {
+        if (key.parameters.getTickSpacing() > TickMath.MAX_TICK_SPACING) {
             vm.expectRevert(
                 abi.encodeWithSelector(ICLPoolManager.TickSpacingTooLarge.selector, key.parameters.getTickSpacing())
             );
             poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
-        } else if (key.parameters.getTickSpacing() < poolManager.MIN_TICK_SPACING()) {
+        } else if (key.parameters.getTickSpacing() < TickMath.MIN_TICK_SPACING) {
             vm.expectRevert(
                 abi.encodeWithSelector(ICLPoolManager.TickSpacingTooSmall.selector, key.parameters.getTickSpacing())
             );
@@ -503,7 +503,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             fee: 3000,
             hooks: IHooks(address(0)),
             poolManager: poolManager,
-            parameters: bytes32(uint256(int256(poolManager.MAX_TICK_SPACING()) << 16))
+            parameters: bytes32(uint256(int256(TickMath.MAX_TICK_SPACING) << 16))
         });
 
         vm.expectEmit(true, true, true, true);
@@ -665,11 +665,11 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             fee: 3000,
             hooks: IHooks(address(0)),
             poolManager: poolManager,
-            parameters: bytes32(uint256((int256((poolManager.MAX_TICK_SPACING())) + 1) << 16))
+            parameters: bytes32(uint256((int256((TickMath.MAX_TICK_SPACING)) + 1) << 16))
         });
 
         vm.expectRevert(
-            abi.encodeWithSelector(ICLPoolManager.TickSpacingTooLarge.selector, poolManager.MAX_TICK_SPACING() + 1)
+            abi.encodeWithSelector(ICLPoolManager.TickSpacingTooLarge.selector, TickMath.MAX_TICK_SPACING + 1)
         );
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
     }
