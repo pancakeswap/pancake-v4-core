@@ -41,14 +41,14 @@ contract ExtsloadTest is Test, GasSnapshot {
         snapEnd();
         assertEq(abi.encode(slot0), abi.encode(address(this)));
 
-        bytes32 slot3 = poolManager.extsload(bytes32(uint256(0x03)));
-        assertEq(abi.encode(slot3), abi.encode(address(0xabcd)));
+        bytes32 slot2 = poolManager.extsload(bytes32(uint256(0x02)));
+        assertEq(abi.encode(slot2), abi.encode(address(0xabcd)));
     }
 
     function testExtsloadInBatch() public {
         bytes32[] memory slots = new bytes32[](2);
         slots[0] = 0x00;
-        slots[1] = bytes32(uint256(0x03));
+        slots[1] = bytes32(uint256(0x02));
         snapStart("ExtsloadTest#extsloadInBatch");
         slots = poolManager.extsload(slots);
         snapEnd();
