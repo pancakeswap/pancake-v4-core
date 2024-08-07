@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 /**
- * @dev Copy from openZeppelin contracts, and remove unnecessary functions.
+ * @dev Copy from openZeppelin contracts(v5.0.0) (utils/Pausable.sol), and remove unnecessary functions.
  * Contract module which allows children to implement an emergency stop
  * mechanism that can be triggered by an authorized account.
  *

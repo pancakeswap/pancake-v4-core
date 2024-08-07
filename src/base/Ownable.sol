@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 /**
- * @dev Copy from openZeppelin contracts, and remove unnecessary functions.
+ * @dev Copy from openZeppelin contracts(v5.0.0) (access/Ownable.sol), and remove unnecessary functions.
  * Contract module which provides a basic access control mechanism, where
  * there is an account (an owner) that can be granted exclusive access to
  * specific functions.
