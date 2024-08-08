@@ -87,6 +87,35 @@ contract VaultSyncTest is Test, TokenFixture, GasSnapshot, NoIsolate {
         assertEq(amount, 10 ether);
     }
 
+    function test_settleFor_startWithZeroBalance() public noIsolate {
+        vault.lock(abi.encodeCall(VaultSyncTest._test_settleFor_startWithZeroBalance, ()));
+    }
+
+    function _test_settleFor_startWithZeroBalance() external {
+        vault.sync(currency0);
+        (Currency currency, uint256 amount) = vault.getVaultReserve();
+        // it should currently wait for the next settle
+        assertEq(Currency.unwrap(currency), Currency.unwrap(currency0));
+        assertEq(amount, 0);
+
+        currency0.transfer(address(vault), 10 ether);
+        vault.settleFor(address(this));
+
+        // make sure it's cleared after settle
+        (currency, amount) = vault.getVaultReserve();
+        assertEq(Currency.unwrap(currency), address(0));
+        assertEq(amount, 0);
+
+        // mint 10 ether currency0
+        vault.mint(address(this), poolKey.currency0, 10 ether);
+        assertEq(currency0.balanceOf(address(vault)), 10 ether);
+
+        vault.sync(currency0);
+        (currency, amount) = vault.getVaultReserve();
+        assertEq(Currency.unwrap(currency), Currency.unwrap(currency0));
+        assertEq(amount, 10 ether);
+    }
+
     function test_sync_twiceWithoutSettle() public noIsolate {
         vault.sync(currency0);
         vm.expectRevert(abi.encodeWithSelector(VaultReserve.LastSyncNotSettled.selector));
@@ -102,6 +131,20 @@ contract VaultSyncTest is Test, TokenFixture, GasSnapshot, NoIsolate {
         assertEq(Currency.unwrap(currency), address(0));
         assertEq(amount, 0);
         vault.settle();
+        // nothing should happen
+        int256 deltaAfter = vault.currencyDelta(address(this), CurrencyLibrary.NATIVE);
+        assertEq(deltaAfter, 0);
+    }
+
+    function test_settleFor_nativeTokenWithoutFund() public noIsolate {
+        vault.lock(abi.encodeCall(VaultSyncTest._test_settleFor_nativeTokenWithoutFund, ()));
+    }
+
+    function _test_settleFor_nativeTokenWithoutFund() external {
+        (Currency currency, uint256 amount) = vault.getVaultReserve();
+        assertEq(Currency.unwrap(currency), address(0));
+        assertEq(amount, 0);
+        vault.settleFor(address(this));
         // nothing should happen
         int256 deltaAfter = vault.currencyDelta(address(this), CurrencyLibrary.NATIVE);
         assertEq(deltaAfter, 0);
@@ -123,6 +166,22 @@ contract VaultSyncTest is Test, TokenFixture, GasSnapshot, NoIsolate {
         vault.take(CurrencyLibrary.NATIVE, makeAddr("receiver"), 1 ether);
     }
 
+    function test_settleFor_nativeTokenWithFund() public noIsolate {
+        vault.lock(abi.encodeCall(VaultSyncTest._test_settleFor_nativeTokenWithFund, ()));
+    }
+
+    function _test_settleFor_nativeTokenWithFund() external {
+        (Currency currency, uint256 amount) = vault.getVaultReserve();
+        assertEq(Currency.unwrap(currency), address(0));
+        assertEq(amount, 0);
+        vault.settleFor{value: 1 ether}(address(this));
+        int256 deltaAfter = vault.currencyDelta(address(this), CurrencyLibrary.NATIVE);
+        assertEq(deltaAfter, 1 ether);
+
+        // balance the delta
+        vault.take(CurrencyLibrary.NATIVE, makeAddr("receiver"), 1 ether);
+    }
+
     function test_settle_ERC20TokenWithValue() public noIsolate {
         vault.lock(abi.encodeCall(VaultSyncTest._test_settle_ERC20TokenWithValue, ()));
     }
@@ -131,6 +190,16 @@ contract VaultSyncTest is Test, TokenFixture, GasSnapshot, NoIsolate {
         vault.sync(currency0);
         vm.expectRevert(abi.encodeWithSelector(IVault.SettleNonNativeCurrencyWithValue.selector));
         vault.settle{value: 1 ether}();
+    }
+
+    function test_settleFor_ERC20TokenWithValue() public noIsolate {
+        vault.lock(abi.encodeCall(VaultSyncTest._test_settleFor_ERC20TokenWithValue, ()));
+    }
+
+    function _test_settleFor_ERC20TokenWithValue() external {
+        vault.sync(currency0);
+        vm.expectRevert(abi.encodeWithSelector(IVault.SettleNonNativeCurrencyWithValue.selector));
+        vault.settleFor{value: 1 ether}(address(this));
     }
 
     // @notice This tests expected behavior if you DO NOT call sync. (ie. Do not interact with the pool manager properly. You can lose funds.)
@@ -145,6 +214,29 @@ contract VaultSyncTest is Test, TokenFixture, GasSnapshot, NoIsolate {
         currency0.transfer(address(vault), 10 ether);
 
         vault.settle();
+        assertEq(vault.currencyDelta(address(this), currency0), 10 ether);
+        vault.mint(address(this), poolKey.currency0, 10 ether);
+
+        // 20 ether in vault but only 10 belongs to user
+        assertEq(currency0.balanceOf(address(vault)), 20 ether);
+        vault.sync(currency0);
+        (Currency currency, uint256 amount) = vault.getVaultReserve();
+        assertEq(Currency.unwrap(currency), Currency.unwrap(currency0));
+        assertEq(amount, 20 ether);
+        assertEq(vault.balanceOf(address(this), currency0), 10 ether);
+    }
+
+    function test_settleFor_transferBeforeSync() public noIsolate {
+        vault.lock(abi.encodeCall(VaultSyncTest._test_settleFor_transferBeforeSync, ()));
+    }
+
+    function _test_settleFor_transferBeforeSync() external {
+        // the fund is lost and is locked in the vault
+        currency0.transfer(address(vault), 10 ether);
+        vault.sync(currency0);
+        currency0.transfer(address(vault), 10 ether);
+
+        vault.settleFor(address(this));
         assertEq(vault.currencyDelta(address(this), currency0), 10 ether);
         vault.mint(address(this), poolKey.currency0, 10 ether);
 
@@ -175,6 +267,33 @@ contract VaultSyncTest is Test, TokenFixture, GasSnapshot, NoIsolate {
 
         // native way of settling
         vault.settle{value: 1 ether}();
+
+        // from vault perspective they are two different currencies
+        vault.mint(address(this), currency, 1 ether);
+        vault.mint(address(this), CurrencyLibrary.NATIVE, 1 ether);
+
+        assertEq(address(vault).balance, 2 ether);
+        assertEq(currency.balanceOf(address(vault)), 2 ether);
+    }
+
+    function test_settleFor_NativeERC20() public noIsolate {
+        vault.lock(abi.encodeCall(VaultSyncTest._test_settleFor_NativeERC20, ()));
+    }
+
+    function _test_settleFor_NativeERC20() external {
+        Currency currency = Currency.wrap(address(new NativeERC20()));
+        vault.sync(currency);
+
+        // mixing those two are not allowed
+        vm.expectRevert(IVault.SettleNonNativeCurrencyWithValue.selector);
+        vault.settleFor{value: 1 ether}(address(this));
+
+        // erc20 way of settling
+        currency.transfer(address(vault), 1 ether);
+        vault.settleFor(address(this));
+
+        // native way of settling
+        vault.settleFor{value: 1 ether}(address(this));
 
         // from vault perspective they are two different currencies
         vault.mint(address(this), currency, 1 ether);
