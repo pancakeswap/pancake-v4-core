@@ -50,10 +50,10 @@ interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @param sender The address that modified the pool
     /// @param tickLower The lower tick of the position
     /// @param tickUpper The upper tick of the position
-    /// @param salt The value used to create a unique liquidity position
     /// @param liquidityDelta The amount of liquidity that was added or removed
+    /// @param salt The value used to create a unique liquidity position
     event ModifyLiquidity(
-        PoolId indexed id, address indexed sender, int24 tickLower, int24 tickUpper, bytes32 salt, int256 liquidityDelta
+        PoolId indexed id, address indexed sender, int24 tickLower, int24 tickUpper, int256 liquidityDelta, bytes32 salt
     );
 
     /// @notice Emitted for swaps between currency0 and currency1

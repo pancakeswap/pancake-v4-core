@@ -1312,7 +1312,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
 
         vm.expectEmit(true, true, true, true);
-        emit ICLPoolManager.ModifyLiquidity(key.toId(), address(router), 0, 60, 0, 100);
+        emit ICLPoolManager.ModifyLiquidity(key.toId(), address(router), 0, 60, 100, 0);
 
         router.modifyPosition(
             key,
@@ -1335,7 +1335,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
         vm.expectEmit(true, true, true, true);
-        emit ICLPoolManager.ModifyLiquidity(key.toId(), address(router), 0, 60, 0, 100);
+        emit ICLPoolManager.ModifyLiquidity(key.toId(), address(router), 0, 60, 100, 0);
 
         router.modifyPosition{value: 100}(
             key,
@@ -1437,7 +1437,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         mockHooks.setReturnValue(mockHooks.afterAddLiquidity.selector, mockHooks.afterAddLiquidity.selector);
 
         vm.expectEmit(true, true, true, true);
-        emit ICLPoolManager.ModifyLiquidity(key.toId(), address(router), 0, 60, 0, 100);
+        emit ICLPoolManager.ModifyLiquidity(key.toId(), address(router), 0, 60, 100, 0);
 
         router.modifyPosition(key, params, ZERO_BYTES);
     }
