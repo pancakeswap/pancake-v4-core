@@ -78,6 +78,11 @@ interface IVault is IVaultToken {
     /// @notice Called by the user to pay what is owed
     function settle() external payable returns (uint256 paid);
 
+    /// @notice Called by the user to pay on behalf of another address
+    /// @param recipient The address to credit for the payment
+    /// @return paid The amount of currency settled
+    function settleFor(address recipient) external payable returns (uint256 paid);
+
     /// @notice WARNING - Any currency that is cleared, will be non-retreivable, and locked in the contract permanently.
     /// A call to clear will zero out a positive balance WITHOUT a corresponding transfer.
     /// @dev This could be used to clear a balance that is considered dust.

@@ -132,20 +132,12 @@ contract Vault is IVault, VaultToken, Ownable {
 
     /// @inheritdoc IVault
     function settle() external payable override isLocked returns (uint256 paid) {
-        (Currency currency, uint256 reservesBefore) = VaultReserve.getVaultReserve();
-        if (!currency.isNative()) {
-            if (msg.value > 0) revert SettleNonNativeCurrencyWithValue();
-            uint256 reservesNow = currency.balanceOfSelf();
-            paid = reservesNow - reservesBefore;
+        return _settle(msg.sender);
+    }
 
-            /// @dev reset the reserve after settled otherwise next sync() call will throw LastSyncNotSettled
-            VaultReserve.setVaultReserve(CurrencyLibrary.NATIVE, 0);
-        } else {
-            // NATIVE token does not require sync call before settle
-            paid = msg.value;
-        }
-
-        SettlementGuard.accountDelta(msg.sender, currency, paid.toInt128());
+    /// @inheritdoc IVault
+    function settleFor(address recipient) external payable override isLocked returns (uint256 paid) {
+        return _settle(recipient);
     }
 
     /// @inheritdoc IVault
@@ -184,5 +176,22 @@ contract Vault is IVault, VaultToken, Ownable {
             /// @dev arithmetic overflow make sure trader won't deposit too much into app
             reservesOfApp[app][currency] += uint128(-delta);
         }
+    }
+
+    function _settle(address recipient) internal returns (uint256 paid) {
+        (Currency currency, uint256 reservesBefore) = VaultReserve.getVaultReserve();
+        if (!currency.isNative()) {
+            if (msg.value > 0) revert SettleNonNativeCurrencyWithValue();
+            uint256 reservesNow = currency.balanceOfSelf();
+            paid = reservesNow - reservesBefore;
+
+            /// @dev reset the reserve after settled otherwise next sync() call will throw LastSyncNotSettled
+            VaultReserve.setVaultReserve(CurrencyLibrary.NATIVE, 0);
+        } else {
+            // NATIVE token does not require sync call before settle
+            paid = msg.value;
+        }
+
+        SettlementGuard.accountDelta(recipient, currency, paid.toInt128());
     }
 }
