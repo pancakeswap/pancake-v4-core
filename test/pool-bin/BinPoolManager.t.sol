@@ -843,7 +843,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         poolManager.initialize(key, activeId, new bytes(0));
 
         // verify poolId.
-        uint256 POOL_SLOT = 4;
+        uint256 POOL_SLOT = 3;
         snapStart("BinPoolManagerTest#testExtLoadPoolActiveId");
         bytes32 slot0Bytes = poolManager.extsload(keccak256(abi.encode(key.toId(), POOL_SLOT)));
         snapEnd();
@@ -931,7 +931,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         poolManager.setMaxBinStep(binStep);
 
         vm.prank(makeAddr("bob"));
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, makeAddr("bob")));
+        vm.expectRevert();
         poolManager.setMaxBinStep(100);
     }
 

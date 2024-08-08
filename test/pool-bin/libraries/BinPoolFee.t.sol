@@ -8,6 +8,7 @@ import {IHooks} from "../../../src/interfaces/IHooks.sol";
 import {IPoolManager} from "../../../src/interfaces/IPoolManager.sol";
 import {IProtocolFeeController} from "../../../src/interfaces/IProtocolFeeController.sol";
 import {MockVault} from "../../../src/test/MockVault.sol";
+import {MockBinDynamicFeeHook} from "../../../src/test/pool-bin/MockBinDynamicFeeHook.sol";
 import {MockProtocolFeeController} from "../../../src/test/fee/MockProtocolFeeController.sol";
 import {MockFeeManagerHook} from "../../../src/test/fee/MockFeeManagerHook.sol";
 import {Currency} from "../../../src/types/Currency.sol";
@@ -179,6 +180,27 @@ contract BinPoolFeeTest is BinTestHelper {
         addLiquidityToBin(key, poolManager, bob, activeId, 10_000 ether, 10_000 ether, 1e18, 1e18, data);
     }
 
+    function test_Mint_WithDynamicFeeFromBeforeMintTooLarge() external {
+        MockBinDynamicFeeHook hook = new MockBinDynamicFeeHook();
+        hook.setLpFee(110_000); // 11% fee
+        hook.setHooksRegistrationBitmap(uint16(1 << HOOKS_BEFORE_MINT_OFFSET));
+
+        key = PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            hooks: IHooks(address(hook)),
+            poolManager: IPoolManager(address(poolManager)),
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
+            parameters: BinPoolParametersHelper.setBinStep(bytes32(uint256(hook.getHooksRegistrationBitmap())), 10)
+        });
+
+        uint24 binId = ID_ONE; // where token price are the same
+        poolManager.initialize(key, binId, new bytes(0));
+
+        vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, 110_000));
+        addLiquidityToBin(key, poolManager, bob, binId, 1000e18, 1000e18, 1e18, 1e18, "");
+    }
+
     function test_MintCompositionFee_DynamicFee() external {
         mockFeeManagerHook.setHooksRegistrationBitmap(uint16(1 << HOOKS_AFTER_INITIALIZE_OFFSET));
         key = PoolKey({
@@ -251,6 +273,43 @@ contract BinPoolFeeTest is BinTestHelper {
         addLiquidityToBin(key, poolManager, bob, binId, amountX, amountY, 4e17, 5e17, "");
 
         assertEq(poolManager.protocolFeesAccrued(key.currency1), uint256(protocolFee.decodeY()));
+    }
+
+    function test_MintCompositionFee_WithDynamicFee() external {
+        MockBinDynamicFeeHook hook = new MockBinDynamicFeeHook();
+        hook.setLpFee(10_000); // 1%
+        hook.setHooksRegistrationBitmap(uint16(1 << HOOKS_BEFORE_MINT_OFFSET));
+
+        key = PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            hooks: IHooks(address(hook)),
+            poolManager: IPoolManager(address(poolManager)),
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
+            parameters: BinPoolParametersHelper.setBinStep(bytes32(uint256(hook.getHooksRegistrationBitmap())), 10)
+        });
+
+        uint24 binId = ID_ONE; // where token price are the same
+        uint256 amountX = 1_000 * 1e18;
+        uint256 amountY = 1_000 * 1e18;
+        poolManager.initialize(key, binId, new bytes(0));
+
+        // first mint: 1000e18 tokenX and 1000e18 tokenY with 5:5 ratio
+        addLiquidityToBin(key, poolManager, bob, binId, amountX, amountY, 1e18, 1e18, "");
+
+        bytes32 protocolFee = uint128(0).encode(uint128(0));
+        bytes32 expectedAmtInBin = uint128(1_000e10).encode(uint128(2_000e10));
+        // as the current ratio is roughly 5:5, it means a swap of around 500e10 tokenY to tokenX
+        bytes32 expectedFee = uint128(0).encode(uint128(50499999242)); // around 1% fee, ~5e10
+        uint256[] memory ids = new uint256[](1);
+        bytes32[] memory amounts = new bytes32[](1);
+        ids[0] = binId;
+        amounts[0] = expectedAmtInBin;
+        vm.expectEmit();
+        emit IBinPoolManager.Mint(key.toId(), bob, ids, 0, amounts, expectedFee, protocolFee);
+
+        // second mint: 1000e10 tokenX and 2000e10 tokenY with 1:2 ratio
+        addLiquidityToBin(key, poolManager, bob, binId, amountX, amountY, 1e10, 2e10, "");
     }
 
     function _addLiquidityForBurnTest(uint24 activeId, PoolKey memory _key) internal {

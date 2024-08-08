@@ -2,7 +2,7 @@
 // Copyright (C) 2024 PancakeSwap
 pragma solidity ^0.8.0;
 
-import {PausableRole} from "./PausableRole.sol";
+import {Owner} from "./Owner.sol";
 import {Currency} from "./types/Currency.sol";
 import {IProtocolFeeController} from "./interfaces/IProtocolFeeController.sol";
 import {IProtocolFees} from "./interfaces/IProtocolFees.sol";
@@ -11,7 +11,7 @@ import {PoolKey} from "./types/PoolKey.sol";
 import {PoolId, PoolIdLibrary} from "./types/PoolId.sol";
 import {IVault} from "./interfaces/IVault.sol";
 
-abstract contract ProtocolFees is IProtocolFees, PausableRole {
+abstract contract ProtocolFees is IProtocolFees, Owner {
     using PoolIdLibrary for PoolKey;
     using ProtocolFeeLibrary for uint24;
 

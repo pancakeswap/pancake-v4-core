@@ -192,7 +192,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         BinPool.State storage pool = pools[id];
         pool.checkPoolInitialized();
 
-        BinHooks.beforeMint(key, params, hookData);
+        (uint24 lpFeeOverride) = BinHooks.beforeMint(key, params, hookData);
 
         bytes32 feeForProtocol;
         bytes32 compositionFee;
@@ -202,6 +202,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
                 liquidityConfigs: params.liquidityConfigs,
                 amountIn: params.amountIn,
                 binStep: key.parameters.getBinStep(),
+                lpFeeOverride: lpFeeOverride,
                 salt: params.salt
             })
         );
