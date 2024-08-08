@@ -23,6 +23,7 @@ import {CLPoolGetters} from "./libraries/CLPoolGetters.sol";
 import {CLHooks} from "./libraries/CLHooks.sol";
 import {BeforeSwapDelta} from "../types/BeforeSwapDelta.sol";
 import {Currency} from "../types/Currency.sol";
+import {TickMath} from "./libraries/TickMath.sol";
 
 contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     using SafeCast for int256;
@@ -33,12 +34,6 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     using CLPool for *;
     using CLPosition for mapping(bytes32 => CLPosition.Info);
     using CLPoolGetters for CLPool.State;
-
-    /// @inheritdoc ICLPoolManager
-    int24 public constant override MAX_TICK_SPACING = type(int16).max;
-
-    /// @inheritdoc ICLPoolManager
-    int24 public constant override MIN_TICK_SPACING = 1;
 
     mapping(PoolId id => CLPool.State poolState) public pools;
 
@@ -96,8 +91,8 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         returns (int24 tick)
     {
         int24 tickSpacing = key.parameters.getTickSpacing();
-        if (tickSpacing > MAX_TICK_SPACING) revert TickSpacingTooLarge(tickSpacing);
-        if (tickSpacing < MIN_TICK_SPACING) revert TickSpacingTooSmall(tickSpacing);
+        if (tickSpacing > TickMath.MAX_TICK_SPACING) revert TickSpacingTooLarge(tickSpacing);
+        if (tickSpacing < TickMath.MIN_TICK_SPACING) revert TickSpacingTooSmall(tickSpacing);
         if (key.currency0 >= key.currency1) {
             revert CurrenciesInitializedOutOfOrder(Currency.unwrap(key.currency0), Currency.unwrap(key.currency1));
         }
@@ -153,7 +148,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         );
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
-        emit ModifyLiquidity(id, msg.sender, params.tickLower, params.tickUpper, params.salt, params.liquidityDelta);
+        emit ModifyLiquidity(id, msg.sender, params.tickLower, params.tickUpper, params.liquidityDelta, params.salt);
 
         BalanceDelta hookDelta;
         // notice that both generated delta and feeDelta (from lpFee) will both be counted on the user

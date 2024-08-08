@@ -109,7 +109,9 @@ contract TestCurrency is Test {
         TokenSender sender = new TokenSender();
         deal(address(sender), 10 ether);
 
-        vm.expectRevert(abi.encodeWithSelector(CurrencyLibrary.NativeTransferFailed.selector, new bytes(0)));
+        vm.expectRevert(
+            abi.encodeWithSelector(CurrencyLibrary.Wrap__NativeTransferFailed.selector, otherAddress, new bytes(0))
+        );
         sender.send(nativeCurrency, otherAddress, 10 ether + 1);
     }
 
@@ -117,7 +119,11 @@ contract TestCurrency is Test {
         TokenSender sender = new TokenSender();
         erc20Currency.transfer(address(sender), 100);
 
-        vm.expectRevert(abi.encodeWithSelector(CurrencyLibrary.ERC20TransferFailed.selector, stdError.arithmeticError));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CurrencyLibrary.Wrap__ERC20TransferFailed.selector, erc20Currency, stdError.arithmeticError
+            )
+        );
         sender.send(erc20Currency, otherAddress, 101);
     }
 }

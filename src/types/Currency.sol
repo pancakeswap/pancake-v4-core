@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {IERC20Minimal} from "../interfaces/IERC20Minimal.sol";
+import {CustomRevert} from "../libraries/CustomRevert.sol";
 
 type Currency is address;
 
@@ -28,14 +29,17 @@ function greaterThanOrEqualTo(Currency currency, Currency other) pure returns (b
 /// @dev This library allows for transferring and holding native tokens and ERC20 tokens
 library CurrencyLibrary {
     using CurrencyLibrary for Currency;
+    using CustomRevert for bytes4;
 
     /// @notice Thrown when a native transfer fails
+    /// @param recipient address that the transfer failed to
     /// @param revertReason bubbled up revert reason
-    error NativeTransferFailed(bytes revertReason);
+    error Wrap__NativeTransferFailed(address recipient, bytes revertReason);
 
     /// @notice Thrown when an ERC20 transfer fails
+    /// @param token address of the ERC20 token
     /// @param revertReason bubbled up revert reason
-    error ERC20TransferFailed(bytes revertReason);
+    error Wrap__ERC20TransferFailed(address token, bytes revertReason);
 
     /// @notice A constant to represent the native currency
     Currency public constant NATIVE = Currency.wrap(address(0));
@@ -45,15 +49,13 @@ library CurrencyLibrary {
         // modified custom error selectors
 
         bool success;
-        bytes4 selector;
         if (currency.isNative()) {
             assembly ("memory-safe") {
                 // Transfer the ETH and revert if it fails.
                 success := call(gas(), to, amount, 0, 0, 0, 0)
             }
-            if (!success) {
-                selector = NativeTransferFailed.selector;
-            }
+            // revert with NativeTransferFailed, containing the bubbled up error as an argument
+            if (!success) Wrap__NativeTransferFailed.selector.bubbleUpAndRevertWith(to);
         } else {
             assembly ("memory-safe") {
                 // Get a pointer to some free memory.
@@ -76,32 +78,13 @@ library CurrencyLibrary {
                         call(gas(), currency, 0, fmp, 68, 0, 32)
                     )
 
-                // clean the memory we used
+                // Now clean the memory we used
                 mstore(fmp, 0) // 4 byte `selector` and 28 bytes of `to` were stored here
                 mstore(add(fmp, 0x20), 0) // 4 bytes of `to` and 28 bytes of `amount` were stored here
                 mstore(add(fmp, 0x40), 0) // 4 bytes of `amount` were stored here
             }
-            if (!success) {
-                selector = ERC20TransferFailed.selector;
-            }
-        }
-
-        // revert containing the bubbled up error as an argument
-        assembly ("memory-safe") {
-            if iszero(success) {
-                let size := returndatasize()
-                let fmp := mload(0x40)
-
-                // Encode selector, offset, size, data
-                mstore(fmp, selector)
-                mstore(add(fmp, 0x04), 0x20)
-                mstore(add(fmp, 0x24), size)
-                returndatacopy(add(fmp, 0x44), 0, size)
-
-                // Ensure the size is a multiple of 32 bytes
-                let encodedSize := add(0x44, mul(div(add(size, 31), 32), 32))
-                revert(fmp, encodedSize)
-            }
+            // revert with ERC20TransferFailed, containing the bubbled up error as an argument
+            if (!success) Wrap__ERC20TransferFailed.selector.bubbleUpAndRevertWith(Currency.unwrap(currency));
         }
     }
 
