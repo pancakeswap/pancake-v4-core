@@ -11,4 +11,7 @@ library Constants {
     uint256 internal constant SQUARED_PRECISION = PRECISION * PRECISION;
 
     uint256 internal constant BASIS_POINT_MAX = 10_000;
+
+    /// @dev min liquidity in bin before donate is allowed in current bin
+    uint256 internal constant MIN_BIN_LIQUIDITY_BEFORE_DONATE = 1_000_000;
 }

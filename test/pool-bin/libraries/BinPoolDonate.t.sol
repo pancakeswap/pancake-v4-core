@@ -8,6 +8,7 @@ import {MockVault} from "../../../src/test/MockVault.sol";
 import {Currency} from "../../../src/types/Currency.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {BinHelper} from "../../../src/pool-bin/libraries/BinHelper.sol";
+import {Constants} from "../../../src/pool-bin/libraries/Constants.sol";
 import {BalanceDelta, toBalanceDelta} from "../../../src/types/BalanceDelta.sol";
 import {PoolId, PoolIdLibrary} from "../../../src/types/PoolId.sol";
 import {BinPoolManager} from "../../../src/pool-bin/BinPoolManager.sol";
@@ -60,6 +61,20 @@ contract BinPoolDonateTest is BinTestHelper {
         poolManager.initialize(key, activeId, new bytes(0));
 
         vm.expectRevert(BinPool.BinPool__NoLiquidityToReceiveFees.selector);
+        poolManager.donate(key, 1e18, 1e18, "");
+    }
+
+    function testDonate_InsufficientLiqudiityToReceiveFee(uint256 remainingShare) public {
+        // Initialize pool and add liqudiity
+        poolManager.initialize(key, activeId, new bytes(0));
+        addLiquidityToBin(key, poolManager, alice, activeId, 1e18, 1e18, 1e18, 1e18, "");
+
+        // Remove all share leaving less than Constants.MIN_BIN_LIQUIDITY_BEFORE_DONATE shares
+        remainingShare = bound(remainingShare, 1, Constants.MIN_BIN_LIQUIDITY_BEFORE_DONATE - 1);
+        uint256 aliceShare = poolManager.getPosition(poolId, alice, activeId, 0).share;
+        removeLiquidityFromBin(key, poolManager, alice, activeId, aliceShare - remainingShare, "");
+
+        vm.expectRevert(BinPool.BinPool__InsufficientLiquidityToReceiveFees.selector);
         poolManager.donate(key, 1e18, 1e18, "");
     }
 
