@@ -727,7 +727,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         clFeeManagerHook.setFee(dynamicSwapFee);
         vm.expectRevert(
             abi.encodeWithSelector(
-                Hooks.FailedHookCall.selector,
+                Hooks.Wrap__FailedHookCall.selector,
+                clFeeManagerHook,
                 abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, dynamicSwapFee)
             )
         );
