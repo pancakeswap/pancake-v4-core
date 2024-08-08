@@ -45,6 +45,7 @@ library BinPool {
     error BinPool__ZeroAmountsOut(uint24 id);
     error BinPool__OutOfLiquidity();
     error BinPool__NoLiquidityToReceiveFees();
+    error BinPool__InsufficientLiquidityToReceiveFees();
     /// @dev if swap exactIn, x for y, unspecifiedToken = token y. if swap x for exact out y, unspecified token is x
     error BinPool__InsufficientAmountUnSpecified();
 
@@ -348,6 +349,11 @@ library BinPool {
 
         bytes32 binReserves = self.reserveOfBin[activeId];
         if (binReserves == 0) revert BinPool__NoLiquidityToReceiveFees();
+
+        /// @dev ensure bin has sufficient liquidity before accept donate
+        if (self.shareOfBin[activeId] < Constants.MIN_BIN_LIQUIDITY_BEFORE_DONATE) {
+            revert BinPool__InsufficientLiquidityToReceiveFees();
+        }
 
         /// @dev overflow check on total reserves and the resulting liquidity
         uint256 price = activeId.getPriceFromId(binStep);
