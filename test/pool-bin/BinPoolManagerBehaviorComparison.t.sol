@@ -7,7 +7,7 @@ import {Vault} from "../../src/Vault.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
 import {BinPoolManager} from "../../src/pool-bin/BinPoolManager.sol";
 import {IBinPoolManager} from "../../src/pool-bin/interfaces/IBinPoolManager.sol";
-import {MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
+import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {Currency} from "../../src/types/Currency.sol";
 import {PoolKey} from "../../src/types/PoolKey.sol";
 import {IHooks} from "../../src/interfaces/IHooks.sol";

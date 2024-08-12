@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
-import {MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
+import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {Vault} from "../../src/Vault.sol";
 import {Currency} from "../../src/types/Currency.sol";
 import {PoolKey} from "../../src/types/PoolKey.sol";
