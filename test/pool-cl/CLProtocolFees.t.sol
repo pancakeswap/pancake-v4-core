@@ -16,7 +16,7 @@ import {PoolIdLibrary} from "../../src/types/PoolId.sol";
 import {Deployers} from "./helpers/Deployers.sol";
 import {TokenFixture} from "../helpers/TokenFixture.sol";
 import {Currency, CurrencyLibrary} from "../../src/types/Currency.sol";
-import {MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
+import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {MockHooks} from "./helpers/MockHooks.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {CLPoolManagerRouter} from "./helpers/CLPoolManagerRouter.sol";

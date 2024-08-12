@@ -6,7 +6,7 @@ import "forge-std/Test.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Vault} from "../../src/Vault.sol";
 import {BalanceDelta, toBalanceDelta} from "../../src/types/BalanceDelta.sol";
-import {MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
+import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IPoolManager} from "../../src/interfaces/IPoolManager.sol";
 import {Currency, CurrencyLibrary} from "../../src/types/Currency.sol";

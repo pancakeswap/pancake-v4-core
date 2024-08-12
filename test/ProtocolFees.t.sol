@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import "solmate/test/utils/mocks/MockERC20.sol";
+import "solmate/src/test/utils/mocks/MockERC20.sol";
 import "../src/test/MockFeePoolManager.sol";
 import "../src/test/fee/MockFeeManagerHook.sol";
 import {
