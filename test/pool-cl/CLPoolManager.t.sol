@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
-import {MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
+import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {Vault} from "../../src/Vault.sol";
 import {IPoolManager} from "../../src/interfaces/IPoolManager.sol";
 import {ICLPoolManager} from "../../src/pool-cl/interfaces/ICLPoolManager.sol";
@@ -1379,6 +1379,47 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         bytes memory afterPayload = abi.encodeWithSelector(
             MockHooks.afterAddLiquidity.selector, address(router), key, params, balanceDelta, ZERO_BYTES
+        );
+
+        vm.expectCall(address(mockAddr), 0, beforePayload, 1);
+        vm.expectCall(address(mockAddr), 0, afterPayload, 1);
+        router.modifyPosition(key, params, ZERO_BYTES);
+    }
+
+    function testModifyPosition_succeedsWithHooksIfLiquidityDeltaIsZero(uint160 sqrtPriceX96) public {
+        sqrtPriceX96 = uint160(bound(sqrtPriceX96, TickMath.MIN_SQRT_RATIO, TickMath.MAX_SQRT_RATIO - 1));
+
+        MockHooks mockAddr = new MockHooks();
+
+        PoolKey memory key = PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            fee: 3000,
+            hooks: IHooks(mockAddr),
+            poolManager: poolManager,
+            parameters: bytes32((uint256(60) << 16) | mockAddr.getHooksRegistrationBitmap())
+        });
+
+        ICLPoolManager.ModifyLiquidityParams memory params =
+            ICLPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 100, salt: 0});
+
+        poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
+
+        // make sure there is some liquidity
+        router.modifyPosition(key, params, ZERO_BYTES);
+
+        params.liquidityDelta = 0;
+
+        bytes memory beforePayload =
+            abi.encodeWithSelector(MockHooks.beforeRemoveLiquidity.selector, address(router), key, params, ZERO_BYTES);
+
+        bytes memory afterPayload = abi.encodeWithSelector(
+            MockHooks.afterRemoveLiquidity.selector,
+            address(router),
+            key,
+            params,
+            BalanceDeltaLibrary.ZERO_DELTA,
+            ZERO_BYTES
         );
 
         vm.expectCall(address(mockAddr), 0, beforePayload, 1);

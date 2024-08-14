@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import {MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
+import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {IProtocolFees} from "../../../src/interfaces/IProtocolFees.sol";
 import {IVault} from "../../../src/interfaces/IVault.sol";
 import {IHooks} from "../../../src/interfaces/IHooks.sol";

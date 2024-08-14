@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import "forge-std/Test.sol";
-import {MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
+import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {Vault} from "../../src/Vault.sol";
 import {BalanceDelta, toBalanceDelta} from "../../src/types/BalanceDelta.sol";
 import {IPoolManager} from "../../src/interfaces/IPoolManager.sol";

@@ -8,7 +8,7 @@ import {BalanceDelta} from "../types/BalanceDelta.sol";
 import {ProtocolFees} from "../ProtocolFees.sol";
 import {LPFeeLibrary} from "../libraries/LPFeeLibrary.sol";
 import {ProtocolFeeLibrary} from "../libraries/ProtocolFeeLibrary.sol";
-import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
+import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 
 /**
  * @dev A MockFeePoolManager meant to test Fees functionality
