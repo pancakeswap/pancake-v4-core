@@ -8,15 +8,19 @@ import {Encoded} from "./math/Encoded.sol";
 import {LPFeeLibrary} from "./LPFeeLibrary.sol";
 import {ParametersHelper} from "./math/ParametersHelper.sol";
 import {ParseBytes} from "./ParseBytes.sol";
+import {CustomRevert} from "./CustomRevert.sol";
 
 library Hooks {
     using Encoded for bytes32;
     using ParametersHelper for bytes32;
     using LPFeeLibrary for uint24;
     using ParseBytes for bytes;
+    using CustomRevert for bytes4;
 
+    /// @notice thrown when a hook call fails
+    /// @param hook the hook address
     /// @param revertReason bubbled up revert reason
-    error FailedHookCall(bytes revertReason);
+    error Wrap__FailedHookCall(address hook, bytes revertReason);
 
     /// @notice Hook permissions contain conflict
     ///  1. enabled beforeSwapReturnsDelta, but lacking beforeSwap call
@@ -70,25 +74,15 @@ library Hooks {
     /// @notice performs a hook call using the given calldata on the given hook that doesnt return a delta
     /// @return result The complete data returned by the hook
     function callHook(IHooks self, bytes memory data) internal returns (bytes memory result) {
-        bytes4 selector = FailedHookCall.selector;
+        bool success;
         assembly ("memory-safe") {
-            // Revert with FailedHookCall, containing any error message to bubble up
-            if iszero(call(gas(), self, 0, add(data, 0x20), mload(data), 0, 0)) {
-                let size := returndatasize()
-                let fmp := mload(0x40)
+            success := call(gas(), self, 0, add(data, 0x20), mload(data), 0, 0)
+        }
+        // Revert with FailedHookCall, containing any error message to bubble up
+        if (!success) Wrap__FailedHookCall.selector.bubbleUpAndRevertWith(address(self));
 
-                // Encode selector, offset, size, data
-                mstore(fmp, selector)
-                mstore(add(fmp, 0x04), 0x20)
-                mstore(add(fmp, 0x24), size)
-                returndatacopy(add(fmp, 0x44), 0, size)
-
-                // Ensure the size is a multiple of 32 bytes
-                let encodedSize := add(0x44, mul(div(add(size, 31), 32), 32))
-                revert(fmp, encodedSize)
-            }
-
-            // The call was successful, fetch the returned data
+        // The call was successful, fetch the returned data
+        assembly ("memory-safe") {
             // allocate result byte array from the free memory pointer
             result := mload(0x40)
             // store new free memory pointer at the end of the array padded to 32 bytes

@@ -173,7 +173,8 @@ contract BinPoolFeeTest is BinTestHelper {
         bytes memory data = abi.encode(true, uint24(swapFee));
         vm.expectRevert(
             abi.encodeWithSelector(
-                Hooks.FailedHookCall.selector,
+                Hooks.Wrap__FailedHookCall.selector,
+                binFeeManagerHook,
                 abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, uint24(swapFee))
             )
         );
@@ -416,7 +417,8 @@ contract BinPoolFeeTest is BinTestHelper {
         bytes memory data = abi.encode(true, uint24(swapFee));
         vm.expectRevert(
             abi.encodeWithSelector(
-                Hooks.FailedHookCall.selector,
+                Hooks.Wrap__FailedHookCall.selector,
+                binFeeManagerHook,
                 abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, uint24(swapFee))
             )
         );

@@ -52,14 +52,16 @@ contract BinHookRevertWithReasonTest is Test {
     }
 
     function testRevertWithNoReason() public {
-        vm.expectRevert(abi.encodeWithSelector(Hooks.FailedHookCall.selector, new bytes(0)));
+        vm.expectRevert(abi.encodeWithSelector(Hooks.Wrap__FailedHookCall.selector, hook, new bytes(0)));
         poolManager.initialize(key, activeId, abi.encode(false));
     }
 
     function testRevertWithHookNotImplemented() public {
         vm.expectRevert(
             abi.encodeWithSelector(
-                Hooks.FailedHookCall.selector, abi.encodeWithSelector(BaseBinTestHook.HookNotImplemented.selector)
+                Hooks.Wrap__FailedHookCall.selector,
+                hook,
+                abi.encodeWithSelector(BaseBinTestHook.HookNotImplemented.selector)
             )
         );
         poolManager.initialize(key, activeId, abi.encode(true));
