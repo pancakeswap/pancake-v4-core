@@ -92,26 +92,30 @@ library CLHooks {
         ICLHooks hooks = ICLHooks(address(key.hooks));
         callerDelta = delta;
 
-        if (params.liquidityDelta > 0 && key.parameters.shouldCall(HOOKS_AFTER_ADD_LIQUIDITY_OFFSET, hooks)) {
-            hookDelta = BalanceDelta.wrap(
-                Hooks.callHookWithReturnDelta(
-                    hooks,
-                    abi.encodeCall(ICLHooks.afterAddLiquidity, (msg.sender, key, params, delta, hookData)),
-                    key.parameters.hasOffsetEnabled(HOOKS_AFTER_ADD_LIQUIDIY_RETURNS_DELTA_OFFSET)
-                )
-            );
+        if (params.liquidityDelta > 0) {
+            if (key.parameters.shouldCall(HOOKS_AFTER_ADD_LIQUIDITY_OFFSET, hooks)) {
+                hookDelta = BalanceDelta.wrap(
+                    Hooks.callHookWithReturnDelta(
+                        hooks,
+                        abi.encodeCall(ICLHooks.afterAddLiquidity, (msg.sender, key, params, delta, hookData)),
+                        key.parameters.hasOffsetEnabled(HOOKS_AFTER_ADD_LIQUIDIY_RETURNS_DELTA_OFFSET)
+                    )
+                );
 
-            callerDelta = callerDelta - hookDelta;
-        } else if (params.liquidityDelta < 0 && key.parameters.shouldCall(HOOKS_AFTER_REMOVE_LIQUIDITY_OFFSET, hooks)) {
-            hookDelta = BalanceDelta.wrap(
-                Hooks.callHookWithReturnDelta(
-                    hooks,
-                    abi.encodeCall(ICLHooks.afterRemoveLiquidity, (msg.sender, key, params, delta, hookData)),
-                    key.parameters.hasOffsetEnabled(HOOKS_AFTER_REMOVE_LIQUIDIY_RETURNS_DELTA_OFFSET)
-                )
-            );
+                callerDelta = callerDelta - hookDelta;
+            }
+        } else {
+            if (key.parameters.shouldCall(HOOKS_AFTER_REMOVE_LIQUIDITY_OFFSET, hooks)) {
+                hookDelta = BalanceDelta.wrap(
+                    Hooks.callHookWithReturnDelta(
+                        hooks,
+                        abi.encodeCall(ICLHooks.afterRemoveLiquidity, (msg.sender, key, params, delta, hookData)),
+                        key.parameters.hasOffsetEnabled(HOOKS_AFTER_REMOVE_LIQUIDIY_RETURNS_DELTA_OFFSET)
+                    )
+                );
 
-            callerDelta = callerDelta - hookDelta;
+                callerDelta = callerDelta - hookDelta;
+            }
         }
     }
 
