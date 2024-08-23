@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
-import {MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
+import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {Vault} from "../../src/Vault.sol";
 import {Currency} from "../../src/types/Currency.sol";
 import {PoolKey} from "../../src/types/PoolKey.sol";
@@ -52,14 +52,16 @@ contract BinHookRevertWithReasonTest is Test {
     }
 
     function testRevertWithNoReason() public {
-        vm.expectRevert(abi.encodeWithSelector(Hooks.FailedHookCall.selector, new bytes(0)));
+        vm.expectRevert(abi.encodeWithSelector(Hooks.Wrap__FailedHookCall.selector, hook, new bytes(0)));
         poolManager.initialize(key, activeId, abi.encode(false));
     }
 
     function testRevertWithHookNotImplemented() public {
         vm.expectRevert(
             abi.encodeWithSelector(
-                Hooks.FailedHookCall.selector, abi.encodeWithSelector(BaseBinTestHook.HookNotImplemented.selector)
+                Hooks.Wrap__FailedHookCall.selector,
+                hook,
+                abi.encodeWithSelector(BaseBinTestHook.HookNotImplemented.selector)
             )
         );
         poolManager.initialize(key, activeId, abi.encode(true));

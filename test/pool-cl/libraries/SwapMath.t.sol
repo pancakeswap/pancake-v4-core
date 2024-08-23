@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {SwapMath} from "../../../src/pool-cl/libraries/SwapMath.sol";
 import {FixedPoint96} from "../../../src/pool-cl/libraries/FixedPoint96.sol";
-import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
+import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {SqrtPriceMath} from "../../../src/pool-cl/libraries/SqrtPriceMath.sol";
 
 contract SwapMathTest is Test, GasSnapshot {

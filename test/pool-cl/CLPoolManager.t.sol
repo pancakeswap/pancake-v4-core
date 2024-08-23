@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
-import {MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
+import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {Vault} from "../../src/Vault.sol";
 import {IPoolManager} from "../../src/interfaces/IPoolManager.sol";
 import {ICLPoolManager} from "../../src/pool-cl/interfaces/ICLPoolManager.sol";
@@ -378,12 +378,12 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         key.hooks = IHooks(address(0));
         key.poolManager = poolManager;
 
-        if (key.parameters.getTickSpacing() > poolManager.MAX_TICK_SPACING()) {
+        if (key.parameters.getTickSpacing() > TickMath.MAX_TICK_SPACING) {
             vm.expectRevert(
                 abi.encodeWithSelector(ICLPoolManager.TickSpacingTooLarge.selector, key.parameters.getTickSpacing())
             );
             poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
-        } else if (key.parameters.getTickSpacing() < poolManager.MIN_TICK_SPACING()) {
+        } else if (key.parameters.getTickSpacing() < TickMath.MIN_TICK_SPACING) {
             vm.expectRevert(
                 abi.encodeWithSelector(ICLPoolManager.TickSpacingTooSmall.selector, key.parameters.getTickSpacing())
             );
@@ -503,7 +503,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             fee: 3000,
             hooks: IHooks(address(0)),
             poolManager: poolManager,
-            parameters: bytes32(uint256(int256(poolManager.MAX_TICK_SPACING()) << 16))
+            parameters: bytes32(uint256(int256(TickMath.MAX_TICK_SPACING) << 16))
         });
 
         vm.expectEmit(true, true, true, true);
@@ -665,11 +665,11 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             fee: 3000,
             hooks: IHooks(address(0)),
             poolManager: poolManager,
-            parameters: bytes32(uint256((int256((poolManager.MAX_TICK_SPACING())) + 1) << 16))
+            parameters: bytes32(uint256((int256((TickMath.MAX_TICK_SPACING)) + 1) << 16))
         });
 
         vm.expectRevert(
-            abi.encodeWithSelector(ICLPoolManager.TickSpacingTooLarge.selector, poolManager.MAX_TICK_SPACING() + 1)
+            abi.encodeWithSelector(ICLPoolManager.TickSpacingTooLarge.selector, TickMath.MAX_TICK_SPACING + 1)
         );
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
     }
@@ -727,7 +727,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         clFeeManagerHook.setFee(dynamicSwapFee);
         vm.expectRevert(
             abi.encodeWithSelector(
-                Hooks.FailedHookCall.selector,
+                Hooks.Wrap__FailedHookCall.selector,
+                clFeeManagerHook,
                 abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, dynamicSwapFee)
             )
         );
@@ -1311,7 +1312,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
 
         vm.expectEmit(true, true, true, true);
-        emit ICLPoolManager.ModifyLiquidity(key.toId(), address(router), 0, 60, 0, 100);
+        emit ICLPoolManager.ModifyLiquidity(key.toId(), address(router), 0, 60, 100, 0);
 
         router.modifyPosition(
             key,
@@ -1334,7 +1335,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
         vm.expectEmit(true, true, true, true);
-        emit ICLPoolManager.ModifyLiquidity(key.toId(), address(router), 0, 60, 0, 100);
+        emit ICLPoolManager.ModifyLiquidity(key.toId(), address(router), 0, 60, 100, 0);
 
         router.modifyPosition{value: 100}(
             key,
@@ -1378,6 +1379,47 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         bytes memory afterPayload = abi.encodeWithSelector(
             MockHooks.afterAddLiquidity.selector, address(router), key, params, balanceDelta, ZERO_BYTES
+        );
+
+        vm.expectCall(address(mockAddr), 0, beforePayload, 1);
+        vm.expectCall(address(mockAddr), 0, afterPayload, 1);
+        router.modifyPosition(key, params, ZERO_BYTES);
+    }
+
+    function testModifyPosition_succeedsWithHooksIfLiquidityDeltaIsZero(uint160 sqrtPriceX96) public {
+        sqrtPriceX96 = uint160(bound(sqrtPriceX96, TickMath.MIN_SQRT_RATIO, TickMath.MAX_SQRT_RATIO - 1));
+
+        MockHooks mockAddr = new MockHooks();
+
+        PoolKey memory key = PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            fee: 3000,
+            hooks: IHooks(mockAddr),
+            poolManager: poolManager,
+            parameters: bytes32((uint256(60) << 16) | mockAddr.getHooksRegistrationBitmap())
+        });
+
+        ICLPoolManager.ModifyLiquidityParams memory params =
+            ICLPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 100, salt: 0});
+
+        poolManager.initialize(key, sqrtPriceX96, ZERO_BYTES);
+
+        // make sure there is some liquidity
+        router.modifyPosition(key, params, ZERO_BYTES);
+
+        params.liquidityDelta = 0;
+
+        bytes memory beforePayload =
+            abi.encodeWithSelector(MockHooks.beforeRemoveLiquidity.selector, address(router), key, params, ZERO_BYTES);
+
+        bytes memory afterPayload = abi.encodeWithSelector(
+            MockHooks.afterRemoveLiquidity.selector,
+            address(router),
+            key,
+            params,
+            BalanceDeltaLibrary.ZERO_DELTA,
+            ZERO_BYTES
         );
 
         vm.expectCall(address(mockAddr), 0, beforePayload, 1);
@@ -1436,7 +1478,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         mockHooks.setReturnValue(mockHooks.afterAddLiquidity.selector, mockHooks.afterAddLiquidity.selector);
 
         vm.expectEmit(true, true, true, true);
-        emit ICLPoolManager.ModifyLiquidity(key.toId(), address(router), 0, 60, 0, 100);
+        emit ICLPoolManager.ModifyLiquidity(key.toId(), address(router), 0, 60, 100, 0);
 
         router.modifyPosition(key, params, ZERO_BYTES);
     }

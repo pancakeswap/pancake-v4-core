@@ -50,10 +50,10 @@ interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @param sender The address that modified the pool
     /// @param tickLower The lower tick of the position
     /// @param tickUpper The upper tick of the position
-    /// @param salt The value used to create a unique liquidity position
     /// @param liquidityDelta The amount of liquidity that was added or removed
+    /// @param salt The value used to create a unique liquidity position
     event ModifyLiquidity(
-        PoolId indexed id, address indexed sender, int24 tickLower, int24 tickUpper, bytes32 salt, int256 liquidityDelta
+        PoolId indexed id, address indexed sender, int24 tickLower, int24 tickUpper, int256 liquidityDelta, bytes32 salt
     );
 
     /// @notice Emitted for swaps between currency0 and currency1
@@ -85,12 +85,6 @@ interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @param amount1 The delta of the currency1 balance of the pool
     /// @param tick The donated tick
     event Donate(PoolId indexed id, address indexed sender, uint256 amount0, uint256 amount1, int24 tick);
-
-    /// @notice Returns the constant representing the maximum tickSpacing for an initialized pool key
-    function MAX_TICK_SPACING() external view returns (int24);
-
-    /// @notice Returns the constant representing the minimum tickSpacing for an initialized pool key
-    function MIN_TICK_SPACING() external view returns (int24);
 
     /// @notice Get the current value in slot0 of the given pool
     function getSlot0(PoolId id)
