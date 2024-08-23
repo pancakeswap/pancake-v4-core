@@ -37,6 +37,7 @@ import {ProtocolFeeLibrary} from "../../src/libraries/ProtocolFeeLibrary.sol";
 import {SafeCast} from "../../src/libraries/SafeCast.sol";
 import {NoIsolate} from "../helpers/NoIsolate.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
+import {CLPoolGetter} from "./helpers/CLPoolGetter.sol";
 
 contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnapshot {
     using PoolIdLibrary for PoolKey;
@@ -44,6 +45,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
     using ParametersHelper for bytes32;
     using LPFeeLibrary for uint24;
     using Hooks for bytes32;
+    using CLPoolGetter for CLPoolManager;
 
     error ContractSizeTooLarge(uint256 diff);
 
