@@ -38,7 +38,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
     /// @inheritdoc IBinPoolManager
     uint16 public override MAX_BIN_STEP = 100;
 
-    mapping(PoolId id => BinPool.State poolState) public pools;
+    mapping(PoolId id => BinPool.State poolState) private pools;
 
     mapping(PoolId id => PoolKey poolKey) public poolIdToPoolKey;
 
@@ -66,10 +66,10 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         external
         view
         override
-        returns (uint128 binReserveX, uint128 binReserveY, uint256 binLiquidity)
+        returns (uint128 binReserveX, uint128 binReserveY, uint256 binLiquidity, uint256 totalShares)
     {
         PoolKey memory key = poolIdToPoolKey[id];
-        (binReserveX, binReserveY, binLiquidity) = pools[id].getBin(key.parameters.getBinStep(), binId);
+        (binReserveX, binReserveY, binLiquidity, totalShares) = pools[id].getBin(key.parameters.getBinStep(), binId);
     }
 
     /// @inheritdoc IBinPoolManager
