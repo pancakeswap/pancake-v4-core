@@ -27,11 +27,13 @@ import {BalanceDelta} from "../../src/types/BalanceDelta.sol";
 import {PoolKey} from "../../src/types/PoolKey.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
 import {ProtocolFeeLibrary} from "../../src/libraries/ProtocolFeeLibrary.sol";
+import {CLPoolGetter} from "./helpers/CLPoolGetter.sol";
 
 contract CLProtocolFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
     using Hooks for IHooks;
     using CLPool for CLPool.State;
     using PoolIdLibrary for PoolKey;
+    using CLPoolGetter for CLPoolManager;
 
     IVault vault;
     CLPool.State state;

@@ -100,10 +100,10 @@ contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
     function testMint_MintMore() external {
         IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
         BalanceDelta delta = binLiquidityHelper.mint(key, mintParams, abi.encode(0));
-        (uint128 reserveXBefore, uint128 reserveYBefore,) = poolManager.getBin(key.toId(), activeId);
+        (uint128 reserveXBefore, uint128 reserveYBefore,,) = poolManager.getBin(key.toId(), activeId);
 
         BalanceDelta delta2 = binLiquidityHelper.mint(key, mintParams, abi.encode(mintParams.amountIn));
-        (uint128 reserveXAfter, uint128 reserveYAfter,) = poolManager.getBin(key.toId(), activeId);
+        (uint128 reserveXAfter, uint128 reserveYAfter,,) = poolManager.getBin(key.toId(), activeId);
 
         assertEq(reserveXAfter - reserveXBefore, 2 * reserveXBefore);
         assertEq(reserveYAfter - reserveYBefore, 2 * reserveYBefore);
@@ -116,7 +116,7 @@ contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
         IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
         binLiquidityHelper.mint(key, mintParams, abi.encode(0));
 
-        (uint128 reserveXBefore, uint128 reserveYBefore,) = poolManager.getBin(key.toId(), activeId);
+        (uint128 reserveXBefore, uint128 reserveYBefore,,) = poolManager.getBin(key.toId(), activeId);
 
         assertEq(reserveXBefore, 1 ether);
         assertEq(reserveYBefore, 1 ether);
@@ -128,7 +128,7 @@ contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
 
         binLiquidityHelper.burn(key, burnParams, "");
 
-        (uint128 reserveXAfter, uint128 reserveYAfter,) = poolManager.getBin(key.toId(), activeId);
+        (uint128 reserveXAfter, uint128 reserveYAfter,,) = poolManager.getBin(key.toId(), activeId);
 
         assertEq(reserveXAfter, 0);
         assertEq(reserveYAfter, 0);

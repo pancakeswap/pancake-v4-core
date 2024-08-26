@@ -35,7 +35,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     using CLPosition for mapping(bytes32 => CLPosition.Info);
     using CLPoolGetters for CLPool.State;
 
-    mapping(PoolId id => CLPool.State poolState) public pools;
+    mapping(PoolId id => CLPool.State poolState) private pools;
 
     mapping(PoolId id => PoolKey poolKey) public poolIdToPoolKey;
 
