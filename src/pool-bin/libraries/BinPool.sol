@@ -256,9 +256,9 @@ library BinPool {
             liquidityMinted: new uint256[](params.liquidityConfigs.length)
         });
 
-        (bytes32 amountsLeft, bytes32 fee, bytes32 compoFee) = _mintBins(self, params, arrays);
-        feeAmountToProtocol = fee;
-        compositionFeeAmount = compoFee;
+        (bytes32 amountsLeft, bytes32 feeAmt, bytes32 compoFeeAmt) = _mintBins(self, params, arrays);
+        feeAmountToProtocol = feeAmt;
+        compositionFeeAmount = compoFeeAmt;
 
         (uint128 x1, uint128 x2) = params.amountIn.sub(amountsLeft).decode();
 
@@ -446,7 +446,7 @@ library BinPool {
 
             bytes32 feesAmount;
             (feesAmount, feeAmountToProtocol) =
-                binReserves.getCompositionFees(slot0Cache.protocolFee, lpFee, amountsIn, supply, shares);
+                binReserves.getCompositionFeesAmount(slot0Cache.protocolFee, lpFee, amountsIn, supply, shares);
             compositionFeeAmount = feesAmount;
             if (feesAmount != 0) {
                 {

@@ -171,7 +171,7 @@ library BinHelper {
     /// @param shares The share of the liquidity book that the user will receive
     /// @return feesAmount The encoded fees that will be charged (including protocol and LP fee)
     /// @return feeAmountToProtocol The encoded protocol fee that will be charged
-    function getCompositionFees(
+    function getCompositionFeesAmount(
         bytes32 binReserves,
         uint24 protocolFee, // fee: 100 = 0.01%
         uint24 lpFee,
