@@ -150,7 +150,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
 
         for (uint256 i; i < total; ++i) {
             uint24 id = getId(activeId, i, nbBinY);
-            (uint128 binReserveX, uint128 binReserveY,, uint256 totalShare) = poolManager.getBin(poolId, id);
+            (uint128 binReserveX, uint128 binReserveY,, uint256 totalShares) = poolManager.getBin(poolId, id);
 
             if (id < activeId) {
                 assertEq(binReserveX, 0, "test_SimpleMint::1");
@@ -170,7 +170,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
             assertEq(poolManager.getPosition(poolId, bob, id, 0).share, 2 * balances[i], "test_DoubleMint:7");
 
             // Only bob minted, all the shares in the bin should be bob's
-            assertEq(poolManager.getPosition(poolId, bob, id, 0).share, totalShare);
+            assertEq(poolManager.getPosition(poolId, bob, id, 0).share, totalShares);
         }
     }
 
