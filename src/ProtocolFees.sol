@@ -58,19 +58,14 @@ abstract contract ProtocolFees is IProtocolFees, Owner {
             bytes memory data = abi.encodeCall(IProtocolFeeController.protocolFeeForPool, (key));
             uint256 returnData;
             assembly ("memory-safe") {
-                success := call(gasLimit, targetProtocolFeeController, 0, add(data, 0x20), mload(data), 0, 0)
+                // only load the first 32 bytes of the return data to prevent gas griefing
+                success := call(gasLimit, targetProtocolFeeController, 0, add(data, 0x20), mload(data), 0, 32)
+
+                // if success is false this wont actually be returned, instead 0 will be returned
+                returnData := mload(0)
 
                 // success if return data size is 32 bytes
-                // only load the return value if it is 32 bytes to prevent gas griefing
                 success := and(success, eq(returndatasize(), 32))
-
-                // load the return data if success is true
-                if success {
-                    let fmp := mload(0x40)
-                    returndatacopy(fmp, 0, returndatasize())
-                    returnData := mload(fmp)
-                    mstore(fmp, 0)
-                }
             }
 
             (success, protocolFee) = success && (returnData == uint24(returnData)) && uint24(returnData).validate()
