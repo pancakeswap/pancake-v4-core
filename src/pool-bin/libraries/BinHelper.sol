@@ -169,16 +169,16 @@ library BinHelper {
     /// @param amountsIn The amounts of tokens to add
     /// @param totalSupply The total supply of the liquidity book
     /// @param shares The share of the liquidity book that the user will receive
-    /// @return fees The encoded fees that will be charged (including protocol and LP fee)
-    //// @return feeForProtocol The encoded protocol fee that will be charged
-    function getCompositionFees(
+    /// @return feesAmount The encoded fees that will be charged (including protocol and LP fee)
+    /// @return feeAmountToProtocol The encoded protocol fee that will be charged
+    function getCompositionFeesAmount(
         bytes32 binReserves,
         uint24 protocolFee, // fee: 100 = 0.01%
         uint24 lpFee,
         bytes32 amountsIn,
         uint256 totalSupply,
         uint256 shares
-    ) internal pure returns (bytes32 fees, bytes32 feeForProtocol) {
+    ) internal pure returns (bytes32 feesAmount, bytes32 feeAmountToProtocol) {
         if (shares == 0) return (0, 0);
 
         (uint128 amountX, uint128 amountY) = amountsIn.decode();
@@ -191,15 +191,15 @@ library BinHelper {
             uint24 swapFee = uint16(protocolFee).calculateSwapFee(lpFee);
 
             uint128 amtSwapped = amountY - receivedAmountY;
-            fees = amtSwapped.getCompositionFee(swapFee).encodeSecond();
-            feeForProtocol = amtSwapped.getCompositionFee(protocolFee).encodeSecond();
+            feesAmount = amtSwapped.getCompositionFee(swapFee).encodeSecond();
+            feeAmountToProtocol = amtSwapped.getCompositionFee(protocolFee).encodeSecond();
         } else if (receivedAmountY > amountY) {
             protocolFee = protocolFee.getZeroForOneFee();
             uint24 swapFee = uint16(protocolFee).calculateSwapFee(lpFee);
 
             uint128 amtSwapped = amountX - receivedAmountX;
-            fees = amtSwapped.getCompositionFee(swapFee).encodeFirst();
-            feeForProtocol = amtSwapped.getCompositionFee(protocolFee).encodeFirst();
+            feesAmount = amtSwapped.getCompositionFee(swapFee).encodeFirst();
+            feeAmountToProtocol = amtSwapped.getCompositionFee(protocolFee).encodeFirst();
         }
     }
 

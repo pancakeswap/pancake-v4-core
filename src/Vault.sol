@@ -131,12 +131,12 @@ contract Vault is IVault, VaultToken, Ownable {
     }
 
     /// @inheritdoc IVault
-    function settle() external payable override isLocked returns (uint256 paid) {
+    function settle() external payable override isLocked returns (uint256) {
         return _settle(msg.sender);
     }
 
     /// @inheritdoc IVault
-    function settleFor(address recipient) external payable override isLocked returns (uint256 paid) {
+    function settleFor(address recipient) external payable override isLocked returns (uint256) {
         return _settle(recipient);
     }
 
@@ -146,7 +146,9 @@ contract Vault is IVault, VaultToken, Ownable {
         int128 amountDelta = amount.toInt128();
         /// @dev since amount is uint256, existingDelta must be positive otherwise revert
         if (amountDelta != existingDelta) revert MustClearExactPositiveDelta();
-        SettlementGuard.accountDelta(msg.sender, currency, -amountDelta);
+        unchecked {
+            SettlementGuard.accountDelta(msg.sender, currency, -amountDelta);
+        }
     }
 
     /// @inheritdoc IVault

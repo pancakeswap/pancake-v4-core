@@ -167,7 +167,7 @@ library CLPool {
         // the global fee growth of the input token
         uint256 feeGrowthGlobalX128;
         // amount of input token paid as protocol fee
-        uint256 feeForProtocol;
+        uint256 feeAmountToProtocol;
         // the current liquidity in range
         uint128 liquidity;
     }
@@ -237,15 +237,17 @@ library CLPool {
                 swapFee: protocolFee == 0 ? lpFee : protocolFee.calculateSwapFee(lpFee),
                 protocolFee: protocolFee,
                 feeGrowthGlobalX128: zeroForOne ? self.feeGrowthGlobal0X128 : self.feeGrowthGlobal1X128,
-                feeForProtocol: 0,
+                feeAmountToProtocol: 0,
                 liquidity: liquidityStart
             });
         }
 
         /// @dev If amountSpecified is the output, also given amountSpecified cant be 0,
         /// then the tx will always revert if the swap fee is 100%
-        if ((state.swapFee == LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE) && !exactInput) {
-            revert InvalidFeeForExactOut();
+        if (state.swapFee == LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE) {
+            if (!exactInput) {
+                revert InvalidFeeForExactOut();
+            }
         }
 
         /// @notice early return if hook has updated amountSpecified to 0
@@ -302,7 +304,7 @@ library CLPool {
 
                     // subtract it from the total fee then left over is the LP fee
                     step.feeAmount -= delta;
-                    state.feeForProtocol += delta;
+                    state.feeAmountToProtocol += delta;
                 }
             }
 

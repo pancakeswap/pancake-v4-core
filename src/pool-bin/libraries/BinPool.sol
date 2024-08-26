@@ -112,7 +112,7 @@ library BinPool {
         // the swapFee (the total percentage charged within a swap, including the protocol fee and the LP fee)
         uint24 swapFee;
         // how much protocol fee has been charged
-        bytes32 feeForProtocol;
+        bytes32 feeAmountToProtocol;
     }
 
     function swap(State storage self, SwapParams memory params)
@@ -176,7 +176,7 @@ library BinPool {
                     /// @dev calc protocol fee for current bin, totalFee * protocolFee / (protocolFee + lpFee)
                     bytes32 pFee = totalFee.getProtocolFeeAmt(slot0Cache.protocolFee, swapState.swapFee);
                     if (pFee != 0) {
-                        swapState.feeForProtocol = swapState.feeForProtocol.add(pFee);
+                        swapState.feeAmountToProtocol = swapState.feeAmountToProtocol.add(pFee);
                         amountsInWithFees = amountsInWithFees.sub(pFee);
                     }
 
@@ -236,12 +236,17 @@ library BinPool {
     }
 
     /// @return result the delta of the token balance of the pool (inclusive of fees)
-    /// @return feeForProtocol total protocol fee amount
+    /// @return feeAmountToProtocol total protocol fee amount
     /// @return arrays the ids, amounts and liquidity minted for each bin
-    /// @return compositionFee composition fee for adding different ratio to active bin
+    /// @return compositionFeeAmount composition fee for adding different ratio to active bin
     function mint(State storage self, MintParams memory params)
         internal
-        returns (BalanceDelta result, bytes32 feeForProtocol, MintArrays memory arrays, bytes32 compositionFee)
+        returns (
+            BalanceDelta result,
+            bytes32 feeAmountToProtocol,
+            MintArrays memory arrays,
+            bytes32 compositionFeeAmount
+        )
     {
         if (params.liquidityConfigs.length == 0) revert BinPool__EmptyLiquidityConfigs();
 
@@ -251,9 +256,9 @@ library BinPool {
             liquidityMinted: new uint256[](params.liquidityConfigs.length)
         });
 
-        (bytes32 amountsLeft, bytes32 fee, bytes32 compoFee) = _mintBins(self, params, arrays);
-        feeForProtocol = fee;
-        compositionFee = compoFee;
+        (bytes32 amountsLeft, bytes32 feeAmt, bytes32 compoFeeAmt) = _mintBins(self, params, arrays);
+        feeAmountToProtocol = feeAmt;
+        compositionFeeAmount = compoFeeAmt;
 
         (uint128 x1, uint128 x2) = params.amountIn.sub(amountsLeft).decode();
 
@@ -363,11 +368,11 @@ library BinPool {
     /// @param params MintParams (to, liquidityConfig, amountIn, binStep and fee)
     /// @param arrays MintArrays (ids[] , amounts[], liquidityMinted[])
     /// @return amountsLeft amountLeft after deducting all the input (inclusive of fee) from amountIn
-    /// @return feeForProtocol total feeForProtocol for minting
-    /// @return compositionFee composition fee for adding different ratio to active bin
+    /// @return feeAmountToProtocol total protocol fee for minting
+    /// @return compositionFeeAmount composition fee for adding different ratio to active bin
     function _mintBins(State storage self, MintParams memory params, MintArrays memory arrays)
         private
-        returns (bytes32 amountsLeft, bytes32 feeForProtocol, bytes32 compositionFee)
+        returns (bytes32 amountsLeft, bytes32 feeAmountToProtocol, bytes32 compositionFeeAmount)
     {
         amountsLeft = params.amountIn;
 
@@ -388,7 +393,7 @@ library BinPool {
             }
 
             amountsLeft = amountsLeft.sub(amountsIn);
-            feeForProtocol = feeForProtocol.add(binFeeAmt);
+            feeAmountToProtocol = feeAmountToProtocol.add(binFeeAmt);
 
             arrays.ids[i] = id;
             arrays.amounts[i] = amountsInToBin;
@@ -396,7 +401,7 @@ library BinPool {
 
             _addShare(self, params.to, id, params.salt, shares);
 
-            compositionFee = compositionFee.add(binCompositionFee);
+            compositionFeeAmount = compositionFeeAmount.add(binCompositionFee);
 
             unchecked {
                 ++i;
@@ -410,16 +415,16 @@ library BinPool {
     /// @return shares The amount of shares minted
     /// @return amountsIn The amounts in
     /// @return amountsInToBin The amounts in to the bin
-    /// @return feeForProtocol The amounts of fee for protocol
-    /// @return compositionFee The total amount of composition fee
+    /// @return feeAmountToProtocol The amounts of fee for protocol
+    /// @return compositionFeeAmount The total amount of composition fee
     function _updateBin(State storage self, MintParams memory params, uint24 id, bytes32 maxAmountsInToBin)
         internal
         returns (
             uint256 shares,
             bytes32 amountsIn,
             bytes32 amountsInToBin,
-            bytes32 feeForProtocol,
-            bytes32 compositionFee
+            bytes32 feeAmountToProtocol,
+            bytes32 compositionFeeAmount
         )
     {
         Slot0 memory slot0Cache = self.slot0;
@@ -439,20 +444,20 @@ library BinPool {
                 ? params.lpFeeOverride.removeOverrideAndValidate(LPFeeLibrary.TEN_PERCENT_FEE)
                 : slot0Cache.lpFee;
 
-            bytes32 fees;
-            (fees, feeForProtocol) =
-                binReserves.getCompositionFees(slot0Cache.protocolFee, lpFee, amountsIn, supply, shares);
-            compositionFee = fees;
-            if (fees != 0) {
+            bytes32 feesAmount;
+            (feesAmount, feeAmountToProtocol) =
+                binReserves.getCompositionFeesAmount(slot0Cache.protocolFee, lpFee, amountsIn, supply, shares);
+            compositionFeeAmount = feesAmount;
+            if (feesAmount != 0) {
                 {
-                    uint256 userLiquidity = amountsIn.sub(fees).getLiquidity(price);
+                    uint256 userLiquidity = amountsIn.sub(feesAmount).getLiquidity(price);
                     /// @dev Ensure fee accrued only to existing lp, before calculating new share for minter
-                    uint256 binLiquidity = binReserves.add(fees.sub(feeForProtocol)).getLiquidity(price);
+                    uint256 binLiquidity = binReserves.add(feesAmount.sub(feeAmountToProtocol)).getLiquidity(price);
                     shares = userLiquidity.mulDivRoundDown(supply, binLiquidity);
                 }
 
-                if (feeForProtocol != 0) {
-                    amountsInToBin = amountsInToBin.sub(feeForProtocol);
+                if (feeAmountToProtocol != 0) {
+                    amountsInToBin = amountsInToBin.sub(feeAmountToProtocol);
                 }
             }
         } else {
