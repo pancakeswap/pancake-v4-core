@@ -244,8 +244,10 @@ library CLPool {
 
         /// @dev If amountSpecified is the output, also given amountSpecified cant be 0,
         /// then the tx will always revert if the swap fee is 100%
-        if ((state.swapFee == LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE) && !exactInput) {
-            revert InvalidFeeForExactOut();
+        if (state.swapFee == LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE) {
+            if (!exactInput) {
+                revert InvalidFeeForExactOut();
+            }
         }
 
         /// @notice early return if hook has updated amountSpecified to 0
