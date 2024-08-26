@@ -11,6 +11,7 @@ import {BinHelper} from "../../../src/pool-bin/libraries/BinHelper.sol";
 import {BalanceDelta, toBalanceDelta} from "../../../src/types/BalanceDelta.sol";
 import {PoolId, PoolIdLibrary} from "../../../src/types/PoolId.sol";
 import {BinPoolManager} from "../../../src/pool-bin/BinPoolManager.sol";
+import {IBinPoolManager} from "../../../src/pool-bin/interfaces/IBinPoolManager.sol";
 import {BinPool} from "../../../src/pool-bin/libraries/BinPool.sol";
 import {PackedUint128Math} from "../../../src/pool-bin/libraries/math/PackedUint128Math.sol";
 import {SafeCast} from "../../../src/pool-bin/libraries/math/SafeCast.sol";
@@ -56,10 +57,17 @@ contract BinPoolDonateTest is BinTestHelper {
         poolManager.donate(key, 1e18, 1e18, "");
     }
 
-    function testDonateNoLiquidity() public {
+    function testDonate_InsufficientBinShareForDonate(uint256 remainingShare) public {
+        // Initialize pool and add liqudiity
         poolManager.initialize(key, activeId, new bytes(0));
+        addLiquidityToBin(key, poolManager, alice, activeId, 1e18, 1e18, 1e18, 1e18, "");
 
-        vm.expectRevert(BinPool.BinPool__NoLiquidityToReceiveFees.selector);
+        // Remove all share leaving less than MIN_LIQUIDITY_BEFORE_DONATE shares
+        remainingShare = bound(remainingShare, 1, poolManager.MIN_BIN_SHARE_FOR_DONATE() - 1);
+        uint256 aliceShare = poolManager.getPosition(poolId, alice, activeId, 0).share;
+        removeLiquidityFromBin(key, poolManager, alice, activeId, aliceShare - remainingShare, "");
+
+        vm.expectRevert(abi.encodeWithSelector(IBinPoolManager.InsufficientBinShareForDonate.selector, remainingShare));
         poolManager.donate(key, 1e18, 1e18, "");
     }
 
@@ -100,7 +108,7 @@ contract BinPoolDonateTest is BinTestHelper {
         assertEq(reserveX, 0);
         assertEq(reserveY, 0);
 
-        vm.expectRevert(BinPool.BinPool__NoLiquidityToReceiveFees.selector);
+        vm.expectRevert(abi.encodeWithSelector(IBinPoolManager.InsufficientBinShareForDonate.selector, 0));
         poolManager.donate(key, 1e18, 1e18, "");
     }
 

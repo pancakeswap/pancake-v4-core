@@ -843,7 +843,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         poolManager.initialize(key, activeId, new bytes(0));
 
         // verify poolId.
-        uint256 POOL_SLOT = 3;
+        uint256 POOL_SLOT = 4;
         snapStart("BinPoolManagerTest#testExtLoadPoolActiveId");
         bytes32 slot0Bytes = poolManager.extsload(keccak256(abi.encode(key.toId(), POOL_SLOT)));
         snapEnd();
@@ -933,6 +933,27 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         vm.prank(makeAddr("bob"));
         vm.expectRevert();
         poolManager.setMaxBinStep(100);
+    }
+
+    function testFuzz_SetMinBinSharesForDonate(uint256 minShare) public {
+        vm.assume(minShare >= 1e18);
+
+        vm.expectEmit();
+        emit IBinPoolManager.SetMinBinSharesForDonate(minShare);
+        poolManager.setMinBinSharesForDonate(minShare);
+
+        assertEq(poolManager.MIN_BIN_SHARE_FOR_DONATE(), minShare);
+    }
+
+    function testMinBinSharesForDonate_TooSmall() public {
+        vm.expectRevert(IBinPoolManager.MinShareTooSmall.selector);
+        poolManager.setMinBinSharesForDonate(1e18 - 1);
+    }
+
+    function testMinBinSharesForDonate_OnlyOwner() public {
+        vm.prank(makeAddr("bob"));
+        vm.expectRevert();
+        poolManager.setMinBinSharesForDonate(1e18);
     }
 
     function testUpdateDynamicLPFee_FeeTooLarge() public {

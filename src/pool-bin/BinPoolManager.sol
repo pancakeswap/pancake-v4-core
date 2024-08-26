@@ -38,7 +38,10 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
     /// @inheritdoc IBinPoolManager
     uint16 public override MAX_BIN_STEP = 100;
 
-    mapping(PoolId id => BinPool.State poolState) private pools;
+    /// @inheritdoc IBinPoolManager
+    uint256 public override MIN_BIN_SHARE_FOR_DONATE = 2 ** 128;
+
+    mapping(PoolId id => BinPool.State poolState) public pools;
 
     mapping(PoolId id => PoolKey poolKey) public poolIdToPoolKey;
 
@@ -271,6 +274,12 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         BinPool.State storage pool = pools[id];
         pool.checkPoolInitialized();
 
+        /// @dev Share is 1:1 liquidity when liquidity is first added to bin
+        uint256 currentBinShare = pool.shareOfBin[pool.slot0.activeId];
+        if (currentBinShare <= MIN_BIN_SHARE_FOR_DONATE) {
+            revert InsufficientBinShareForDonate(currentBinShare);
+        }
+
         BinHooks.beforeDonate(key, amount0, amount1, hookData);
 
         (delta, binId) = pool.donate(key.parameters.getBinStep(), amount0, amount1);
@@ -289,6 +298,14 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
 
         MAX_BIN_STEP = maxBinStep;
         emit SetMaxBinStep(maxBinStep);
+    }
+
+    /// @inheritdoc IBinPoolManager
+    function setMinBinSharesForDonate(uint256 minBinShare) external override onlyOwner {
+        if (minBinShare < 1e18) revert MinShareTooSmall();
+
+        MIN_BIN_SHARE_FOR_DONATE = minBinShare;
+        emit SetMinBinSharesForDonate(minBinShare);
     }
 
     /// @inheritdoc IPoolManager
