@@ -267,15 +267,17 @@ library BinPool {
     /// @return binReserveX The reserve of token X in the bin
     /// @return binReserveY The reserve of token Y in the bin
     /// @return binLiquidity The liquidity in the bin
+    /// @return binShare The shares in the bin
     function getBin(State storage self, uint16 binStep, uint24 id)
         internal
         view
-        returns (uint128 binReserveX, uint128 binReserveY, uint256 binLiquidity)
+        returns (uint128 binReserveX, uint128 binReserveY, uint256 binLiquidity, uint256 binShare)
     {
         bytes32 binReserves = self.reserveOfBin[id];
 
         (binReserveX, binReserveY) = binReserves.decode();
         binLiquidity = binReserves.getLiquidity(id.getPriceFromId(binStep));
+        binShare = self.shareOfBin[id];
     }
 
     /// @dev Returns next non-empty bin

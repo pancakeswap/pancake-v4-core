@@ -74,7 +74,7 @@ contract BinPoolDonateTest is BinTestHelper {
         // Verify reserve before donate
         uint128 reserveX;
         uint128 reserveY;
-        (reserveX, reserveY,) = poolManager.getBin(poolId, activeId);
+        (reserveX, reserveY,,) = poolManager.getBin(poolId, activeId);
         assertEq(reserveX, 2e18);
         assertEq(reserveY, 2e18);
 
@@ -82,7 +82,7 @@ contract BinPoolDonateTest is BinTestHelper {
         poolManager.donate(key, 2e18, 2e18, "");
 
         // Verify reserve after donate
-        (reserveX, reserveY,) = poolManager.getBin(poolId, activeId);
+        (reserveX, reserveY,,) = poolManager.getBin(poolId, activeId);
         assertEq(reserveX, 4e18);
         assertEq(reserveY, 4e18);
 
@@ -96,7 +96,7 @@ contract BinPoolDonateTest is BinTestHelper {
         assertEq(removeDelta2.amount1(), 2e18);
 
         // Verify no reserve remaining
-        (reserveX, reserveY,) = poolManager.getBin(poolId, activeId);
+        (reserveX, reserveY,,) = poolManager.getBin(poolId, activeId);
         assertEq(reserveX, 0);
         assertEq(reserveY, 0);
 
@@ -115,7 +115,7 @@ contract BinPoolDonateTest is BinTestHelper {
         poolManager.donate(key, amt0, amt1, "");
 
         // Verify reserve after donate
-        (uint128 reserveX, uint128 reserveY,) = poolManager.getBin(poolId, activeId);
+        (uint128 reserveX, uint128 reserveY,,) = poolManager.getBin(poolId, activeId);
         assertEq(reserveX, 1e18 + amt0);
         assertEq(reserveY, 1e18 + amt1);
     }
