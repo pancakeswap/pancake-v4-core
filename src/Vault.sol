@@ -146,7 +146,9 @@ contract Vault is IVault, VaultToken, Ownable {
         int128 amountDelta = amount.toInt128();
         /// @dev since amount is uint256, existingDelta must be positive otherwise revert
         if (amountDelta != existingDelta) revert MustClearExactPositiveDelta();
-        SettlementGuard.accountDelta(msg.sender, currency, -amountDelta);
+        unchecked {
+            SettlementGuard.accountDelta(msg.sender, currency, -amountDelta);
+        }
     }
 
     /// @inheritdoc IVault
