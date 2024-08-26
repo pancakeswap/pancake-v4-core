@@ -167,7 +167,7 @@ library CLPool {
         // the global fee growth of the input token
         uint256 feeGrowthGlobalX128;
         // amount of input token paid as protocol fee
-        uint256 feeForProtocol;
+        uint256 feeAmountToProtocol;
         // the current liquidity in range
         uint128 liquidity;
     }
@@ -237,7 +237,7 @@ library CLPool {
                 swapFee: protocolFee == 0 ? lpFee : protocolFee.calculateSwapFee(lpFee),
                 protocolFee: protocolFee,
                 feeGrowthGlobalX128: zeroForOne ? self.feeGrowthGlobal0X128 : self.feeGrowthGlobal1X128,
-                feeForProtocol: 0,
+                feeAmountToProtocol: 0,
                 liquidity: liquidityStart
             });
         }
@@ -302,7 +302,7 @@ library CLPool {
 
                     // subtract it from the total fee then left over is the LP fee
                     step.feeAmount -= delta;
-                    state.feeForProtocol += delta;
+                    state.feeAmountToProtocol += delta;
                 }
             }
 

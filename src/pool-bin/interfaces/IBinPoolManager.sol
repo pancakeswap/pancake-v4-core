@@ -86,16 +86,16 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @param ids List of binId with liquidity added
     /// @param salt The salt to distinguish different mint from the same owner
     /// @param amounts List of amount added to each bin
-    /// @param compositionFee fee occurred
-    /// @param pFee Protocol fee from the swap: token0 and token1 amount
+    /// @param compositionFeeAmount fee occurred
+    /// @param feeAmountToProtocol Protocol fee from the swap: token0 and token1 amount
     event Mint(
         PoolId indexed id,
         address indexed sender,
         uint256[] ids,
         bytes32 salt,
         bytes32[] amounts,
-        bytes32 compositionFee,
-        bytes32 pFee
+        bytes32 compositionFeeAmount,
+        bytes32 feeAmountToProtocol
     );
 
     /// @notice Emitted when liquidity is removed

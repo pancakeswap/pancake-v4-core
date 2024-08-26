@@ -162,9 +162,9 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
             );
 
             unchecked {
-                if (state.feeForProtocol > 0) {
-                    protocolFeesAccrued[key.currency0] += state.feeForProtocol.decodeX();
-                    protocolFeesAccrued[key.currency1] += state.feeForProtocol.decodeY();
+                if (state.feeAmountToProtocol > 0) {
+                    protocolFeesAccrued[key.currency0] += state.feeAmountToProtocol.decodeX();
+                    protocolFeesAccrued[key.currency1] += state.feeAmountToProtocol.decodeY();
                 }
             }
 
@@ -197,9 +197,9 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
 
         (uint24 lpFeeOverride) = BinHooks.beforeMint(key, params, hookData);
 
-        bytes32 feeForProtocol;
-        bytes32 compositionFee;
-        (delta, feeForProtocol, mintArray, compositionFee) = pool.mint(
+        bytes32 feeAmountToProtocol;
+        bytes32 compositionFeeAmount;
+        (delta, feeAmountToProtocol, mintArray, compositionFeeAmount) = pool.mint(
             BinPool.MintParams({
                 to: msg.sender,
                 liquidityConfigs: params.liquidityConfigs,
@@ -211,14 +211,16 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         );
 
         unchecked {
-            if (feeForProtocol > 0) {
-                protocolFeesAccrued[key.currency0] += feeForProtocol.decodeX();
-                protocolFeesAccrued[key.currency1] += feeForProtocol.decodeY();
+            if (feeAmountToProtocol > 0) {
+                protocolFeesAccrued[key.currency0] += feeAmountToProtocol.decodeX();
+                protocolFeesAccrued[key.currency1] += feeAmountToProtocol.decodeY();
             }
         }
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
-        emit Mint(id, msg.sender, mintArray.ids, params.salt, mintArray.amounts, compositionFee, feeForProtocol);
+        emit Mint(
+            id, msg.sender, mintArray.ids, params.salt, mintArray.amounts, compositionFeeAmount, feeAmountToProtocol
+        );
 
         BalanceDelta hookDelta;
         (delta, hookDelta) = BinHooks.afterMint(key, params, delta, hookData);

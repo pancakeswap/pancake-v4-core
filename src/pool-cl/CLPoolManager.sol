@@ -187,8 +187,8 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         );
 
         unchecked {
-            if (state.feeForProtocol > 0) {
-                protocolFeesAccrued[params.zeroForOne ? key.currency0 : key.currency1] += state.feeForProtocol;
+            if (state.feeAmountToProtocol > 0) {
+                protocolFeesAccrued[params.zeroForOne ? key.currency0 : key.currency1] += state.feeAmountToProtocol;
             }
         }
 
