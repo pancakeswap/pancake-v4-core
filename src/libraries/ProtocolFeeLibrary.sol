@@ -50,6 +50,8 @@ library ProtocolFeeLibrary {
     /// @return swapFee The composite swap fee
     function calculateSwapFee(uint16 self, uint24 lpFee) internal pure returns (uint24 swapFee) {
         assembly ("memory-safe") {
+            self := and(self, 0xfff)
+            lpFee := and(lpFee, 0xffffff)
             let numerator := mul(self, lpFee)
             let divRoundingUp := add(div(numerator, PIPS_DENOMINATOR), gt(mod(numerator, PIPS_DENOMINATOR), 0))
             swapFee := sub(add(self, lpFee), divRoundingUp)

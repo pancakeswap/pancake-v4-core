@@ -131,12 +131,12 @@ contract Vault is IVault, VaultToken, Ownable {
     }
 
     /// @inheritdoc IVault
-    function settle() external payable override isLocked returns (uint256 paid) {
+    function settle() external payable override isLocked returns (uint256) {
         return _settle(msg.sender);
     }
 
     /// @inheritdoc IVault
-    function settleFor(address recipient) external payable override isLocked returns (uint256 paid) {
+    function settleFor(address recipient) external payable override isLocked returns (uint256) {
         return _settle(recipient);
     }
 
