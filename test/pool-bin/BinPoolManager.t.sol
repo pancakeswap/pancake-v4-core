@@ -936,7 +936,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     }
 
     function testFuzz_SetMinBinSharesForDonate(uint256 minShare) public {
-        vm.assume(minShare >= 1e18);
+        minShare = bound(minShare, 1e18, type(uint256).max);
 
         vm.expectEmit();
         emit IBinPoolManager.SetMinBinSharesForDonate(minShare);
