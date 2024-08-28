@@ -10,7 +10,7 @@ import {TickBitmap} from "./TickBitmap.sol";
 import {SqrtPriceMath} from "./SqrtPriceMath.sol";
 import {SafeCast} from "../../libraries/SafeCast.sol";
 import {FixedPoint128} from "./FixedPoint128.sol";
-import {FullMath} from "./FullMath.sol";
+import {UnsafeMath} from "../../libraries/math/UnsafeMath.sol";
 import {SwapMath} from "./SwapMath.sol";
 import {LiquidityMath} from "./LiquidityMath.sol";
 import {ProtocolFeeLibrary} from "../../libraries/ProtocolFeeLibrary.sol";
@@ -311,7 +311,8 @@ library CLPool {
             // update global fee tracker
             if (state.liquidity > 0) {
                 unchecked {
-                    state.feeGrowthGlobalX128 += FullMath.mulDiv(step.feeAmount, FixedPoint128.Q128, state.liquidity);
+                    state.feeGrowthGlobalX128 +=
+                        UnsafeMath.simpleMulDiv(step.feeAmount, FixedPoint128.Q128, state.liquidity);
                 }
             }
 
@@ -456,10 +457,10 @@ library CLPool {
         delta = toBalanceDelta(-(amount0.toInt128()), -(amount1.toInt128()));
         unchecked {
             if (amount0 > 0) {
-                state.feeGrowthGlobal0X128 += FullMath.mulDiv(amount0, FixedPoint128.Q128, state.liquidity);
+                state.feeGrowthGlobal0X128 += UnsafeMath.simpleMulDiv(amount0, FixedPoint128.Q128, state.liquidity);
             }
             if (amount1 > 0) {
-                state.feeGrowthGlobal1X128 += FullMath.mulDiv(amount1, FixedPoint128.Q128, state.liquidity);
+                state.feeGrowthGlobal1X128 += UnsafeMath.simpleMulDiv(amount1, FixedPoint128.Q128, state.liquidity);
             }
             tick = state.slot0.tick;
         }
