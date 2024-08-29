@@ -53,6 +53,7 @@ library TickMath {
             // Equivalent: uint256 absTick = tick < 0 ? uint256(-int256(tick)) : uint256(int256(tick));
             uint256 absTick;
             assembly ("memory-safe") {
+                tick := signextend(2, tick)
                 // mask = 0 if tick >= 0 else -1 (all 1s)
                 let mask := sar(255, tick)
                 absTick := xor(mask, add(mask, tick))

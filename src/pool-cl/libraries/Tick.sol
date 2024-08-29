@@ -61,6 +61,7 @@ library Tick {
         int24 MIN_TICK = TickMath.MIN_TICK;
         // tick spacing will never be 0 since TickMath.MIN_TICK_SPACING is 1
         assembly ("memory-safe") {
+            tickSpacing := signextend(2, tickSpacing)
             let minTick := sdiv(MIN_TICK, tickSpacing)
             let maxTick := sdiv(MAX_TICK, tickSpacing)
             let numTicks := add(sub(maxTick, minTick), 1)
@@ -166,7 +167,9 @@ library Tick {
 
         // update two members in one go
         assembly ("memory-safe") {
-            sstore(info.slot, or(liquidityGrossAfter, shl(128, liquidityNetAfter)))
+            sstore(
+                info.slot, or(and(liquidityGrossAfter, 0xffffffffffffffffffffffffffffffff), shl(128, liquidityNetAfter))
+            )
         }
     }
 

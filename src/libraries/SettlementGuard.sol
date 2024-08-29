@@ -29,7 +29,7 @@ library SettlementGuard {
         if (currentLocker != address(0) && newLocker != address(0)) revert IVault.LockerAlreadySet(currentLocker);
 
         assembly ("memory-safe") {
-            tstore(LOCKER_SLOT, newLocker)
+            tstore(LOCKER_SLOT, and(newLocker, 0xffffffffffffffffffffffffffffffffffffffff))
         }
     }
 
