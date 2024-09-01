@@ -204,7 +204,7 @@ contract BinHelperTest is BinTestHelper {
 
         (amountXIn, amountYIn) = amountsIn.decode();
 
-        (bytes32 compositionFees,) = binReserves.getCompositionFees(0, fee, amountsIn, totalSupply, shares);
+        (bytes32 compositionFees,) = binReserves.getCompositionFeesAmount(0, fee, amountsIn, totalSupply, shares);
 
         uint256 binC = reserveX | reserveY == 0 ? 0 : (uint256(reserveY) << 128) / (uint256(reserveX) + reserveY);
         uint256 userC = amountXIn | amountYIn == 0 ? 0 : (uint256(amountYIn) << 128) / (uint256(amountXIn) + amountYIn);

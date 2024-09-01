@@ -38,6 +38,9 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
     /// @inheritdoc IBinPoolManager
     uint16 public override MAX_BIN_STEP = 100;
 
+    /// @inheritdoc IBinPoolManager
+    uint256 public override MIN_BIN_SHARE_FOR_DONATE = 2 ** 128;
+
     mapping(PoolId id => BinPool.State poolState) public pools;
 
     mapping(PoolId id => PoolKey poolKey) public poolIdToPoolKey;
@@ -66,10 +69,10 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         external
         view
         override
-        returns (uint128 binReserveX, uint128 binReserveY, uint256 binLiquidity)
+        returns (uint128 binReserveX, uint128 binReserveY, uint256 binLiquidity, uint256 totalShares)
     {
         PoolKey memory key = poolIdToPoolKey[id];
-        (binReserveX, binReserveY, binLiquidity) = pools[id].getBin(key.parameters.getBinStep(), binId);
+        (binReserveX, binReserveY, binLiquidity, totalShares) = pools[id].getBin(key.parameters.getBinStep(), binId);
     }
 
     /// @inheritdoc IBinPoolManager
@@ -159,9 +162,9 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
             );
 
             unchecked {
-                if (state.feeForProtocol > 0) {
-                    protocolFeesAccrued[key.currency0] += state.feeForProtocol.decodeX();
-                    protocolFeesAccrued[key.currency1] += state.feeForProtocol.decodeY();
+                if (state.feeAmountToProtocol > 0) {
+                    protocolFeesAccrued[key.currency0] += state.feeAmountToProtocol.decodeX();
+                    protocolFeesAccrued[key.currency1] += state.feeAmountToProtocol.decodeY();
                 }
             }
 
@@ -194,9 +197,9 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
 
         (uint24 lpFeeOverride) = BinHooks.beforeMint(key, params, hookData);
 
-        bytes32 feeForProtocol;
-        bytes32 compositionFee;
-        (delta, feeForProtocol, mintArray, compositionFee) = pool.mint(
+        bytes32 feeAmountToProtocol;
+        bytes32 compositionFeeAmount;
+        (delta, feeAmountToProtocol, mintArray, compositionFeeAmount) = pool.mint(
             BinPool.MintParams({
                 to: msg.sender,
                 liquidityConfigs: params.liquidityConfigs,
@@ -208,14 +211,16 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         );
 
         unchecked {
-            if (feeForProtocol > 0) {
-                protocolFeesAccrued[key.currency0] += feeForProtocol.decodeX();
-                protocolFeesAccrued[key.currency1] += feeForProtocol.decodeY();
+            if (feeAmountToProtocol > 0) {
+                protocolFeesAccrued[key.currency0] += feeAmountToProtocol.decodeX();
+                protocolFeesAccrued[key.currency1] += feeAmountToProtocol.decodeY();
             }
         }
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
-        emit Mint(id, msg.sender, mintArray.ids, params.salt, mintArray.amounts, compositionFee, feeForProtocol);
+        emit Mint(
+            id, msg.sender, mintArray.ids, params.salt, mintArray.amounts, compositionFeeAmount, feeAmountToProtocol
+        );
 
         BalanceDelta hookDelta;
         (delta, hookDelta) = BinHooks.afterMint(key, params, delta, hookData);
@@ -271,6 +276,12 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         BinPool.State storage pool = pools[id];
         pool.checkPoolInitialized();
 
+        /// @dev Share is 1:1 liquidity when liquidity is first added to bin
+        uint256 currentBinShare = pool.shareOfBin[pool.slot0.activeId];
+        if (currentBinShare <= MIN_BIN_SHARE_FOR_DONATE) {
+            revert InsufficientBinShareForDonate(currentBinShare);
+        }
+
         BinHooks.beforeDonate(key, amount0, amount1, hookData);
 
         (delta, binId) = pool.donate(key.parameters.getBinStep(), amount0, amount1);
@@ -289,6 +300,14 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
 
         MAX_BIN_STEP = maxBinStep;
         emit SetMaxBinStep(maxBinStep);
+    }
+
+    /// @inheritdoc IBinPoolManager
+    function setMinBinSharesForDonate(uint256 minBinShare) external override onlyOwner {
+        if (minBinShare < 1e18) revert MinShareTooSmall();
+
+        MIN_BIN_SHARE_FOR_DONATE = minBinShare;
+        emit SetMinBinSharesForDonate(minBinShare);
     }
 
     /// @inheritdoc IPoolManager

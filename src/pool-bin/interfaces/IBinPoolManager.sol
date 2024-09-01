@@ -24,6 +24,12 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @notice Error thrown when owner set max bin step too small
     error MaxBinStepTooSmall(uint16 maxBinStep);
 
+    /// @notice Error thrown when owner set min share too small
+    error MinShareTooSmall();
+
+    /// @notice Error thrown when bin has insufficient shares to accept donation
+    error InsufficientBinShareForDonate(uint256 shares);
+
     /// @notice Error thrown when amount specified is 0 in swap
     error AmountSpecifiedIsZero();
 
@@ -34,6 +40,9 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @notice Returns the constant representing the min bin step
     /// @dev 1 would represent a 0.01% price jump between bin
     function MIN_BIN_STEP() external view returns (uint16);
+
+    /// @notice min share in bin before donate is allowed in current bin
+    function MIN_BIN_SHARE_FOR_DONATE() external view returns (uint256);
 
     /// @notice Emitted when a new pool is initialized
     /// @param id The abi encoded hash of the pool key struct for the new pool
@@ -77,16 +86,16 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @param ids List of binId with liquidity added
     /// @param salt The salt to distinguish different mint from the same owner
     /// @param amounts List of amount added to each bin
-    /// @param compositionFee fee occurred
-    /// @param pFee Protocol fee from the swap: token0 and token1 amount
+    /// @param compositionFeeAmount fee occurred
+    /// @param feeAmountToProtocol Protocol fee from the swap: token0 and token1 amount
     event Mint(
         PoolId indexed id,
         address indexed sender,
         uint256[] ids,
         bytes32 salt,
         bytes32[] amounts,
-        bytes32 compositionFee,
-        bytes32 pFee
+        bytes32 compositionFeeAmount,
+        bytes32 feeAmountToProtocol
     );
 
     /// @notice Emitted when liquidity is removed
@@ -104,6 +113,9 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @param amount1 The delta of the currency1 balance of the pool
     /// @param binId The donated bin id
     event Donate(PoolId indexed id, address indexed sender, int128 amount0, int128 amount1, uint24 binId);
+
+    /// @notice Emitted when min share for donate is updated
+    event SetMinBinSharesForDonate(uint256 minLiquidity);
 
     /// @notice Emitted when bin step is updated
     event SetMaxBinStep(uint16 maxBinStep);
@@ -132,11 +144,12 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @param id The id of the bin
     /// @return binReserveX The reserve of token X in the bin
     /// @return binReserveY The reserve of token Y in the bin
-    /// @return binLiquidity The liquidity in the bin
+    /// @return binLiquidity The total liquidity in the bin
+    /// @return totalShares The total shares minted in the bin
     function getBin(PoolId id, uint24 binId)
         external
         view
-        returns (uint128 binReserveX, uint128 binReserveY, uint256 binLiquidity);
+        returns (uint128 binReserveX, uint128 binReserveY, uint256 binLiquidity, uint256 totalShares);
 
     /// @notice Returns the positon of owner at a binId
     /// @param id The id of PoolKey
@@ -190,4 +203,9 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @notice Set max bin step for BinPool
     /// @dev To be realistic, its highly unlikely a pool type with > 100 bin step is required. (>1% price jump per bin)
     function setMaxBinStep(uint16 maxBinStep) external;
+
+    /// @notice Set min shares in bin before donate is allowed in current bin
+    /// @dev Bin share is 1:1 liquidity when liquidity is first added. And liquidity: price * x + y << 128, where price is a 128.128 number. A
+    ///         min share amount required in the bin for donate prevents share inflation attack.
+    function setMinBinSharesForDonate(uint256 minShare) external;
 }
