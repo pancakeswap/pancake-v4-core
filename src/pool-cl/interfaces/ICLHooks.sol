@@ -71,7 +71,8 @@ interface ICLHooks is IHooks {
     /// @param sender The initial msg.sender for the add liquidity call
     /// @param key The key for the pool
     /// @param params The parameters for adding liquidity
-    /// @param delta The amount owed to the locker (positive) or owed to the pool (negative)
+    /// @param delta The caller's balance delta after adding liquidity; the sum of principal delta, fees accrued, and hook delta
+    /// @param feesAccrued The fees accrued since the last time fees were collected from this position
     /// @param hookData Arbitrary data handed into the PoolManager by the liquidty provider to be be passed on to the hook
     /// @return bytes4 The function selector for the hook
     /// @return BalanceDelta The hook's delta in token0 and token1.
@@ -80,6 +81,7 @@ interface ICLHooks is IHooks {
         PoolKey calldata key,
         ICLPoolManager.ModifyLiquidityParams calldata params,
         BalanceDelta delta,
+        BalanceDelta feesAccrued,
         bytes calldata hookData
     ) external returns (bytes4, BalanceDelta);
 
@@ -100,7 +102,8 @@ interface ICLHooks is IHooks {
     /// @param sender The initial msg.sender for the remove liquidity call
     /// @param key The key for the pool
     /// @param params The parameters for removing liquidity
-    /// @param delta The amount owed to the locker (positive) or owed to the pool (negative)
+    /// @param delta The caller's balance delta after adding liquidity; the sum of principal delta, fees accrued, and hook delta
+    /// @param feesAccrued The fees accrued since the last time fees were collected from this position
     /// @param hookData Arbitrary data handed into the PoolManager by the liquidty provider to be be passed on to the hook
     /// @return bytes4 The function selector for the hook
     /// @return BalanceDelta The hook's delta in token0 and token1.
@@ -109,6 +112,7 @@ interface ICLHooks is IHooks {
         PoolKey calldata key,
         ICLPoolManager.ModifyLiquidityParams calldata params,
         BalanceDelta delta,
+        BalanceDelta feesAccrued,
         bytes calldata hookData
     ) external returns (bytes4, BalanceDelta);
 

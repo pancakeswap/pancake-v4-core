@@ -53,6 +53,7 @@ contract CLReturnsDeltaHook is BaseCLTestHook {
         PoolKey calldata key,
         ICLPoolManager.ModifyLiquidityParams memory params,
         BalanceDelta,
+        BalanceDelta,
         bytes calldata data
     ) external override returns (bytes4, BalanceDelta) {
         (int256 liquidityDelta) = abi.decode(data, (int256));
@@ -68,6 +69,7 @@ contract CLReturnsDeltaHook is BaseCLTestHook {
         address,
         PoolKey calldata key,
         ICLPoolManager.ModifyLiquidityParams memory params,
+        BalanceDelta,
         BalanceDelta,
         bytes calldata data
     ) external override returns (bytes4, BalanceDelta) {

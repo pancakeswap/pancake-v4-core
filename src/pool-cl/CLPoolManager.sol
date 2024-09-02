@@ -152,7 +152,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
 
         BalanceDelta hookDelta;
         // notice that both generated delta and feeDelta (from lpFee) will both be counted on the user
-        (delta, hookDelta) = CLHooks.afterModifyLiquidity(key, params, delta + feeDelta, hookData);
+        (delta, hookDelta) = CLHooks.afterModifyLiquidity(key, params, delta + feeDelta, feeDelta, hookData);
 
         if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
             vault.accountAppBalanceDelta(key, hookDelta, address(key.hooks));

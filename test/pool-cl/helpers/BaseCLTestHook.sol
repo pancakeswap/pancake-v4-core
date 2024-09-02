@@ -58,6 +58,7 @@ contract BaseCLTestHook is ICLHooks {
         PoolKey calldata,
         ICLPoolManager.ModifyLiquidityParams calldata,
         BalanceDelta,
+        BalanceDelta,
         bytes calldata
     ) external virtual returns (bytes4, BalanceDelta) {
         revert HookNotImplemented();
@@ -76,6 +77,7 @@ contract BaseCLTestHook is ICLHooks {
         address,
         PoolKey calldata,
         ICLPoolManager.ModifyLiquidityParams calldata,
+        BalanceDelta,
         BalanceDelta,
         bytes calldata
     ) external virtual returns (bytes4, BalanceDelta) {
