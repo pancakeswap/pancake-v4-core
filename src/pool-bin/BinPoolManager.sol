@@ -276,13 +276,13 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         BinPool.State storage pool = pools[id];
         pool.checkPoolInitialized();
 
+        BinHooks.beforeDonate(key, amount0, amount1, hookData);
+
         /// @dev Share is 1:1 liquidity when liquidity is first added to bin
         uint256 currentBinShare = pool.shareOfBin[pool.slot0.activeId];
         if (currentBinShare <= MIN_BIN_SHARE_FOR_DONATE) {
             revert InsufficientBinShareForDonate(currentBinShare);
         }
-
-        BinHooks.beforeDonate(key, amount0, amount1, hookData);
 
         (delta, binId) = pool.donate(key.parameters.getBinStep(), amount0, amount1);
 
