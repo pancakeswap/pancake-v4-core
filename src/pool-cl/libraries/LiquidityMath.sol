@@ -10,7 +10,7 @@ library LiquidityMath {
     /// @return z The liquidity delta
     function addDelta(uint128 x, int128 y) internal pure returns (uint128 z) {
         assembly ("memory-safe") {
-            z := add(x, y)
+            z := add(and(x, 0xffffffffffffffffffffffffffffffff), signextend(15, y))
 
             if shr(128, z) {
                 // store 0x93dafdf1, error SafeCastOverflow at memory 0 address and revert from pointer 28, to byte 32

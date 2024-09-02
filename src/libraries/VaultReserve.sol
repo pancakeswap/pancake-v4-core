@@ -32,7 +32,7 @@ library VaultReserve {
     function setVaultReserve(Currency currency, uint256 amount) internal {
         assembly ("memory-safe") {
             // record <currency, amount> in transient storage
-            tstore(RESERVE_TYPE_SLOT, currency)
+            tstore(RESERVE_TYPE_SLOT, and(currency, 0xffffffffffffffffffffffffffffffffffffffff))
             tstore(RESERVE_AMOUNT_SLOT, amount)
         }
     }
