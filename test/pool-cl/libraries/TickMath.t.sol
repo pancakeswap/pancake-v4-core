@@ -216,4 +216,24 @@ contract TickMathTestTest is Test {
             assertLt(resultsDiff, 2);
         }
     }
+
+    function test_fuzz_getTickAtSqrtPrice_getSqrtRatioAtTick_relation(int24 tick) public pure {
+        tick = int24(bound(tick, TickMath.MIN_TICK, TickMath.MAX_TICK - 1));
+        int24 nextTick = tick + 1;
+        uint160 priceAtTick = TickMath.getSqrtRatioAtTick(tick);
+        uint160 priceAtNextTick = TickMath.getSqrtRatioAtTick(nextTick);
+
+        // check lowest price of tick
+        assertEq(TickMath.getTickAtSqrtRatio(priceAtTick), tick, "lower price");
+        // check mid price of tick
+        assertEq(
+            TickMath.getTickAtSqrtRatio(uint160((uint256(priceAtTick) + uint256(priceAtNextTick)) / 2)),
+            tick,
+            "mid price"
+        );
+        // check upper price of tick
+        assertEq(TickMath.getTickAtSqrtRatio(priceAtNextTick - 1), tick, "upper price");
+        // check lower price of next tick
+        assertEq(TickMath.getTickAtSqrtRatio(priceAtNextTick), nextTick, "lower price next tick");
+    }
 }
