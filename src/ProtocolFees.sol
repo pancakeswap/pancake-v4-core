@@ -8,11 +8,10 @@ import {IProtocolFeeController} from "./interfaces/IProtocolFeeController.sol";
 import {IProtocolFees} from "./interfaces/IProtocolFees.sol";
 import {ProtocolFeeLibrary} from "./libraries/ProtocolFeeLibrary.sol";
 import {PoolKey} from "./types/PoolKey.sol";
-import {PoolId, PoolIdLibrary} from "./types/PoolId.sol";
+import {PoolId} from "./types/PoolId.sol";
 import {IVault} from "./interfaces/IVault.sol";
 
 abstract contract ProtocolFees is IProtocolFees, Owner {
-    using PoolIdLibrary for PoolKey;
     using ProtocolFeeLibrary for uint24;
 
     /// @inheritdoc IProtocolFees

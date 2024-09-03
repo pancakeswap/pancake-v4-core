@@ -4,7 +4,6 @@ pragma solidity 0.8.26;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IVault, IVaultToken} from "./interfaces/IVault.sol";
-import {PoolId, PoolIdLibrary} from "./types/PoolId.sol";
 import {PoolKey} from "./types/PoolKey.sol";
 import {SettlementGuard} from "./libraries/SettlementGuard.sol";
 import {Currency, CurrencyLibrary} from "./types/Currency.sol";
@@ -16,7 +15,6 @@ import {VaultToken} from "./VaultToken.sol";
 
 contract Vault is IVault, VaultToken, Ownable {
     using SafeCast for *;
-    using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
 
     constructor() Ownable(msg.sender) {}

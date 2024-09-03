@@ -11,7 +11,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IPoolManager} from "../../src/interfaces/IPoolManager.sol";
 import {Currency, CurrencyLibrary} from "../../src/types/Currency.sol";
 import {PoolKey} from "../../src/types/PoolKey.sol";
-import {PoolId, PoolIdLibrary} from "../../src/types/PoolId.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
 import {FakePoolManager} from "./FakePoolManager.sol";
 import {IHooks} from "../../src/interfaces/IHooks.sol";
@@ -24,7 +23,6 @@ import {TokenFixture} from "../helpers/TokenFixture.sol";
  * More tests in terms of security and edge cases will be covered by VaultReentracy.t.sol & VaultInvariant.t.sol
  */
 contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
-    using PoolIdLibrary for PoolKey;
     using CurrencySettlement for Currency;
 
     error ContractSizeTooLarge(uint256 diff);

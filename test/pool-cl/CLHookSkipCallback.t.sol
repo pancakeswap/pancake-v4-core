@@ -11,7 +11,6 @@ import {CLPoolManager} from "../../src/pool-cl/CLPoolManager.sol";
 import {CLPool} from "../../src/pool-cl/libraries/CLPool.sol";
 import {Currency, CurrencyLibrary} from "../../src/types/Currency.sol";
 import {PoolKey} from "../../src/types/PoolKey.sol";
-import {PoolId, PoolIdLibrary} from "../../src/types/PoolId.sol";
 import {IHooks} from "../../src/interfaces/IHooks.sol";
 import {Hooks} from "../../src/libraries/Hooks.sol";
 import {CLPoolManagerRouter} from "./helpers/CLPoolManagerRouter.sol";
@@ -24,7 +23,6 @@ import {ParametersHelper} from "../../src/libraries/math/ParametersHelper.sol";
 import {CLSkipCallbackHook} from "./helpers/CLSkipCallbackHook.sol";
 
 contract CLHookSkipCallbackTest is Test, Deployers, TokenFixture, GasSnapshot {
-    using PoolIdLibrary for PoolKey;
     using CLPoolParametersHelper for bytes32;
     using ParametersHelper for bytes32;
     using LPFeeLibrary for uint24;

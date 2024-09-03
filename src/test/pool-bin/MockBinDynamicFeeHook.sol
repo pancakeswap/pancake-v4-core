@@ -6,15 +6,11 @@ import {Hooks} from "../../libraries/Hooks.sol";
 import {LPFeeLibrary} from "../../libraries/LPFeeLibrary.sol";
 import {IBinHooks} from "../../pool-bin/interfaces/IBinHooks.sol";
 import {PoolKey} from "../../types/PoolKey.sol";
-import {PoolId, PoolIdLibrary} from "../../types/PoolId.sol";
 import {IBinPoolManager} from "../../pool-bin/interfaces/IBinPoolManager.sol";
 
 import {console2} from "forge-std/console2.sol";
 
 contract MockBinDynamicFeeHook is IHooks {
-    using PoolIdLibrary for PoolKey;
-    // using Hooks for IBinHooks;
-
     uint16 bitmap;
     uint24 public lpFee;
 

@@ -5,14 +5,11 @@ import {ICLPoolManager} from "../../../src/pool-cl/interfaces/ICLPoolManager.sol
 import {ICLHooks} from "../../../src/pool-cl/interfaces/ICLHooks.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {IHooks} from "../../../src/interfaces/IHooks.sol";
-import {PoolId, PoolIdLibrary} from "../../../src/types/PoolId.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {BaseCLTestHook} from "./BaseCLTestHook.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "../../../src/types/BeforeSwapDelta.sol";
 
 contract CLFeeManagerHook is BaseCLTestHook {
-    using PoolIdLibrary for PoolKey;
-
     uint16 bitmap;
     uint24 internal fee = 3000; // default 0.3%
     ICLPoolManager public immutable clManager;

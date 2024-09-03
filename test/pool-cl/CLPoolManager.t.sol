@@ -12,7 +12,7 @@ import {CLPoolManager} from "../../src/pool-cl/CLPoolManager.sol";
 import {CLPool} from "../../src/pool-cl/libraries/CLPool.sol";
 import {Currency, CurrencyLibrary} from "../../src/types/Currency.sol";
 import {PoolKey} from "../../src/types/PoolKey.sol";
-import {PoolId, PoolIdLibrary} from "../../src/types/PoolId.sol";
+import {PoolId} from "../../src/types/PoolId.sol";
 import {IHooks} from "../../src/interfaces/IHooks.sol";
 import {TickMath} from "../../src/pool-cl/libraries/TickMath.sol";
 import {IProtocolFees} from "../../src/interfaces/IProtocolFees.sol";
@@ -40,7 +40,6 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {CLPoolGetter} from "./helpers/CLPoolGetter.sol";
 
 contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnapshot {
-    using PoolIdLibrary for PoolKey;
     using CLPoolParametersHelper for bytes32;
     using ParametersHelper for bytes32;
     using LPFeeLibrary for uint24;

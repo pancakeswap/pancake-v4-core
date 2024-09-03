@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import {Test} from "forge-std/Test.sol";
 import {Vault} from "../../src/Vault.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
-import {PoolId, PoolIdLibrary} from "../../src/types/PoolId.sol";
+import {PoolId} from "../../src/types/PoolId.sol";
 import {Hooks} from "../../src/libraries/Hooks.sol";
 import {LPFeeLibrary} from "../../src/libraries/LPFeeLibrary.sol";
 import {IProtocolFees} from "../../src/interfaces/IProtocolFees.sol";
@@ -24,7 +24,6 @@ import {BinPoolParametersHelper} from "../../src/pool-bin/libraries/BinPoolParam
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract BinHookReturnsFeeTest is Test, BinTestHelper {
-    using PoolIdLibrary for PoolKey;
     using LPFeeLibrary for uint24;
     using BinPoolParametersHelper for bytes32;
 

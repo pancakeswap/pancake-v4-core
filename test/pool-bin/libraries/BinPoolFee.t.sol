@@ -14,7 +14,7 @@ import {MockFeeManagerHook} from "../../../src/test/fee/MockFeeManagerHook.sol";
 import {Currency} from "../../../src/types/Currency.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {BalanceDelta, toBalanceDelta} from "../../../src/types/BalanceDelta.sol";
-import {PoolId, PoolIdLibrary} from "../../../src/types/PoolId.sol";
+import {PoolId} from "../../../src/types/PoolId.sol";
 import {BinPoolManager} from "../../../src/pool-bin/BinPoolManager.sol";
 import {BinPool} from "../../../src/pool-bin/libraries/BinPool.sol";
 import {PackedUint128Math} from "../../../src/pool-bin/libraries/math/PackedUint128Math.sol";
@@ -33,7 +33,6 @@ import {SortTokens} from "../../helpers/SortTokens.sol";
  * @dev tests around fee for mint(), swap() and burn()
  */
 contract BinPoolFeeTest is BinTestHelper {
-    using PoolIdLibrary for PoolKey;
     using PackedUint128Math for bytes32;
     using PackedUint128Math for uint128;
     using BinPoolParametersHelper for bytes32;
