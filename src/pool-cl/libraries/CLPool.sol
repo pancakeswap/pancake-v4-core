@@ -207,9 +207,11 @@ library CLPool {
         uint160 sqrtPriceLimitX96 = params.sqrtPriceLimitX96;
 
         // check price limit
+        // Swaps can never occur at MIN_TICK, only at MIN_TICK + 1, except at initialization of a pool
+        // Under certain circumstances outlined below, the tick will preemptively reach MIN_TICK without swapping there
         if (
             zeroForOne
-                ? (sqrtPriceLimitX96 >= slot0Start.sqrtPriceX96 || sqrtPriceLimitX96 < TickMath.MIN_SQRT_RATIO)
+                ? (sqrtPriceLimitX96 >= slot0Start.sqrtPriceX96 || sqrtPriceLimitX96 <= TickMath.MIN_SQRT_RATIO)
                 : (sqrtPriceLimitX96 <= slot0Start.sqrtPriceX96 || sqrtPriceLimitX96 >= TickMath.MAX_SQRT_RATIO)
         ) {
             revert InvalidSqrtPriceLimit(slot0Start.sqrtPriceX96, sqrtPriceLimitX96);
