@@ -121,7 +121,7 @@ contract Vault is IVault, VaultToken, Ownable {
         }
     }
 
-    function sync(Currency currency) public {
+    function sync(Currency currency) public override isLocked {
         VaultReserve.alreadySettledLastSync();
         if (currency.isNative()) return;
         uint256 balance = currency.balanceOfSelf();
@@ -157,6 +157,7 @@ contract Vault is IVault, VaultToken, Ownable {
 
     /// @inheritdoc IVault
     function collectFee(Currency currency, uint256 amount, address recipient) external onlyRegisteredApp {
+        if (SettlementGuard.getLocker() != address(0)) revert LockHeld();
         reservesOfApp[msg.sender][currency] -= amount;
         currency.transfer(recipient, amount);
     }
