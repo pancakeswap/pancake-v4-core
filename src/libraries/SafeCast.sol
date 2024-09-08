@@ -18,36 +18,34 @@ library SafeCast {
 
     /// @notice Cast a uint256 to a uint160, revert on overflow
     /// @param x The uint256 to be downcasted
-    /// @return The downcasted integer, now type uint160
-    function toUint160(uint256 x) internal pure returns (uint160) {
-        if (x >= 1 << 160) _revertOverflow();
-        return uint160(x);
+    /// @return y The downcasted integer, now type uint160
+    function toUint160(uint256 x) internal pure returns (uint160 y) {
+        y = uint160(x);
+        if (y != x) _revertOverflow();
     }
 
     /// @notice Cast a int256 to a int128, revert on overflow or underflow
     /// @param x The int256 to be downcasted
-    /// @return The downcasted integer, now type int128
-    function toInt128(int256 x) internal pure returns (int128) {
-        unchecked {
-            if (((1 << 127) + uint256(x)) >> 128 == uint256(0)) return int128(x);
-            _revertOverflow();
-        }
+    /// @return y The downcasted integer, now type int128
+    function toInt128(int256 x) internal pure returns (int128 y) {
+        y = int128(x);
+        if (y != x) _revertOverflow();
     }
 
     /// @notice Cast a uint256 to a int256, revert on overflow
     /// @param x The uint256 to be casted
-    /// @return The casted integer, now type int256
-    function toInt256(uint256 x) internal pure returns (int256) {
-        if (int256(x) >= 0) return int256(x);
-        _revertOverflow();
+    /// @return y The casted integer, now type int256
+    function toInt256(uint256 x) internal pure returns (int256 y) {
+        y = int256(x);
+        if (y < 0) _revertOverflow();
     }
 
     /// @notice Cast a int256 to a uint256, revert on overflow
-    /// @param y The int256 to be casted
-    /// @return The casted integer, now type uint256
-    function toUint256(int256 y) internal pure returns (uint256) {
-        if (y < 0) _revertOverflow();
-        return uint256(y);
+    /// @param x The int256 to be casted
+    /// @return y The casted integer, now type uint256
+    function toUint256(int256 x) internal pure returns (uint256 y) {
+        if (x < 0) _revertOverflow();
+        y = uint256(x);
     }
 
     /// @notice Cast a uint256 to a int128, revert on overflow
