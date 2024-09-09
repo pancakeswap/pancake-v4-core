@@ -13,7 +13,7 @@ import {IProtocolFeeController} from "../../src/interfaces/IProtocolFeeControlle
 import {Vault} from "../../src/Vault.sol";
 import {Currency} from "../../src/types/Currency.sol";
 import {PoolKey} from "../../src/types/PoolKey.sol";
-import {PoolId, PoolIdLibrary} from "../../src/types/PoolId.sol";
+import {PoolId} from "../../src/types/PoolId.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../../src/types/BalanceDelta.sol";
 import {BinPoolManager} from "../../src/pool-bin/BinPoolManager.sol";
 import {MockBinHooks} from "../../src/test/pool-bin/MockBinHooks.sol";
@@ -42,7 +42,6 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
-    using PoolIdLibrary for PoolKey;
     using SafeCast for uint256;
     using PackedUint128Math for bytes32;
     using PackedUint128Math for uint128;

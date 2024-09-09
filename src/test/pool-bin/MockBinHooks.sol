@@ -7,10 +7,9 @@ import {IBinPoolManager} from "../../pool-bin/interfaces/IBinPoolManager.sol";
 import {PoolKey} from "../../types/PoolKey.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../../types/BalanceDelta.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "../../types/BeforeSwapDelta.sol";
-import {PoolId, PoolIdLibrary} from "../../types/PoolId.sol";
+import {PoolId} from "../../types/PoolId.sol";
 
 contract MockBinHooks is IBinHooks {
-    using PoolIdLibrary for PoolKey;
     using Hooks for IBinHooks;
 
     bytes public beforeInitializeData;

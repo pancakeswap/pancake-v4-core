@@ -9,7 +9,7 @@ import {Currency} from "../../../src/types/Currency.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {BinHelper} from "../../../src/pool-bin/libraries/BinHelper.sol";
 import {BalanceDelta, toBalanceDelta} from "../../../src/types/BalanceDelta.sol";
-import {PoolId, PoolIdLibrary} from "../../../src/types/PoolId.sol";
+import {PoolId} from "../../../src/types/PoolId.sol";
 import {BinPoolManager} from "../../../src/pool-bin/BinPoolManager.sol";
 import {IBinPoolManager} from "../../../src/pool-bin/interfaces/IBinPoolManager.sol";
 import {BinPool} from "../../../src/pool-bin/libraries/BinPool.sol";
@@ -19,7 +19,6 @@ import {BinPoolParametersHelper} from "../../../src/pool-bin/libraries/BinPoolPa
 import {BinTestHelper} from "../helpers/BinTestHelper.sol";
 
 contract BinPoolDonateTest is BinTestHelper {
-    using PoolIdLibrary for PoolKey;
     using PackedUint128Math for bytes32;
     using BinPoolParametersHelper for bytes32;
     using SafeCast for uint256;

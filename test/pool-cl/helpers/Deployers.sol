@@ -7,7 +7,7 @@ import {Currency} from "../../../src/types/Currency.sol";
 import {IHooks} from "../../../src/interfaces/IHooks.sol";
 import {ICLPoolManager} from "../../../src/pool-cl/interfaces/ICLPoolManager.sol";
 import {CLPoolManager} from "../../../src/pool-cl/CLPoolManager.sol";
-import {PoolId, PoolIdLibrary} from "../../../src/types/PoolId.sol";
+import {PoolId} from "../../../src/types/PoolId.sol";
 import {LPFeeLibrary} from "../../../src/libraries/LPFeeLibrary.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {Constants} from "./Constants.sol";
@@ -18,7 +18,6 @@ import {TickMath} from "../../../src/pool-cl/libraries/TickMath.sol";
 
 contract Deployers {
     using LPFeeLibrary for uint24;
-    using PoolIdLibrary for PoolKey;
 
     bytes constant ZERO_BYTES = new bytes(0);
 

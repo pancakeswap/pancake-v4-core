@@ -87,6 +87,7 @@ library CLHooks {
         PoolKey memory key,
         ICLPoolManager.ModifyLiquidityParams memory params,
         BalanceDelta delta,
+        BalanceDelta feesAccrued,
         bytes calldata hookData
     ) internal returns (BalanceDelta callerDelta, BalanceDelta hookDelta) {
         ICLHooks hooks = ICLHooks(address(key.hooks));
@@ -97,7 +98,9 @@ library CLHooks {
                 hookDelta = BalanceDelta.wrap(
                     Hooks.callHookWithReturnDelta(
                         hooks,
-                        abi.encodeCall(ICLHooks.afterAddLiquidity, (msg.sender, key, params, delta, hookData)),
+                        abi.encodeCall(
+                            ICLHooks.afterAddLiquidity, (msg.sender, key, params, delta, feesAccrued, hookData)
+                        ),
                         key.parameters.hasOffsetEnabled(HOOKS_AFTER_ADD_LIQUIDIY_RETURNS_DELTA_OFFSET)
                     )
                 );
@@ -109,7 +112,9 @@ library CLHooks {
                 hookDelta = BalanceDelta.wrap(
                     Hooks.callHookWithReturnDelta(
                         hooks,
-                        abi.encodeCall(ICLHooks.afterRemoveLiquidity, (msg.sender, key, params, delta, hookData)),
+                        abi.encodeCall(
+                            ICLHooks.afterRemoveLiquidity, (msg.sender, key, params, delta, feesAccrued, hookData)
+                        ),
                         key.parameters.hasOffsetEnabled(HOOKS_AFTER_REMOVE_LIQUIDIY_RETURNS_DELTA_OFFSET)
                     )
                 );

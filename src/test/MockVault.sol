@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import {PoolId, PoolIdLibrary} from "../types/PoolId.sol";
+import {PoolId} from "../types/PoolId.sol";
 import {PoolKey} from "../types/PoolKey.sol";
 import {BalanceDelta} from "../types/BalanceDelta.sol";
 import {Currency, CurrencyLibrary} from "../types/Currency.sol";
@@ -9,7 +9,6 @@ import {SafeCast} from "../libraries/SafeCast.sol";
 
 contract MockVault {
     using SafeCast for *;
-    using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
 
     mapping(address app => mapping(Currency currency => uint256 reserve)) public reservesOfApp;

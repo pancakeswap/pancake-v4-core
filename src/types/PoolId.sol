@@ -9,7 +9,8 @@ type PoolId is bytes32;
 library PoolIdLibrary {
     function toId(PoolKey memory poolKey) internal pure returns (PoolId poolId) {
         assembly ("memory-safe") {
-            poolId := keccak256(poolKey, mul(32, 6))
+            // 0xc0 represents the total size of the poolKey struct (6 slots of 32 bytes)
+            poolId := keccak256(poolKey, 0xc0)
         }
     }
 }

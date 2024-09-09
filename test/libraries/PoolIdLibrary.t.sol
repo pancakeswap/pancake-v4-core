@@ -5,13 +5,11 @@ import {Test} from "forge-std/Test.sol";
 
 import {Currency} from "../../src/types/Currency.sol";
 import {PoolKey} from "../../src/types/PoolKey.sol";
-import {PoolId, PoolIdLibrary} from "../../src/types/PoolId.sol";
+import {PoolId} from "../../src/types/PoolId.sol";
 import {IHooks} from "../../src/interfaces/IHooks.sol";
 import {IPoolManager} from "../../src/interfaces/IPoolManager.sol";
 
 contract PoolIdLibraryTest is Test {
-    using PoolIdLibrary for PoolKey;
-
     function test_toId() public {
         PoolKey memory key = PoolKey({
             currency0: Currency.wrap(makeAddr("currency0")),

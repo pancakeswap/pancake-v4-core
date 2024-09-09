@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {IVault} from "../interfaces/IVault.sol";
-import {PoolId, PoolIdLibrary} from "../types/PoolId.sol";
+import {PoolId} from "../types/PoolId.sol";
 import {PoolKey} from "../types/PoolKey.sol";
 import {BalanceDelta} from "../types/BalanceDelta.sol";
 import {ProtocolFees} from "../ProtocolFees.sol";
@@ -14,7 +14,6 @@ import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
  * @dev A MockFeePoolManager meant to test Fees functionality
  */
 contract MockFeePoolManager is ProtocolFees {
-    using PoolIdLibrary for PoolKey;
     using FixedPointMathLib for uint256;
 
     mapping(PoolId poolId => BalanceDelta delta) public balanceDeltaOfPool;

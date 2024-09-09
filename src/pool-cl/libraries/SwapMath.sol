@@ -73,12 +73,11 @@ library SwapMath {
                         ? amountIn
                         : FullMath.mulDivRoundingUp(amountIn, _feePips, MAX_FEE_PIPS - _feePips);
                 } else {
+                    // exhaust the remaining amount
+                    amountIn = amountRemainingLessFee;
                     sqrtRatioNextX96 = SqrtPriceMath.getNextSqrtPriceFromInput(
                         sqrtRatioCurrentX96, liquidity, amountRemainingLessFee, zeroForOne
                     );
-                    amountIn = zeroForOne
-                        ? SqrtPriceMath.getAmount0Delta(sqrtRatioNextX96, sqrtRatioCurrentX96, liquidity, true)
-                        : SqrtPriceMath.getAmount1Delta(sqrtRatioCurrentX96, sqrtRatioNextX96, liquidity, true);
                     // we didn't reach the target, so take the remainder of the maximum input as fee
                     feeAmount = uint256(-amountRemaining) - amountIn;
                 }

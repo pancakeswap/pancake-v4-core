@@ -10,7 +10,6 @@ import {IBinPoolManager} from "../../src/pool-bin/interfaces/IBinPoolManager.sol
 import {Vault} from "../../src/Vault.sol";
 import {Currency} from "../../src/types/Currency.sol";
 import {PoolKey} from "../../src/types/PoolKey.sol";
-import {PoolId, PoolIdLibrary} from "../../src/types/PoolId.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../../src/types/BalanceDelta.sol";
 import {BinPoolManager} from "../../src/pool-bin/BinPoolManager.sol";
 import {BinPool} from "../../src/pool-bin/libraries/BinPool.sol";
@@ -30,7 +29,6 @@ import {Hooks} from "../../src/libraries/Hooks.sol";
 import {BinReturnsDeltaHook} from "./helpers/BinReturnsDeltaHook.sol";
 
 contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
-    using PoolIdLibrary for PoolKey;
     using SafeCast for uint256;
     using PackedUint128Math for bytes32;
     using PackedUint128Math for uint128;

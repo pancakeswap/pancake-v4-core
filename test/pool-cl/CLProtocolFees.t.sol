@@ -12,7 +12,6 @@ import {ICLPoolManager} from "../../src/pool-cl/interfaces/ICLPoolManager.sol";
 import {CLPoolManager} from "../../src/pool-cl/CLPoolManager.sol";
 import {TickMath} from "../../src/pool-cl/libraries/TickMath.sol";
 import {CLPool} from "../../src/pool-cl/libraries/CLPool.sol";
-import {PoolIdLibrary} from "../../src/types/PoolId.sol";
 import {Deployers} from "./helpers/Deployers.sol";
 import {TokenFixture} from "../helpers/TokenFixture.sol";
 import {Currency, CurrencyLibrary} from "../../src/types/Currency.sol";
@@ -32,7 +31,6 @@ import {CLPoolGetter} from "./helpers/CLPoolGetter.sol";
 contract CLProtocolFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
     using Hooks for IHooks;
     using CLPool for CLPool.State;
-    using PoolIdLibrary for PoolKey;
     using CLPoolGetter for CLPoolManager;
 
     IVault vault;

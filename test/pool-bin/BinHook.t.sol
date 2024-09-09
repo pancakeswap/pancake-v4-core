@@ -9,7 +9,6 @@ import {MockBinHooks} from "../../src/test/pool-bin/MockBinHooks.sol";
 import {Vault} from "../../src/Vault.sol";
 import {Currency} from "../../src/types/Currency.sol";
 import {PoolKey} from "../../src/types/PoolKey.sol";
-import {PoolId, PoolIdLibrary} from "../../src/types/PoolId.sol";
 import {BinPoolManager} from "../../src/pool-bin/BinPoolManager.sol";
 import {BinPool} from "../../src/pool-bin/libraries/BinPool.sol";
 import {BinPoolParametersHelper} from "../../src/pool-bin/libraries/BinPoolParametersHelper.sol";
@@ -19,7 +18,6 @@ import {BinTestHelper} from "./helpers/BinTestHelper.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 
 contract BinHookTest is BinTestHelper, GasSnapshot {
-    using PoolIdLibrary for PoolKey;
     using BinPoolParametersHelper for bytes32;
 
     error PoolAlreadyInitialized();
