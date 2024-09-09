@@ -38,7 +38,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
 
     mapping(PoolId id => PoolKey poolKey) public poolIdToPoolKey;
 
-    constructor(IVault _vault, uint256 controllerGasLimit) ProtocolFees(_vault, controllerGasLimit) {}
+    constructor(IVault _vault) ProtocolFees(_vault) {}
 
     /// @notice pool manager specified in the pool key must match current contract
     modifier poolManagerMatch(address poolManager) {

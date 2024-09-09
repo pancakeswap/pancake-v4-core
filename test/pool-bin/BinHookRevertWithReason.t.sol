@@ -30,7 +30,7 @@ contract BinHookRevertWithReasonTest is Test {
 
     function setUp() public {
         vault = new Vault();
-        poolManager = new BinPoolManager(vault, 500000);
+        poolManager = new BinPoolManager(vault);
         vault.registerApp(address(poolManager));
 
         token0 = new MockERC20("TestA", "A", 18);

@@ -44,7 +44,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
 
     mapping(PoolId id => PoolKey poolKey) public poolIdToPoolKey;
 
-    constructor(IVault vault, uint256 controllerGasLimit) ProtocolFees(vault, controllerGasLimit) {}
+    constructor(IVault vault) ProtocolFees(vault) {}
 
     /// @notice pool manager specified in the pool key must match current contract
     modifier poolManagerMatch(address poolManager) {
