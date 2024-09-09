@@ -8,23 +8,11 @@ import {Currency} from "../types/Currency.sol";
 /// It records a single reserve for a currency each time, this is helpful for
 /// calculating how many tokens has been transferred to the vault right after the sync
 library VaultReserve {
-    /// @notice Thrown when trying to sync a reserve when last sync is not settled
-    error LastSyncNotSettled();
-
     // uint256 constant RESERVE_TYPE_SLOT = uint256(keccak256("reserveType")) - 1;
     uint256 internal constant RESERVE_TYPE_SLOT = 0x52a1be34b47478d7c75e2b6c3eea1e05dcb8dbb8c6a42c6482d0dca0df53cb27;
 
     // uint256 constant RESERVE_AMOUNT_SLOT = uint256(keccak256("reserveAmount")) - 1;
     uint256 internal constant RESERVE_AMOUNT_SLOT = 0xb0879d96d58bcff08d1fd45590200072d5a8c380da0b5aa1052b48b84e115207;
-
-    function alreadySettledLastSync() internal view {
-        Currency currency;
-        assembly ("memory-safe") {
-            currency := tload(RESERVE_TYPE_SLOT)
-        }
-
-        if (!currency.isNative()) revert LastSyncNotSettled();
-    }
 
     /// @notice Transient store the currency reserve
     /// @param currency The currency to be saved

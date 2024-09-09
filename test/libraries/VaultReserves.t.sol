@@ -12,17 +12,6 @@ contract VaultReserveTest is Test {
         currency0 = Currency.wrap(address(0xabcd));
     }
 
-    function test_alreadySettledLastSync() public {
-        VaultReserve.alreadySettledLastSync();
-
-        VaultReserve.setVaultReserve(currency0, 10);
-        vm.expectRevert(VaultReserve.LastSyncNotSettled.selector);
-        VaultReserve.alreadySettledLastSync();
-
-        VaultReserve.setVaultReserve(currency0, 0);
-        VaultReserve.alreadySettledLastSync();
-    }
-
     function test_slot_correctness() public pure {
         assertEq(uint256(keccak256("reserveType")) - 1, VaultReserve.RESERVE_TYPE_SLOT);
         assertEq(uint256(keccak256("reserveAmount")) - 1, VaultReserve.RESERVE_AMOUNT_SLOT);

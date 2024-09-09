@@ -122,10 +122,12 @@ contract Vault is IVault, VaultToken, Ownable {
     }
 
     function sync(Currency currency) public override isLocked {
-        VaultReserve.alreadySettledLastSync();
-        if (currency.isNative()) return;
-        uint256 balance = currency.balanceOfSelf();
-        VaultReserve.setVaultReserve(currency, balance);
+        if (currency.isNative()) {
+            VaultReserve.setVaultReserve(CurrencyLibrary.NATIVE, 0);
+        } else {
+            uint256 balance = currency.balanceOfSelf();
+            VaultReserve.setVaultReserve(currency, balance);
+        }
     }
 
     /// @inheritdoc IVault
@@ -186,7 +188,7 @@ contract Vault is IVault, VaultToken, Ownable {
             uint256 reservesNow = currency.balanceOfSelf();
             paid = reservesNow - reservesBefore;
 
-            /// @dev reset the reserve after settled otherwise next sync() call will throw LastSyncNotSettled
+            /// @dev reset the reserve after settled
             VaultReserve.setVaultReserve(CurrencyLibrary.NATIVE, 0);
         } else {
             // NATIVE token does not require sync call before settle
