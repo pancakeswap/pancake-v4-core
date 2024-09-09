@@ -37,7 +37,11 @@ contract VaultSyncTest is Test, TokenFixture, GasSnapshot, NoIsolate {
         });
     }
 
-    function test_sync_balanceIsZero() public noIsolate {
+    function test_sync_balanceIsZero() public {
+        vault.lock(abi.encodeCall(VaultSyncTest._test_sync_balanceIsZero, ()));
+    }
+
+    function _test_sync_balanceIsZero() external {
         assertEq(currency0.balanceOf(address(vault)), uint256(0));
         vault.sync(currency0);
 
@@ -46,7 +50,11 @@ contract VaultSyncTest is Test, TokenFixture, GasSnapshot, NoIsolate {
         assertEq(amount, 0);
     }
 
-    function test_sync_balanceIsNonZero() public noIsolate {
+    function test_sync_balanceIsNonZero() public {
+        vault.lock(abi.encodeCall(VaultSyncTest._test_sync_balanceIsNonZero, ()));
+    }
+
+    function _test_sync_balanceIsNonZero() external {
         // transfer without calling sync ahead cause token lost
         currency0.transfer(address(vault), 10 ether);
         uint256 currency0Balance = currency0.balanceOf(address(vault));
@@ -116,7 +124,16 @@ contract VaultSyncTest is Test, TokenFixture, GasSnapshot, NoIsolate {
         assertEq(amount, 10 ether);
     }
 
-    function test_sync_twiceWithoutSettle() public noIsolate {
+    function test_sync_NoLock() public {
+        vm.expectRevert(abi.encodeWithSelector(IVault.NoLocker.selector));
+        vault.sync(currency0);
+    }
+
+    function test_sync_twiceWithoutSettle() public {
+        vault.lock(abi.encodeCall(VaultSyncTest._test_sync_twiceWithoutSettle, ()));
+    }
+
+    function _test_sync_twiceWithoutSettle() external {
         vault.sync(currency0);
         vm.expectRevert(abi.encodeWithSelector(VaultReserve.LastSyncNotSettled.selector));
         vault.sync(currency0);
