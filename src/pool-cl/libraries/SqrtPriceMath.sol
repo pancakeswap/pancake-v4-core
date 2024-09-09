@@ -239,11 +239,7 @@ library SqrtPriceMath {
     {
         uint256 numerator = absDiff(sqrtRatioAX96, sqrtRatioBX96);
         uint256 denominator = FixedPoint96.Q96;
-        uint256 _liquidity;
-        assembly ("memory-safe") {
-            // avoid implicit upcasting
-            _liquidity := and(liquidity, 0xffffffffffffffffffffffffffffffff)
-        }
+        uint256 _liquidity = uint256(liquidity);
         /**
          * Equivalent to:
          *   amount1 = roundUp

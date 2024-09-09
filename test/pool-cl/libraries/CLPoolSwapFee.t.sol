@@ -16,15 +16,12 @@ import {IProtocolFees} from "../../../src/interfaces/IProtocolFees.sol";
 import {ICLPoolManager} from "../../../src/pool-cl/interfaces/ICLPoolManager.sol";
 import {CLPoolManagerRouter} from "../helpers/CLPoolManagerRouter.sol";
 import {Currency} from "../../../src/types/Currency.sol";
-import {PoolId, PoolIdLibrary} from "../../../src/types/PoolId.sol";
 import {FixedPoint96} from "../../../src/pool-cl/libraries/FixedPoint96.sol";
 import {HOOKS_AFTER_INITIALIZE_OFFSET, HOOKS_BEFORE_SWAP_OFFSET} from "../../../src/pool-cl/interfaces/ICLHooks.sol";
 import {IHooks} from "../../../src/interfaces/IHooks.sol";
 import {Hooks} from "../../../src/libraries/Hooks.sol";
 
 contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
-    using PoolIdLibrary for PoolKey;
-
     Vault vault;
     CLPoolManager poolManager;
     CLPoolManagerRouter router;

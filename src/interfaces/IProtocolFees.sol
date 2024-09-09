@@ -44,6 +44,7 @@ interface IProtocolFees {
     function setProtocolFeeController(IProtocolFeeController controller) external;
 
     /// @notice Collects the protocol fee accrued in the given currency, called by the owner or the protocol fee controller
+    /// @dev This will revert if vault is locked
     /// @param recipient The address to which the protocol fees should be sent
     /// @param currency The currency in which to collect the protocol fees
     /// @param amount The amount of protocol fees to collect

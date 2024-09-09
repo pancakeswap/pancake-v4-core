@@ -7,10 +7,9 @@ import {ICLPoolManager} from "../../../src/pool-cl/interfaces/ICLPoolManager.sol
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../../../src/types/BalanceDelta.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "../../../src/types/BeforeSwapDelta.sol";
-import {PoolId, PoolIdLibrary} from "../../../src/types/PoolId.sol";
+import {PoolId} from "../../../src/types/PoolId.sol";
 
 contract MockHooks is ICLHooks {
-    using PoolIdLibrary for PoolKey;
     using Hooks for ICLHooks;
 
     bytes public beforeInitializeData;
@@ -74,6 +73,7 @@ contract MockHooks is ICLHooks {
         PoolKey calldata,
         ICLPoolManager.ModifyLiquidityParams calldata,
         BalanceDelta,
+        BalanceDelta,
         bytes calldata hookData
     ) external override returns (bytes4, BalanceDelta) {
         afterAddLiquidityData = hookData;
@@ -96,6 +96,7 @@ contract MockHooks is ICLHooks {
         address,
         PoolKey calldata,
         ICLPoolManager.ModifyLiquidityParams calldata,
+        BalanceDelta,
         BalanceDelta,
         bytes calldata hookData
     ) external override returns (bytes4, BalanceDelta) {

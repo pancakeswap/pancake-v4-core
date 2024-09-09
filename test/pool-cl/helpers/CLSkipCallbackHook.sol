@@ -244,6 +244,7 @@ contract CLSkipCallbackHook is BaseCLTestHook {
         PoolKey calldata,
         ICLPoolManager.ModifyLiquidityParams calldata,
         BalanceDelta,
+        BalanceDelta,
         bytes calldata
     ) external override returns (bytes4, BalanceDelta) {
         hookCounterCallbackCount++;
@@ -264,6 +265,7 @@ contract CLSkipCallbackHook is BaseCLTestHook {
         address,
         PoolKey calldata,
         ICLPoolManager.ModifyLiquidityParams calldata,
+        BalanceDelta,
         BalanceDelta,
         bytes calldata
     ) external override returns (bytes4, BalanceDelta) {

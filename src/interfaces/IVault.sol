@@ -29,6 +29,9 @@ interface IVault is IVaultToken {
     /// @notice Thrown when there is no locker
     error NoLocker();
 
+    /// @notice Thrown when lock is held by someone
+    error LockHeld();
+
     function isAppRegistered(address app) external returns (bool);
 
     /// @notice Returns the reserves for a a given pool type and currency

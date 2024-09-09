@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {IProtocolFeeController} from "../../interfaces/IProtocolFeeController.sol";
-import {PoolId, PoolIdLibrary} from "../../types/PoolId.sol";
+import {PoolId} from "../../types/PoolId.sol";
 import {PoolKey} from "../../types/PoolKey.sol";
 import {ProtocolFeeLibrary} from "../../libraries/ProtocolFeeLibrary.sol";
 
@@ -10,8 +10,6 @@ import {ProtocolFeeLibrary} from "../../libraries/ProtocolFeeLibrary.sol";
  * @dev A MockProtocolFeeController meant to test Fees functionality
  */
 contract MockProtocolFeeController is IProtocolFeeController {
-    using PoolIdLibrary for PoolKey;
-
     mapping(PoolId id => uint24 fee) public protocolFee;
 
     function setProtocolFeeForPool(PoolKey memory key, uint24 fee) public {

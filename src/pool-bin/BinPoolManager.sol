@@ -10,7 +10,7 @@ import {ParametersHelper} from "../libraries/math/ParametersHelper.sol";
 import {Currency, CurrencyLibrary} from "../types/Currency.sol";
 import {IPoolManager} from "../interfaces/IPoolManager.sol";
 import {IBinPoolManager} from "./interfaces/IBinPoolManager.sol";
-import {PoolId, PoolIdLibrary} from "../types/PoolId.sol";
+import {PoolId} from "../types/PoolId.sol";
 import {PoolKey} from "../types/PoolKey.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../types/BalanceDelta.sol";
 import {IVault} from "../interfaces/IVault.sol";
@@ -24,7 +24,6 @@ import "./interfaces/IBinHooks.sol";
 
 /// @notice Holds the state for all bin pools
 contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
-    using PoolIdLibrary for PoolKey;
     using BinPool for *;
     using BinPosition for mapping(bytes32 => BinPosition.Info);
     using BinPoolParametersHelper for bytes32;

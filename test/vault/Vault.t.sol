@@ -11,7 +11,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IPoolManager} from "../../src/interfaces/IPoolManager.sol";
 import {Currency, CurrencyLibrary} from "../../src/types/Currency.sol";
 import {PoolKey} from "../../src/types/PoolKey.sol";
-import {PoolId, PoolIdLibrary} from "../../src/types/PoolId.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
 import {FakePoolManager} from "./FakePoolManager.sol";
 import {IHooks} from "../../src/interfaces/IHooks.sol";
@@ -24,7 +23,6 @@ import {TokenFixture} from "../helpers/TokenFixture.sol";
  * More tests in terms of security and edge cases will be covered by VaultReentracy.t.sol & VaultInvariant.t.sol
  */
 contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
-    using PoolIdLibrary for PoolKey;
     using CurrencySettlement for Currency;
 
     error ContractSizeTooLarge(uint256 diff);
@@ -463,6 +461,15 @@ contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
 
     function test_CollectFee() public noIsolate {
         vault.lock(abi.encodeCall(VaultTest._test_CollectFee, ()));
+
+        // collectFee must be called when vault is unlocked
+        vm.prank(address(poolManager1));
+        vault.collectFee(currency0, 10 ether, address(poolManager1));
+
+        // after collectFee assert
+        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 0 ether);
+        assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency0), 0 ether);
+        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(poolManager1)), 10 ether);
     }
 
     function _test_CollectFee() external {
@@ -474,15 +481,6 @@ contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
         assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 10 ether);
         assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency0), 10 ether);
         assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(poolManager1)), 0 ether);
-
-        // collectFee
-        vm.prank(address(poolManager1));
-        vault.collectFee(currency0, 10 ether, address(poolManager1));
-
-        // after collectFee assert
-        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 0 ether);
-        assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency0), 0 ether);
-        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(poolManager1)), 10 ether);
     }
 
     function test_CollectFeeFromRandomUser() public {
@@ -491,6 +489,16 @@ contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
         // expected revert as bob is not a valid pool manager
         vm.expectRevert(IVault.AppUnregistered.selector);
         vault.collectFee(currency0, 10 ether, bob);
+    }
+
+    function test_CollectFeeWhenVaultIsLocked() public noIsolate {
+        vm.expectRevert(IVault.LockHeld.selector);
+        vault.lock(abi.encodeCall(VaultTest._test_CollectFeeWhenVaultIsLocked, ()));
+    }
+
+    function _test_CollectFeeWhenVaultIsLocked() external {
+        vm.prank(address(poolManager1));
+        vault.collectFee(currency0, 10 ether, address(poolManager1));
     }
 
     function testTake_failsWithNoLiquidity() public {

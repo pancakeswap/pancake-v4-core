@@ -3,15 +3,12 @@ pragma solidity ^0.8.0;
 
 import {IHooks} from "../../interfaces/IHooks.sol";
 import {IBinPoolManager} from "../../pool-bin/interfaces/IBinPoolManager.sol";
-import {PoolId, PoolIdLibrary} from "../../types/PoolId.sol";
 import {PoolKey} from "../../types/PoolKey.sol";
 
 /**
  * @dev A MockHook meant to test Fees functionality
  */
 contract MockFeeManagerHook is IHooks {
-    using PoolIdLibrary for PoolKey;
-
     uint16 bitmap;
     uint24 swapfee;
 

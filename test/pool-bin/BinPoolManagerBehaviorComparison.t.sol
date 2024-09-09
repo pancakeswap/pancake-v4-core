@@ -18,14 +18,12 @@ import {BinSwapHelper} from "./helpers/BinSwapHelper.sol";
 import {BalanceDelta} from "../../src/types/BalanceDelta.sol";
 import {BinPosition} from "../../src/pool-bin/libraries/BinPosition.sol";
 import {PoolKey} from "../../src/types/PoolKey.sol";
-import {PoolIdLibrary} from "../../src/types/PoolId.sol";
 import {PackedUint128Math} from "../../src/pool-bin/libraries/math/PackedUint128Math.sol";
 import {PriceHelper} from "../../src/pool-bin/libraries/PriceHelper.sol";
 
 abstract contract LBFuzzer is LBHelper, BinTestHelper {
     using BinPoolParametersHelper for bytes32;
     using PackedUint128Math for bytes32;
-    using PoolIdLibrary for PoolKey;
 
     IVault vault;
     IBinPoolManager manager;

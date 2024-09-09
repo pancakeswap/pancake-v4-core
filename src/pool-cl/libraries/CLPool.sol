@@ -207,9 +207,11 @@ library CLPool {
         uint160 sqrtPriceLimitX96 = params.sqrtPriceLimitX96;
 
         // check price limit
+        // Swaps can never occur at MIN_TICK, only at MIN_TICK + 1, except at initialization of a pool
+        // Under certain circumstances outlined below, the tick will preemptively reach MIN_TICK without swapping there
         if (
             zeroForOne
-                ? (sqrtPriceLimitX96 >= slot0Start.sqrtPriceX96 || sqrtPriceLimitX96 < TickMath.MIN_SQRT_RATIO)
+                ? (sqrtPriceLimitX96 >= slot0Start.sqrtPriceX96 || sqrtPriceLimitX96 <= TickMath.MIN_SQRT_RATIO)
                 : (sqrtPriceLimitX96 <= slot0Start.sqrtPriceX96 || sqrtPriceLimitX96 >= TickMath.MAX_SQRT_RATIO)
         ) {
             revert InvalidSqrtPriceLimit(slot0Start.sqrtPriceX96, sqrtPriceLimitX96);
@@ -316,7 +318,10 @@ library CLPool {
                 }
             }
 
-            // shift tick if we reached the next price
+            // Shift tick if we reached the next price, and preemptively decrement for zeroForOne swaps to tickNext - 1.
+            // If the swap doesnt continue (if amountRemaining == 0 or sqrtPriceLimit is met), slot0.tick will be 1 less
+            // than getTickAtSqrtPrice(slot0.sqrtPrice). This doesn't affect swaps, but donation calls should verify both
+            // price and tick to reward the correct LPs.
             if (state.sqrtPriceX96 == step.sqrtPriceNextX96) {
                 // if the tick is initialized, run the tick transition
                 if (step.initialized) {

@@ -4,7 +4,6 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 
-import {PoolId, PoolIdLibrary} from "../../../src/types/PoolId.sol";
 import {SafeCast} from "../../../src/pool-bin/libraries/math/SafeCast.sol";
 import {Constants} from "../../../src/pool-bin/libraries/Constants.sol";
 import {LiquidityConfigurations} from "../../../src/pool-bin/libraries/math/LiquidityConfigurations.sol";
@@ -18,7 +17,6 @@ import {PriceHelper} from "../../../src/pool-bin/libraries/PriceHelper.sol";
 import {FeeHelper} from "../../../src/pool-bin/libraries/FeeHelper.sol";
 
 abstract contract BinTestHelper is Test {
-    using PoolIdLibrary for PoolKey;
     using SafeCast for uint256;
     using PackedUint128Math for bytes32;
 

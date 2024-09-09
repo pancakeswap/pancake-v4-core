@@ -6,7 +6,7 @@ import "./interfaces/ICLHooks.sol";
 import {ProtocolFees} from "../ProtocolFees.sol";
 import {ICLPoolManager} from "./interfaces/ICLPoolManager.sol";
 import {IVault} from "../interfaces/IVault.sol";
-import {PoolId, PoolIdLibrary} from "../types/PoolId.sol";
+import {PoolId} from "../types/PoolId.sol";
 import {CLPool} from "./libraries/CLPool.sol";
 import {CLPosition} from "./libraries/CLPosition.sol";
 import {PoolKey} from "../types/PoolKey.sol";
@@ -27,7 +27,6 @@ import {TickMath} from "./libraries/TickMath.sol";
 
 contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     using SafeCast for int256;
-    using PoolIdLibrary for PoolKey;
     using Hooks for bytes32;
     using LPFeeLibrary for uint24;
     using CLPoolParametersHelper for bytes32;
@@ -152,7 +151,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
 
         BalanceDelta hookDelta;
         // notice that both generated delta and feeDelta (from lpFee) will both be counted on the user
-        (delta, hookDelta) = CLHooks.afterModifyLiquidity(key, params, delta + feeDelta, hookData);
+        (delta, hookDelta) = CLHooks.afterModifyLiquidity(key, params, delta + feeDelta, feeDelta, hookData);
 
         if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
             vault.accountAppBalanceDelta(key, hookDelta, address(key.hooks));

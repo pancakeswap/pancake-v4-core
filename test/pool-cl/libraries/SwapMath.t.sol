@@ -160,7 +160,7 @@ contract SwapMathTest is Test, GasSnapshot {
         assertEq(sqrtRatioNextX96, 1);
     }
 
-    function testComputeSwapTest_entireInputAmountTakenAsFee() external pure {
+    function testComputeSwapTest_notEntireInputAmountTakenAsFee() external pure {
         uint160 priceX96 = 2413;
         uint160 targetPriceX96 = 79887613182836312;
         uint128 liquidity = 1985041575832132834610021537970;
@@ -170,8 +170,8 @@ contract SwapMathTest is Test, GasSnapshot {
         (uint160 sqrtRatioNextX96, uint256 amountIn, uint256 amountOut, uint256 feeAmount) =
             SwapMath.computeSwapStep(priceX96, targetPriceX96, liquidity, actualAmountIn, feePips);
 
-        assertEq(amountIn, 0);
-        assertEq(feeAmount, 10);
+        assertEq(amountIn, 9);
+        assertEq(feeAmount, 1);
         assertEq(amountOut, 0);
         assertEq(sqrtRatioNextX96, 2413);
     }
