@@ -91,7 +91,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
                 parameters: bytes32(uint256(0xa0000))
             });
 
-            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
+            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, ZERO_BYTES);
         }
 
         // 0
@@ -105,7 +105,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
                 parameters: bytes32(uint256(0xa0000))
             });
 
-            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
+            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, ZERO_BYTES);
         }
 
         // 300000 i.e. 30%
@@ -119,7 +119,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
                 parameters: bytes32(uint256(0xa0000))
             });
 
-            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
+            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, ZERO_BYTES);
         }
 
         // 1000000 i.e. 100%
@@ -133,7 +133,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
                 parameters: bytes32(uint256(0xa0000))
             });
 
-            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
+            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, ZERO_BYTES);
         }
 
         // 1000001 i.e. > 100%
@@ -148,7 +148,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             });
 
             vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, uint24(1000001)));
-            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
+            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, ZERO_BYTES);
         }
     }
 
@@ -165,7 +165,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             });
 
             vm.expectRevert(abi.encodeWithSelector(ICLPoolManager.TickSpacingTooSmall.selector, int24(0)));
-            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
+            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, ZERO_BYTES);
         }
 
         // tickSpacing 1
@@ -179,7 +179,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
                 parameters: bytes32(uint256(0x10000))
             });
 
-            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
+            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, ZERO_BYTES);
         }
 
         // tickSpacing 10
@@ -193,7 +193,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
                 parameters: bytes32(uint256(0xa0000))
             });
 
-            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
+            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, ZERO_BYTES);
         }
 
         // tickSpacing max
@@ -207,7 +207,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
                 parameters: bytes32(uint256(0x7fff0000))
             });
 
-            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
+            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, ZERO_BYTES);
         }
 
         // tickSpacing overflow
@@ -222,7 +222,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             });
 
             vm.expectRevert(abi.encodeWithSelector(ICLPoolManager.TickSpacingTooLarge.selector, int24(0x8000)));
-            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
+            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, ZERO_BYTES);
         }
     }
 
@@ -240,7 +240,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
             // 0x800001 = -8388607
             vm.expectRevert(abi.encodeWithSelector(ICLPoolManager.TickSpacingTooSmall.selector, -8388607));
-            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
+            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, ZERO_BYTES);
         }
 
         // 1 at 40 bit
@@ -255,7 +255,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             });
 
             vm.expectRevert(abi.encodeWithSelector(ParametersHelper.UnusedBitsNonZero.selector));
-            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
+            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, ZERO_BYTES);
         }
 
         // 1 at 41 bit
@@ -270,7 +270,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             });
 
             vm.expectRevert(abi.encodeWithSelector(ParametersHelper.UnusedBitsNonZero.selector));
-            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
+            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, ZERO_BYTES);
         }
 
         // 1 at 42 bit
@@ -285,7 +285,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             });
 
             vm.expectRevert(abi.encodeWithSelector(ParametersHelper.UnusedBitsNonZero.selector));
-            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
+            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, ZERO_BYTES);
         }
     }
 
@@ -306,7 +306,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             });
 
             vm.expectRevert(abi.encodeWithSelector(Hooks.HookConfigValidationError.selector));
-            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
+            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, ZERO_BYTES);
         }
 
         // hook permission
@@ -325,7 +325,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             });
 
             vm.expectRevert(abi.encodeWithSelector(Hooks.HookPermissionsValidationError.selector));
-            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
+            poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, ZERO_BYTES);
         }
     }
 
@@ -341,7 +341,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             parameters: bytes32(uint256(0xa0000))
         });
 
-        poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
+        poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, ZERO_BYTES);
 
         (CLPool.Slot0 memory slot0, uint256 feeGrowthGlobal0X128, uint256 feeGrowthGlobal1X128, uint128 liquidity) =
             poolManager.pools(key.toId());
@@ -367,7 +367,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         snapStart("CLPoolManagerTest#initializeWithoutHooks");
-        poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
+        poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, ZERO_BYTES);
         snapEnd();
     }
 
@@ -777,7 +777,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         // price = 100 tick roughly 46054
-        poolManager.initialize(key, uint160(10 * FixedPoint96.Q96), new bytes(0));
+        poolManager.initialize(key, uint160(10 * FixedPoint96.Q96), ZERO_BYTES);
 
         IERC20(Currency.unwrap(currency0)).approve(address(router), 1e10 ether);
         IERC20(Currency.unwrap(currency1)).approve(address(router), 1e10 ether);
@@ -1004,7 +1004,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         // price = 100 tick roughly 46054
-        poolManager.initialize(key, uint160(10 * FixedPoint96.Q96), new bytes(0));
+        poolManager.initialize(key, uint160(10 * FixedPoint96.Q96), ZERO_BYTES);
 
         IERC20(Currency.unwrap(currency0)).approve(address(router), 1e30 ether);
         IERC20(Currency.unwrap(currency1)).approve(address(router), 1e30 ether);
@@ -1050,7 +1050,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         // price = 100 tick roughly 46054
-        poolManager.initialize(key, uint160(10 * FixedPoint96.Q96), new bytes(0));
+        poolManager.initialize(key, uint160(10 * FixedPoint96.Q96), ZERO_BYTES);
 
         IERC20(Currency.unwrap(currency0)).approve(address(router), 1e30 ether);
         IERC20(Currency.unwrap(currency1)).approve(address(router), 1e30 ether);
@@ -1091,7 +1091,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         // price = 100 tick roughly 46054
-        poolManager.initialize(key, uint160(10 * FixedPoint96.Q96), new bytes(0));
+        poolManager.initialize(key, uint160(10 * FixedPoint96.Q96), ZERO_BYTES);
 
         IERC20(Currency.unwrap(currency0)).approve(address(router), 1e30 ether);
         IERC20(Currency.unwrap(currency1)).approve(address(router), 1e30 ether);
@@ -1117,7 +1117,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         // price = 100 tick roughly 46054
-        poolManager.initialize(key, uint160(10 * FixedPoint96.Q96), new bytes(0));
+        poolManager.initialize(key, uint160(10 * FixedPoint96.Q96), ZERO_BYTES);
 
         IERC20(Currency.unwrap(currency0)).approve(address(router), 1e30 ether);
         IERC20(Currency.unwrap(currency1)).approve(address(router), 1e30 ether);
@@ -1143,7 +1143,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         // price = 1 i.e. tick 0
-        poolManager.initialize(key, uint160(1 * FixedPoint96.Q96), new bytes(0));
+        poolManager.initialize(key, uint160(1 * FixedPoint96.Q96), ZERO_BYTES);
 
         IERC20(Currency.unwrap(currency0)).approve(address(router), 1e30 ether);
         IERC20(Currency.unwrap(currency1)).approve(address(router), 1e30 ether);
@@ -1202,7 +1202,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         // price = 100 tick roughly 46054
-        poolManager.initialize(key, uint160(10 * FixedPoint96.Q96), new bytes(0));
+        poolManager.initialize(key, uint160(10 * FixedPoint96.Q96), ZERO_BYTES);
 
         IERC20(Currency.unwrap(currency0)).approve(address(router), 1e30 ether);
         IERC20(Currency.unwrap(currency1)).approve(address(router), 1e30 ether);
@@ -1577,7 +1577,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         // price = 100 tick roughly 46054
-        poolManager.initialize(key, uint160(10 * FixedPoint96.Q96), new bytes(0));
+        poolManager.initialize(key, uint160(10 * FixedPoint96.Q96), ZERO_BYTES);
 
         IERC20(Currency.unwrap(currency0)).approve(address(router), 1e10 ether);
         IERC20(Currency.unwrap(currency1)).approve(address(router), 1e10 ether);
@@ -1666,7 +1666,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         // price = 100 tick roughly 46054
-        poolManager.initialize(key, uint160(10 * FixedPoint96.Q96), new bytes(0));
+        poolManager.initialize(key, uint160(10 * FixedPoint96.Q96), ZERO_BYTES);
 
         IERC20(Currency.unwrap(currency0)).approve(address(router), 1e10 ether);
         IERC20(Currency.unwrap(currency1)).approve(address(router), 1e10 ether);
@@ -1770,7 +1770,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         // price = 100 tick roughly 46054
-        poolManager.initialize(key, uint160(10 * FixedPoint96.Q96), new bytes(0));
+        poolManager.initialize(key, uint160(10 * FixedPoint96.Q96), ZERO_BYTES);
 
         IERC20(Currency.unwrap(currency0)).approve(address(router), 1e30 ether);
         IERC20(Currency.unwrap(currency1)).approve(address(router), 1e30 ether);
@@ -2895,7 +2895,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             parameters: bytes32(uint256((10 << 16) | clFeeManagerHook.getHooksRegistrationBitmap()))
         });
 
-        poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
+        poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, ZERO_BYTES);
 
         clFeeManagerHook.setFee(_swapFee);
 
@@ -2924,7 +2924,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             parameters: bytes32(uint256((10 << 16) | clFeeManagerHook.getHooksRegistrationBitmap()))
         });
 
-        poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, new bytes(0));
+        poolManager.initialize(key, TickMath.MIN_SQRT_RATIO, ZERO_BYTES);
 
         clFeeManagerHook.setFee(_swapFee);
 
@@ -2950,7 +2950,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             parameters: bytes32(uint256(0x10000))
         });
 
-        poolManager.initialize(key, SQRT_RATIO_1_1, new bytes(0));
+        poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
         IERC20(Currency.unwrap(currency0)).approve(address(router), 1e10 ether);
         IERC20(Currency.unwrap(currency1)).approve(address(router), 1e10 ether);
 
@@ -2983,7 +2983,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             parameters: bytes32(uint256(0x10000))
         });
 
-        poolManager.initialize(key, SQRT_RATIO_1_1, new bytes(0));
+        poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
         IERC20(Currency.unwrap(currency0)).approve(address(router), 1e10 ether);
         IERC20(Currency.unwrap(currency1)).approve(address(router), 1e10 ether);
 
@@ -3015,7 +3015,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             parameters: bytes32(uint256(0x10000))
         });
 
-        poolManager.initialize(key, SQRT_RATIO_1_1, new bytes(0));
+        poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
         IERC20(Currency.unwrap(currency0)).approve(address(router), 1e10 ether);
         IERC20(Currency.unwrap(currency1)).approve(address(router), 1e10 ether);
 
