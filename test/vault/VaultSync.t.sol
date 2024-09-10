@@ -134,9 +134,69 @@ contract VaultSyncTest is Test, TokenFixture, GasSnapshot, NoIsolate {
     }
 
     function _test_sync_twiceWithoutSettle() external {
+        /// @dev don't do this in production, it will cause the token forever locked in the vault
+        currency0.transfer(address(vault), 5 ether);
         vault.sync(currency0);
-        vm.expectRevert(abi.encodeWithSelector(VaultReserve.LastSyncNotSettled.selector));
+        (Currency currency, uint256 amount) = vault.getVaultReserve();
+        assertEq(Currency.unwrap(currency), Currency.unwrap(currency0));
+        assertEq(amount, 5 ether);
+
+        /// @dev don't do this in production, it will cause the token forever locked in the vault
+        currency1.transfer(address(vault), 10 ether);
+        vault.sync(currency1);
+        (currency, amount) = vault.getVaultReserve();
+        assertEq(Currency.unwrap(currency), Currency.unwrap(currency1));
+        assertEq(amount, 10 ether);
+    }
+
+    function test_sync_twiceWithSettle() public {
+        vault.lock(abi.encodeCall(VaultSyncTest._test_sync_twiceWithSettle, ()));
+    }
+
+    function _test_sync_twiceWithSettle() external {
+        /// @dev don't do this in production, it will cause the token forever locked in the vault
+        currency0.transfer(address(vault), 5 ether);
         vault.sync(currency0);
+        (Currency currency, uint256 amount) = vault.getVaultReserve();
+        assertEq(Currency.unwrap(currency), Currency.unwrap(currency0));
+        assertEq(amount, 5 ether);
+
+        /// @dev correct usage: sync - transfer - settle
+        vault.sync(currency1);
+        currency1.transfer(address(vault), 10 ether);
+        (currency, amount) = vault.getVaultReserve();
+        assertEq(Currency.unwrap(currency), Currency.unwrap(currency1));
+        assertEq(amount, 0 ether);
+
+        vault.settle();
+        vault.sync(currency1);
+        (currency, amount) = vault.getVaultReserve();
+        assertEq(Currency.unwrap(currency), Currency.unwrap(currency1));
+        assertEq(amount, 10 ether);
+
+        vault.take(currency1, address(this), 10 ether);
+    }
+
+    function test_sync_twiceWithSettleNative() public {
+        vault.lock(abi.encodeCall(VaultSyncTest._test_sync_twiceWithSettleNative, ()));
+    }
+
+    function _test_sync_twiceWithSettleNative() external {
+        /// @dev don't do this in production, it will cause the token forever locked in the vault
+        currency0.transfer(address(vault), 5 ether);
+        vault.sync(currency0);
+        (Currency currency, uint256 amount) = vault.getVaultReserve();
+        assertEq(Currency.unwrap(currency), Currency.unwrap(currency0));
+        assertEq(amount, 5 ether);
+
+        /// @dev correct usage: sync - transfer - settle
+        vault.sync(CurrencyLibrary.NATIVE);
+        (currency, amount) = vault.getVaultReserve();
+        assertEq(Currency.unwrap(currency), Currency.unwrap(CurrencyLibrary.NATIVE));
+        assertEq(amount, 0 ether);
+
+        vault.settle{value: 1 ether}();
+        vault.take(CurrencyLibrary.NATIVE, makeAddr("receiver"), 1 ether);
     }
 
     function test_settle_nativeTokenWithoutFund() public noIsolate {

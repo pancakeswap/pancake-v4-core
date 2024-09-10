@@ -87,7 +87,7 @@ contract Deployers {
 
     function createFreshManager() internal returns (Vault vault, CLPoolManager manager) {
         vault = new Vault();
-        manager = new CLPoolManager(vault, 500000);
+        manager = new CLPoolManager(vault);
         vault.registerApp(address(manager));
     }
 }

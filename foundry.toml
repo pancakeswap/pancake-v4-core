@@ -13,6 +13,8 @@ fs_permissions = [
     { access = "read", path = "./test/pool-bin/bin" },
 ]
 evm_version = 'cancun'
+gas_limit = "300000000"
+
 
 [fuzz]
 # used for both fuzz and invariant tests for local development

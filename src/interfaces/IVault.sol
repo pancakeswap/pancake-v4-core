@@ -75,7 +75,12 @@ interface IVault is IVaultToken {
     /// @dev Can also be used as a mechanism for _free_ flash loans
     function take(Currency currency, address to, uint256 amount) external;
 
-    /// @notice Called before erc20 transfer to tstore the current reserve balance
+    /// @notice Writes the current ERC20 balance of the specified currency to transient storage
+    /// This is used to checkpoint balances for the manager and derive deltas for the caller.
+    /// @dev This MUST be called before any ERC20 tokens are sent into the contract, but can be skipped
+    /// for native tokens because the amount to settle is determined by the sent value.
+    /// However, if an ERC20 token has been synced and not settled, and the caller instead wants to settle
+    /// native funds, this function can be called with the native currency to then be able to settle the native currency
     function sync(Currency token0) external;
 
     /// @notice Called by the user to pay what is owed

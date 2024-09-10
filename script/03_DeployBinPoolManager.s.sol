@@ -21,7 +21,7 @@ contract DeployBinPoolManagerScript is BaseScript {
         address vault = getAddressFromConfig("vault");
         console.log("vault address: ", address(vault));
 
-        BinPoolManager binPoolManager = new BinPoolManager(IVault(address(vault)), 500000);
+        BinPoolManager binPoolManager = new BinPoolManager(IVault(address(vault)));
         console.log("BinPoolManager contract deployed at ", address(binPoolManager));
 
         console.log("Registering BinPoolManager");

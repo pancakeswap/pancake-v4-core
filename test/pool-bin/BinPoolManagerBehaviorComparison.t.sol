@@ -40,7 +40,7 @@ abstract contract LBFuzzer is LBHelper, BinTestHelper {
         super.setUp();
 
         vault = new Vault();
-        manager = new BinPoolManager(vault, 500000);
+        manager = new BinPoolManager(vault);
         vault.registerApp(address(manager));
         swapHelper = new BinSwapHelper(manager, vault);
         liquidityHelper = new BinLiquidityHelper(manager, vault);

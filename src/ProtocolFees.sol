@@ -10,9 +10,11 @@ import {ProtocolFeeLibrary} from "./libraries/ProtocolFeeLibrary.sol";
 import {PoolKey} from "./types/PoolKey.sol";
 import {PoolId} from "./types/PoolId.sol";
 import {IVault} from "./interfaces/IVault.sol";
+import {BipsLibrary} from "./libraries/BipsLibrary.sol";
 
 abstract contract ProtocolFees is IProtocolFees, Owner {
     using ProtocolFeeLibrary for uint24;
+    using BipsLibrary for uint256;
 
     /// @inheritdoc IProtocolFees
     mapping(Currency currency => uint256 amount) public protocolFeesAccrued;
@@ -23,11 +25,12 @@ abstract contract ProtocolFees is IProtocolFees, Owner {
     /// @inheritdoc IProtocolFees
     IVault public immutable vault;
 
-    uint256 private immutable controllerGasLimit;
+    // a percentage of the block.gaslimit denoted in basis points, used as the gas limit for fee controller calls
+    // 100 bps is 1%, at 30M gas, the limit is 300K
+    uint256 private constant BLOCK_LIMIT_BPS = 100;
 
-    constructor(IVault _vault, uint256 _controllerGasLimit) {
+    constructor(IVault _vault) {
         vault = _vault;
-        controllerGasLimit = _controllerGasLimit;
     }
 
     function _setProtocolFee(PoolId id, uint24 newProtocolFee) internal virtual;
@@ -47,19 +50,19 @@ abstract contract ProtocolFees is IProtocolFees, Owner {
     /// @dev the success of this function must be checked when called in setProtocolFee
     function _fetchProtocolFee(PoolKey memory key) internal returns (bool success, uint24 protocolFee) {
         if (address(protocolFeeController) != address(0)) {
+            uint256 controllerGasLimit = block.gaslimit.calculatePortion(BLOCK_LIMIT_BPS);
+
             // note that EIP-150 mandates that calls requesting more than 63/64ths of remaining gas
             // will be allotted no more than this amount, so controllerGasLimit must be set with this
             // in mind.
             if (gasleft() < controllerGasLimit) revert ProtocolFeeCannotBeFetched();
 
-            uint256 gasLimit = controllerGasLimit;
             address targetProtocolFeeController = address(protocolFeeController);
             bytes memory data = abi.encodeCall(IProtocolFeeController.protocolFeeForPool, (key));
             uint256 returnData;
             assembly ("memory-safe") {
                 // only load the first 32 bytes of the return data to prevent gas griefing
-                success := call(gasLimit, targetProtocolFeeController, 0, add(data, 0x20), mload(data), 0, 32)
-
+                success := call(controllerGasLimit, targetProtocolFeeController, 0, add(data, 0x20), mload(data), 0, 32)
                 // if success is false this wont actually be returned, instead 0 will be returned
                 returnData := mload(0)
 

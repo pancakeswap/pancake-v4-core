@@ -53,7 +53,7 @@ contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
 
     function setUp() public {
         vault = new Vault();
-        poolManager = new BinPoolManager(IVault(address(vault)), 500000);
+        poolManager = new BinPoolManager(IVault(address(vault)));
 
         vault.registerApp(address(poolManager));
 
