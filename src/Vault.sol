@@ -4,7 +4,6 @@ pragma solidity 0.8.26;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IVault, IVaultToken} from "./interfaces/IVault.sol";
-import {PoolKey} from "./types/PoolKey.sol";
 import {SettlementGuard} from "./libraries/SettlementGuard.sol";
 import {Currency, CurrencyLibrary} from "./types/Currency.sol";
 import {BalanceDelta} from "./types/BalanceDelta.sol";
