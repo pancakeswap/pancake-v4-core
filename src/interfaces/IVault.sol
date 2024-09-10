@@ -60,10 +60,12 @@ interface IVault is IVaultToken {
 
     /// @notice Called by registered app to account for a change in the pool balance,
     /// convenient for AMM pool manager, typically after modifyLiquidity, swap, donate
-    /// @param key The key for the pool
+    /// @param currency0 The PoolKey currency0 to update
+    /// @param currency1 The PoolKey currency1 to update
     /// @param delta The change in the pool's balance
     /// @param settler The address whose delta will be updated
-    function accountAppBalanceDelta(PoolKey memory key, BalanceDelta delta, address settler) external;
+    function accountAppBalanceDelta(Currency currency0, Currency currency1, BalanceDelta delta, address settler)
+        external;
 
     /// @notice This works as a general accounting mechanism for non-dex app
     /// @param currency The currency to update

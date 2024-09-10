@@ -154,9 +154,9 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         (delta, hookDelta) = CLHooks.afterModifyLiquidity(key, params, delta + feeDelta, feeDelta, hookData);
 
         if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
-            vault.accountAppBalanceDelta(key, hookDelta, address(key.hooks));
+            vault.accountAppBalanceDelta(key.currency0, key.currency1, hookDelta, address(key.hooks));
         }
-        vault.accountAppBalanceDelta(key, delta, msg.sender);
+        vault.accountAppBalanceDelta(key.currency0, key.currency1, delta, msg.sender);
     }
 
     /// @inheritdoc ICLPoolManager
@@ -208,12 +208,12 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         (delta, hookDelta) = CLHooks.afterSwap(key, params, delta, hookData, beforeSwapDelta);
 
         if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
-            vault.accountAppBalanceDelta(key, hookDelta, address(key.hooks));
+            vault.accountAppBalanceDelta(key.currency0, key.currency1, hookDelta, address(key.hooks));
         }
 
         /// @dev delta already includes protocol fee
         /// all tokens go into the vault
-        vault.accountAppBalanceDelta(key, delta, msg.sender);
+        vault.accountAppBalanceDelta(key.currency0, key.currency1, delta, msg.sender);
     }
 
     /// @inheritdoc ICLPoolManager
@@ -231,7 +231,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
 
         int24 tick;
         (delta, tick) = pool.donate(amount0, amount1);
-        vault.accountAppBalanceDelta(key, delta, msg.sender);
+        vault.accountAppBalanceDelta(key.currency0, key.currency1, delta, msg.sender);
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
         emit Donate(id, msg.sender, amount0, amount1, tick);
