@@ -34,7 +34,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
 
     function setUp() public {
         vault = new MockVault();
-        poolManager = new BinPoolManager(IVault(address(vault)), 500000);
+        poolManager = new BinPoolManager(IVault(address(vault)));
         mockHooks = new MockBinHooks();
     }
 

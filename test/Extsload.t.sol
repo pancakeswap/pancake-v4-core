@@ -28,7 +28,7 @@ contract ExtsloadTest is Test, GasSnapshot {
 
     function setUp() public {
         IVault vault = new Vault();
-        poolManager = new CLPoolManager(vault, 500000);
+        poolManager = new CLPoolManager(vault);
 
         poolManager.setProtocolFeeController(IProtocolFeeController(address(0xabcd)));
     }

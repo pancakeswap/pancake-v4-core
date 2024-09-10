@@ -61,7 +61,7 @@ contract BinPoolFeeTest is BinTestHelper {
 
     function setUp() public {
         vault = new MockVault();
-        poolManager = new BinPoolManager(IVault(address(vault)), 500000);
+        poolManager = new BinPoolManager(IVault(address(vault)));
         binFeeManagerHook = new BinFeeManagerHook(poolManager);
 
         token0 = new MockERC20("TestA", "A", 18);

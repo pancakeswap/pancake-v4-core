@@ -37,7 +37,7 @@ contract BinPoolDonateTest is BinTestHelper {
 
     function setUp() public {
         vault = new MockVault();
-        poolManager = new BinPoolManager(IVault(address(vault)), 500000);
+        poolManager = new BinPoolManager(IVault(address(vault)));
 
         poolParam = poolParam.setBinStep(10);
         key = PoolKey({

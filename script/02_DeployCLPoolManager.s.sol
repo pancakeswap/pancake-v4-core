@@ -21,7 +21,7 @@ contract DeployCLPoolManagerScript is BaseScript {
         address vault = getAddressFromConfig("vault");
         console.log("vault address: ", address(vault));
 
-        CLPoolManager clPoolManager = new CLPoolManager(IVault(address(vault)), 500000);
+        CLPoolManager clPoolManager = new CLPoolManager(IVault(address(vault)));
         console.log("CLPoolManager contract deployed at ", address(clPoolManager));
 
         console.log("Registering CLPoolManager");
