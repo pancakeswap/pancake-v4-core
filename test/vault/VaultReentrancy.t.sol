@@ -217,16 +217,7 @@ contract VaultReentrancyTest is Test, TokenFixture {
                 // accountPoolBalanceDelta
                 vm.startPrank(makeAddr("poolManager"));
                 vault.accountAppBalanceDelta(
-                    PoolKey({
-                        currency0: currency0,
-                        currency1: currency1,
-                        hooks: IHooks(address(0)),
-                        poolManager: IPoolManager(makeAddr("poolManager")),
-                        fee: 0,
-                        parameters: bytes32(0)
-                    }),
-                    toBalanceDelta(-(paidAmount.toInt128()), int128(0)),
-                    callerAddr
+                    currency0, currency1, toBalanceDelta(-(paidAmount.toInt128()), int128(0)), callerAddr
                 );
                 vm.stopPrank();
 

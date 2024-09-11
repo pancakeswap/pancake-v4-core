@@ -62,6 +62,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
         uint8 nbBinY = 6;
 
         BinPool.MintArrays memory array;
+        vault.updateCurrentPoolKey(key);
         (, array) = addLiquidity(key, poolManager, bob, activeId, amountX, amountY, nbBinX, nbBinY);
 
         {
@@ -291,7 +292,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
         uint256 amountY = 100 * 10 ** 18;
         uint8 nbBinX = 6;
         uint8 nbBinY = 6;
-
+        vault.updateCurrentPoolKey(key);
         addLiquidity(key, poolManager, bob, activeId, amountX, amountY, nbBinX, nbBinY);
         uint256 total = getTotalBins(nbBinX, nbBinY);
 
@@ -307,6 +308,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
         uint256 reserveX = vault.reservesOfApp(address(key.poolManager), key.currency0);
         uint256 reserveY = vault.reservesOfApp(address(key.poolManager), key.currency1);
 
+        vault.updateCurrentPoolKey(key);
         removeLiquidity(key, poolManager, bob, ids, balances);
 
         {
@@ -331,6 +333,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
         uint8 nbBinX = 6;
         uint8 nbBinY = 6;
 
+        vault.updateCurrentPoolKey(key);
         addLiquidity(key, poolManager, bob, activeId, amountX, amountY, nbBinX, nbBinY);
 
         uint256 total = getTotalBins(nbBinX, nbBinY);
@@ -352,6 +355,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
         uint256 reserveX = vault.reservesOfApp(address(key.poolManager), key.currency0); // vault.reservesOfPool(poolId, 0);
         uint256 reserveY = vault.reservesOfApp(address(key.poolManager), key.currency1); // vault.reservesOfPool(poolId, 1);
 
+        vault.updateCurrentPoolKey(key);
         removeLiquidity(key, poolManager, bob, ids, halfbalances);
 
         {
