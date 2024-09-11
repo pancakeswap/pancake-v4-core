@@ -4,7 +4,6 @@ pragma solidity 0.8.26;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IVault, IVaultToken} from "./interfaces/IVault.sol";
-import {PoolKey} from "./types/PoolKey.sol";
 import {SettlementGuard} from "./libraries/SettlementGuard.sol";
 import {Currency, CurrencyLibrary} from "./types/Currency.sol";
 import {BalanceDelta} from "./types/BalanceDelta.sol";
@@ -74,9 +73,7 @@ contract Vault is IVault, VaultToken, Ownable {
     }
 
     /// @inheritdoc IVault
-    /// @dev This function doesn't whether the caller is the poolManager specified in the PoolKey
-    /// PoolManager shouldn't expect that behavior
-    function accountAppBalanceDelta(PoolKey memory key, BalanceDelta delta, address settler)
+    function accountAppBalanceDelta(Currency currency0, Currency currency1, BalanceDelta delta, address settler)
         external
         override
         isLocked
@@ -86,12 +83,12 @@ contract Vault is IVault, VaultToken, Ownable {
         int128 delta1 = delta.amount1();
 
         // keep track of the balance on app level
-        _accountDeltaForApp(msg.sender, key.currency0, delta0);
-        _accountDeltaForApp(msg.sender, key.currency1, delta1);
+        _accountDeltaForApp(msg.sender, currency0, delta0);
+        _accountDeltaForApp(msg.sender, currency1, delta1);
 
         // keep track of the balance on vault level
-        SettlementGuard.accountDelta(settler, key.currency0, delta0);
-        SettlementGuard.accountDelta(settler, key.currency1, delta1);
+        SettlementGuard.accountDelta(settler, currency0, delta0);
+        SettlementGuard.accountDelta(settler, currency1, delta1);
     }
 
     /// @inheritdoc IVault

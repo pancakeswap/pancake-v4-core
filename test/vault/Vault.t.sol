@@ -103,7 +103,9 @@ contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
 
     function _testAccountPoolBalanceDeltaFromArbitraryAddr() external {
         vm.expectRevert(IVault.AppUnregistered.selector);
-        vault.accountAppBalanceDelta(poolKey1, toBalanceDelta(int128(-1), int128(0)), address(0));
+        vault.accountAppBalanceDelta(
+            poolKey1.currency0, poolKey1.currency1, toBalanceDelta(int128(-1), int128(0)), address(0)
+        );
     }
 
     function testAccountPoolBalanceDeltaWithoutLock() public {
@@ -119,7 +121,7 @@ contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
 
         vm.expectRevert(abi.encodeWithSelector(IVault.NoLocker.selector));
         vm.prank(address(poolManager1));
-        vault.accountAppBalanceDelta(key, delta, address(this));
+        vault.accountAppBalanceDelta(key.currency0, key.currency1, delta, address(this));
     }
 
     function testLockNotSettledWithoutPayment() public {

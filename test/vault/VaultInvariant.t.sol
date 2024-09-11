@@ -131,13 +131,13 @@ contract VaultPoolManager is Test {
 
         if (action.actionType == ActionType.Take) {
             BalanceDelta delta = toBalanceDelta(-(int128(action.amt0)), -(int128(action.amt1)));
-            vault.accountAppBalanceDelta(poolKey, delta, address(this));
+            vault.accountAppBalanceDelta(poolKey.currency0, poolKey.currency1, delta, address(this));
 
             vault.take(currency0, address(this), action.amt0);
             vault.take(currency1, address(this), action.amt1);
         } else if (action.actionType == ActionType.Mint) {
             BalanceDelta delta = toBalanceDelta(-(int128(action.amt0)), -(int128(action.amt1)));
-            vault.accountAppBalanceDelta(poolKey, delta, address(this));
+            vault.accountAppBalanceDelta(poolKey.currency0, poolKey.currency1, delta, address(this));
 
             vault.mint(address(this), currency0, action.amt0);
             vault.mint(address(this), currency1, action.amt1);
@@ -145,7 +145,7 @@ contract VaultPoolManager is Test {
             totalMintedCurrency1 += action.amt1;
         } else if (action.actionType == ActionType.Settle) {
             BalanceDelta delta = toBalanceDelta(int128(action.amt0), int128(action.amt1));
-            vault.accountAppBalanceDelta(poolKey, delta, address(this));
+            vault.accountAppBalanceDelta(poolKey.currency0, poolKey.currency1, delta, address(this));
 
             vault.sync(currency0);
             vault.sync(currency1);
@@ -157,7 +157,7 @@ contract VaultPoolManager is Test {
             vault.settle();
         } else if (action.actionType == ActionType.Burn) {
             BalanceDelta delta = toBalanceDelta(int128(action.amt0), int128(action.amt1));
-            vault.accountAppBalanceDelta(poolKey, delta, address(this));
+            vault.accountAppBalanceDelta(poolKey.currency0, poolKey.currency1, delta, address(this));
 
             vault.burn(address(this), currency0, action.amt0);
             vault.burn(address(this), currency1, action.amt1);

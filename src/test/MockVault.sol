@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {PoolId} from "../types/PoolId.sol";
 import {PoolKey} from "../types/PoolKey.sol";
 import {BalanceDelta} from "../types/BalanceDelta.sol";
-import {Currency, CurrencyLibrary} from "../types/Currency.sol";
+import {Currency, CurrencyLibrary, equals as currencyEquals} from "../types/Currency.sol";
 import {SafeCast} from "../libraries/SafeCast.sol";
 
 contract MockVault {
@@ -12,25 +12,44 @@ contract MockVault {
     using CurrencyLibrary for Currency;
 
     mapping(address app => mapping(Currency currency => uint256 reserve)) public reservesOfApp;
+
+    // Need to update this when try to record balanceDeltaOfPool
+    PoolKey public currentPoolKey;
     mapping(PoolId poolId => BalanceDelta delta) public balanceDeltaOfPool;
+
+    error InvalidPoolKey();
 
     constructor() {}
 
-    function accountAppBalanceDelta(PoolKey memory key, BalanceDelta delta, address) external {
-        PoolId poolId = key.toId();
-        balanceDeltaOfPool[poolId] = delta;
-
-        _accountDeltaForApp(address(key.poolManager), key.currency0, delta.amount0());
-        _accountDeltaForApp(address(key.poolManager), key.currency1, delta.amount1());
+    function updateCurrentPoolKey(PoolKey memory key) external {
+        currentPoolKey = key;
     }
 
-    function _accountDeltaForApp(address poolManager, Currency currency, int128 delta) internal {
+    function accountAppBalanceDelta(Currency currency0, Currency currency1, BalanceDelta delta, address) external {
+        // Will not record balanceDeltaOfPool if currentPoolKey is not set
+        if (!currentPoolKey.currency0.isNative() || !currentPoolKey.currency1.isNative()) {
+            // Check if currency0/currency1 is the same as the currency in currentPoolKey
+            if (currentPoolKey.currency0 == currency0 && currentPoolKey.currency1 == currency1) {
+                PoolId poolId = currentPoolKey.toId();
+                balanceDeltaOfPool[poolId] = delta;
+            } else {
+                revert InvalidPoolKey();
+            }
+        }
+
+        _accountDeltaForApp(msg.sender, currency0, delta.amount0());
+        _accountDeltaForApp(msg.sender, currency1, delta.amount1());
+    }
+
+    function _accountDeltaForApp(address app, Currency currency, int128 delta) internal {
         if (delta == 0) return;
 
         if (delta >= 0) {
-            reservesOfApp[poolManager][currency] -= uint128(delta);
+            /// @dev arithmetic underflow make sure trader can't withdraw too much from app
+            reservesOfApp[app][currency] -= uint128(delta);
         } else {
-            reservesOfApp[poolManager][currency] += uint128(-delta);
+            /// @dev arithmetic overflow make sure trader won't deposit too much into app
+            reservesOfApp[app][currency] += uint128(-delta);
         }
     }
 
