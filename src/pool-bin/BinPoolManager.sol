@@ -121,7 +121,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
 
         PoolId id = key.toId();
 
-        (, uint24 protocolFee) = _fetchProtocolFee(key);
+        uint24 protocolFee = _fetchProtocolFee(key);
         pools[id].initialize(activeId, protocolFee, lpFee);
 
         poolIdToPoolKey[id] = key;

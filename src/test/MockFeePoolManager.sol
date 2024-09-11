@@ -28,7 +28,7 @@ contract MockFeePoolManager is ProtocolFees {
     function initialize(PoolKey memory key, bytes calldata) external {
         PoolId id = key.toId();
 
-        (, uint24 protocolFee) = _fetchProtocolFee(key);
+        uint24 protocolFee = _fetchProtocolFee(key);
 
         pools[id] = Slot0({protocolFee: protocolFee});
     }
