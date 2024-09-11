@@ -36,7 +36,6 @@ contract MockVault {
                 revert InvalidPoolKey();
             }
         }
-
         _accountDeltaForApp(currency0, delta.amount0());
         _accountDeltaForApp(currency1, delta.amount1());
     }
@@ -50,7 +49,6 @@ contract MockVault {
         } else {
             /// @dev arithmetic overflow make sure trader won't deposit too much into app
             reservesOfApp[msg.sender][currency] += uint128(-delta);
-        }
     }
 
     function collectFee(Currency currency, uint256 amount, address recipient) external {
