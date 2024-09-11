@@ -44,11 +44,11 @@ abstract contract ProtocolFees is IProtocolFees, Owner {
         emit ProtocolFeeUpdated(id, newProtocolFee);
     }
 
-    /// @notice Fetch the protocol fee for a given pool, returning false if the call fails or the returned fee is invalid.
+    /// @notice Fetch the protocol fee for a given pool
+    /// @dev the success of this function is false if the call fails or the returned fees are invalid
     /// @dev to prevent an invalid protocol fee controller from blocking pools from being initialized
-    ///      the success of this function is NOT checked on initialize and if the call fails, the protocol fee is set to 0.
-    /// @dev the success of this function must be checked when called in setProtocolFee
-    function _fetchProtocolFee(PoolKey memory key) internal returns (bool success, uint24 protocolFee) {
+    /// the success of this function is NOT checked on initialize and if the call fails, the protocol fees are set to 0.
+    function _fetchProtocolFee(PoolKey memory key) internal returns (uint24 protocolFee) {
         if (address(protocolFeeController) != address(0)) {
             uint256 controllerGasLimit = block.gaslimit.calculatePortion(BLOCK_LIMIT_BPS);
 
@@ -59,6 +59,8 @@ abstract contract ProtocolFees is IProtocolFees, Owner {
 
             address targetProtocolFeeController = address(protocolFeeController);
             bytes memory data = abi.encodeCall(IProtocolFeeController.protocolFeeForPool, (key));
+
+            bool success;
             uint256 returnData;
             assembly ("memory-safe") {
                 // only load the first 32 bytes of the return data to prevent gas griefing
@@ -70,9 +72,9 @@ abstract contract ProtocolFees is IProtocolFees, Owner {
                 success := and(success, eq(returndatasize(), 32))
             }
 
-            (success, protocolFee) = success && (returnData == uint24(returnData)) && uint24(returnData).validate()
-                ? (true, uint24(returnData))
-                : (false, 0);
+            // Ensure return data does not overflow a uint24 and that the underlying fees are within bounds.
+            protocolFee =
+                success && (returnData == uint24(returnData)) && uint24(returnData).validate() ? uint24(returnData) : 0;
         }
     }
 
