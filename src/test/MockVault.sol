@@ -36,25 +36,24 @@ contract MockVault {
                 revert InvalidPoolKey();
             }
         }
-
-        _accountDeltaForApp(msg.sender, currency0, delta.amount0());
-        _accountDeltaForApp(msg.sender, currency1, delta.amount1());
+        _accountDeltaForApp(currency0, delta.amount0());
+        _accountDeltaForApp(currency1, delta.amount1());
     }
 
-    function _accountDeltaForApp(address app, Currency currency, int128 delta) internal {
+    function _accountDeltaForApp(Currency currency, int128 delta) internal {
         if (delta == 0) return;
 
         if (delta >= 0) {
             /// @dev arithmetic underflow make sure trader can't withdraw too much from app
-            reservesOfApp[app][currency] -= uint128(delta);
+            reservesOfApp[msg.sender][currency] -= uint128(delta);
         } else {
             /// @dev arithmetic overflow make sure trader won't deposit too much into app
-            reservesOfApp[app][currency] += uint128(-delta);
+            reservesOfApp[msg.sender][currency] += uint128(-delta);
         }
     }
 
     function collectFee(Currency currency, uint256 amount, address recipient) external {
-        _accountDeltaForApp(msg.sender, currency, -amount.toInt128());
+        _accountDeltaForApp(currency, -amount.toInt128());
         currency.transfer(recipient, amount);
     }
 }

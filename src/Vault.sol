@@ -83,8 +83,8 @@ contract Vault is IVault, VaultToken, Ownable {
         int128 delta1 = delta.amount1();
 
         // keep track of the balance on app level
-        _accountDeltaForApp(msg.sender, currency0, delta0);
-        _accountDeltaForApp(msg.sender, currency1, delta1);
+        _accountDeltaForApp(currency0, delta0);
+        _accountDeltaForApp(currency1, delta1);
 
         // keep track of the balance on vault level
         SettlementGuard.accountDelta(settler, currency0, delta0);
@@ -98,7 +98,7 @@ contract Vault is IVault, VaultToken, Ownable {
         isLocked
         onlyRegisteredApp
     {
-        _accountDeltaForApp(msg.sender, currency, delta);
+        _accountDeltaForApp(currency, delta);
         SettlementGuard.accountDelta(settler, currency, delta);
     }
 
@@ -166,15 +166,16 @@ contract Vault is IVault, VaultToken, Ownable {
         return VaultReserve.getVaultReserve();
     }
 
-    function _accountDeltaForApp(address app, Currency currency, int128 delta) internal {
+    function _accountDeltaForApp(Currency currency, int128 delta) internal {
         if (delta == 0) return;
 
+        /// @dev optimization: msg.sender will always be app address, verification should be done on caller address
         if (delta >= 0) {
             /// @dev arithmetic underflow make sure trader can't withdraw too much from app
-            reservesOfApp[app][currency] -= uint128(delta);
+            reservesOfApp[msg.sender][currency] -= uint128(delta);
         } else {
             /// @dev arithmetic overflow make sure trader won't deposit too much into app
-            reservesOfApp[app][currency] += uint128(-delta);
+            reservesOfApp[msg.sender][currency] += uint128(-delta);
         }
     }
 
