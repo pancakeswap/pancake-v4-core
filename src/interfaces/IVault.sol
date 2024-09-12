@@ -2,8 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {Currency} from "../types/Currency.sol";
-import {PoolId} from "../types/PoolId.sol";
-import {PoolKey} from "../types/PoolKey.sol";
 import {BalanceDelta} from "../types/BalanceDelta.sol";
 import {IVaultToken} from "./IVaultToken.sol";
 
