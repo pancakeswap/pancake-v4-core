@@ -10,8 +10,9 @@ import {IPoolManager} from "../../interfaces/IPoolManager.sol";
 import {IExtsload} from "../../interfaces/IExtsload.sol";
 import {IHooks} from "../../interfaces/IHooks.sol";
 import {BinPosition, BinPool} from "../libraries/BinPool.sol";
+import {IPausable} from "../../interfaces/IPausable.sol";
 
-interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
+interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload, IPausable {
     /// @notice PoolManagerMismatch is thrown when pool manager specified in the pool key does not match current contract
     error PoolManagerMismatch();
 
