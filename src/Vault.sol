@@ -169,6 +169,7 @@ contract Vault is IVault, VaultToken, Ownable {
     function _accountDeltaForApp(Currency currency, int128 delta) internal {
         if (delta == 0) return;
 
+        /// @dev optimization: msg.sender will always be app address, verification should be done on caller address
         if (delta >= 0) {
             /// @dev arithmetic underflow make sure trader can't withdraw too much from app
             reservesOfApp[msg.sender][currency] -= uint128(delta);
