@@ -37,7 +37,7 @@ library TickBitmap {
     function position(int24 tick) internal pure returns (int16 wordPos, uint8 bitPos) {
         assembly ("memory-safe") {
             // signed arithmetic shift right
-            wordPos := sar(8, signextend(2, tick)) //
+            wordPos := sar(8, signextend(2, tick))
             bitPos := and(tick, 0xff)
         }
     }
