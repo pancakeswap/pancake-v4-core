@@ -16,9 +16,6 @@ interface IPoolManagerOwner {
     /// @notice set the protocol fee controller, only owner can call
     function setProtocolFeeController(IProtocolFeeController protocolFeeController) external;
 
-    /// @notice collect protocol fees, only owner can call
-    function collectProtocolFees(address recipient, Currency currency, uint256 amount) external;
-
     /// @notice transfer the ownership of pool manager to the new owner
     /// @dev used when a new PoolManagerOwner contract is created and we transfer pool manager owner to new contract
     /// @param newOwner the address of the new owner

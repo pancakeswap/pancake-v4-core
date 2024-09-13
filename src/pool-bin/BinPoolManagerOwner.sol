@@ -47,11 +47,6 @@ contract BinPoolManagerOwner is IPoolManagerOwner, PausableRole {
     }
 
     /// @inheritdoc IPoolManagerOwner
-    function collectProtocolFees(address recipient, Currency currency, uint256 amount) external override onlyOwner {
-        poolManager.collectProtocolFees(recipient, currency, amount);
-    }
-
-    /// @inheritdoc IPoolManagerOwner
     function transferPoolManagerOwnership(address newOwner) external override onlyOwner {
         poolManager.transferOwnership(newOwner);
     }

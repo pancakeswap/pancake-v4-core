@@ -8,11 +8,10 @@ import {PausableRole} from "../base/PausableRole.sol";
 import {ICLPoolManager} from "./interfaces/ICLPoolManager.sol";
 import {IPoolManagerOwner} from "../interfaces/IPoolManagerOwner.sol";
 
+/// @dev added interface in this file to avoid polluting other files in repository
 interface ICLPoolManagerWithPauseOwnable is ICLPoolManager {
     function pause() external;
-
     function unpause() external;
-
     function transferOwnership(address newOwner) external;
 }
 
@@ -42,11 +41,6 @@ contract CLPoolManagerOwner is IPoolManagerOwner, PausableRole {
     /// @inheritdoc IPoolManagerOwner
     function setProtocolFeeController(IProtocolFeeController protocolFeeController) external override onlyOwner {
         poolManager.setProtocolFeeController(protocolFeeController);
-    }
-
-    /// @inheritdoc IPoolManagerOwner
-    function collectProtocolFees(address recipient, Currency currency, uint256 amount) external override onlyOwner {
-        poolManager.collectProtocolFees(recipient, currency, amount);
     }
 
     /// @inheritdoc IPoolManagerOwner
