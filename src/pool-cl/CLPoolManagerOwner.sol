@@ -8,6 +8,14 @@ import {PausableRole} from "../base/PausableRole.sol";
 import {ICLPoolManager} from "./interfaces/ICLPoolManager.sol";
 import {IPoolManagerOwner} from "../interfaces/IPoolManagerOwner.sol";
 
+interface ICLPoolManagerWithPauseOwnable is ICLPoolManager {
+    function pause() external;
+
+    function unpause() external;
+
+    function transferOwnership(address newOwner) external;
+}
+
 /**
  * @dev This contract is the owner of the CLPoolManager contract
  *
@@ -15,9 +23,9 @@ import {IPoolManagerOwner} from "../interfaces/IPoolManagerOwner.sol";
  * of PoolManager. This allow a higher optimizer run, reducing the gas cost for other poolManager functions.
  */
 contract CLPoolManagerOwner is IPoolManagerOwner, PausableRole {
-    ICLPoolManager public immutable poolManager;
+    ICLPoolManagerWithPauseOwnable public immutable poolManager;
 
-    constructor(ICLPoolManager _poolManager) {
+    constructor(ICLPoolManagerWithPauseOwnable _poolManager) {
         poolManager = _poolManager;
     }
 
@@ -39,5 +47,10 @@ contract CLPoolManagerOwner is IPoolManagerOwner, PausableRole {
     /// @inheritdoc IPoolManagerOwner
     function collectProtocolFees(address recipient, Currency currency, uint256 amount) external override onlyOwner {
         poolManager.collectProtocolFees(recipient, currency, amount);
+    }
+
+    /// @inheritdoc IPoolManagerOwner
+    function transferPoolManagerOwnership(address newOwner) external override onlyOwner {
+        poolManager.transferOwnership(newOwner);
     }
 }

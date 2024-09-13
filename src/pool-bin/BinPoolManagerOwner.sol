@@ -8,6 +8,13 @@ import {PausableRole} from "../base/PausableRole.sol";
 import {IBinPoolManager} from "./interfaces/IBinPoolManager.sol";
 import {IPoolManagerOwner} from "../interfaces/IPoolManagerOwner.sol";
 
+/// @dev added interface in this file to avoid polluting other files in repository
+interface IBinPoolManagerWithPauseOwnable is IBinPoolManager {
+    function pause() external;
+    function unpause() external;
+    function transferOwnership(address newOwner) external;
+}
+
 /**
  * @dev This contract is the owner of the BinPoolManager contract
  *
@@ -18,9 +25,9 @@ contract BinPoolManagerOwner is IPoolManagerOwner, PausableRole {
     /// @notice Error thrown when owner set min share too small
     error MinShareTooSmall();
 
-    IBinPoolManager public immutable poolManager;
+    IBinPoolManagerWithPauseOwnable public immutable poolManager;
 
-    constructor(IBinPoolManager _poolManager) {
+    constructor(IBinPoolManagerWithPauseOwnable _poolManager) {
         poolManager = _poolManager;
     }
 
@@ -42,6 +49,11 @@ contract BinPoolManagerOwner is IPoolManagerOwner, PausableRole {
     /// @inheritdoc IPoolManagerOwner
     function collectProtocolFees(address recipient, Currency currency, uint256 amount) external override onlyOwner {
         poolManager.collectProtocolFees(recipient, currency, amount);
+    }
+
+    /// @inheritdoc IPoolManagerOwner
+    function transferPoolManagerOwnership(address newOwner) external override onlyOwner {
+        poolManager.transferOwnership(newOwner);
     }
 
     /// @notice Set max bin steps for binPoolManager, see IBinPoolManager for more documentation about this function

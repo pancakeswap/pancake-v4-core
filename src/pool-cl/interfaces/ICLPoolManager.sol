@@ -12,9 +12,8 @@ import {CLPosition} from "../libraries/CLPosition.sol";
 import {IPoolManager} from "../../interfaces/IPoolManager.sol";
 import {IExtsload} from "../../interfaces/IExtsload.sol";
 import {Tick} from "../libraries/Tick.sol";
-import {IPausable} from "../../interfaces/IPausable.sol";
 
-interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload, IPausable {
+interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @notice PoolManagerMismatch is thrown when pool manager specified in the pool key does not match current contract
     error PoolManagerMismatch();
     /// @notice Pools are limited to type(int16).max tickSpacing in #initialize, to prevent overflow
