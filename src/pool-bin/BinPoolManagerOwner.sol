@@ -23,7 +23,7 @@ interface IBinPoolManagerWithPauseOwnable is IBinPoolManager {
  */
 contract BinPoolManagerOwner is IPoolManagerOwner, PausableRole {
     /// @notice Error thrown when owner set min share too small
-    error MinShareTooSmall();
+    error MinShareTooSmall(uint256 minShare);
 
     IBinPoolManagerWithPauseOwnable public immutable poolManager;
 
@@ -59,7 +59,7 @@ contract BinPoolManagerOwner is IPoolManagerOwner, PausableRole {
     /// @notice Set max share steps for binPoolManager, see IBinPoolManager for more documentation about this function
     /// @dev Theres an extra check of minBinShare over here, minBinShare before donate should never be 0, otherwise share inflation attack can easily happen
     function setMinBinSharesForDonate(uint256 minBinShare) external onlyOwner {
-        if (minBinShare < 1e3) revert MinShareTooSmall();
+        if (minBinShare < 1e3) revert MinShareTooSmall(minBinShare);
 
         poolManager.setMinBinSharesForDonate(minBinShare);
     }
