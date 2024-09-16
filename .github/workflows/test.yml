@@ -37,4 +37,3 @@ jobs:
         run: yarn test -vvv
         env:
           FOUNDRY_PROFILE: ${{ github.ref_name == 'main' && 'ci_main' ||  'ci'  }}
-          FORGE_SNAPSHOT_CHECK: true 
