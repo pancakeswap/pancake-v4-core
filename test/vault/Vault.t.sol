@@ -68,7 +68,10 @@ contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
 
     function test_bytecodeSize() public {
         snapSize("VaultBytecodeSize", address(vault));
-        if (address(vault).code.length > 24576) {
+
+        // forge coverage will run with '--ir-minimum' which set optimizer run to min
+        // thus we do not want to revert for forge coverage case
+        if (vm.envExists("FOUNDRY_PROFILE") && address(vault).code.length > 24576) {
             revert ContractSizeTooLarge(address(vault).code.length - 24576);
         }
     }
