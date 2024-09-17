@@ -25,13 +25,9 @@ jobs:
 
       - run: yarn
 
-      - name: Run forge build
-        id: build
-        run: forge build --via-ir
-
       - name: Run forge coverage
         id: coverage-debug
-        run: forge coverage --ir-minimum 
+        run: forge coverage --ir-minimum --fuzz-runs 1
 
       # ignore test, script and total line
       - name: Run forge coverage
