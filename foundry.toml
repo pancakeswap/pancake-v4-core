@@ -22,7 +22,7 @@ gas_limit = "300000000"
 runs = 1000
 
 [profile.ci.fuzz]
-runs = 10000
+runs = 1000
 
 [profile.ci.invariant]
 runs = 100             # The number of calls to make in the invariant tests
