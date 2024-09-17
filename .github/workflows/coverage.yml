@@ -25,10 +25,6 @@ jobs:
 
       - run: yarn
 
-      - name: Run forge coverage
-        id: coverage-debug
-        run: forge coverage --ir-minimum --fuzz-runs 100 --no-match-contract VaultInvariant
-
       # ignore test, script and total line
       - name: Run forge coverage
         id: coverage
