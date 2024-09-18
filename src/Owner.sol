@@ -6,6 +6,7 @@ import {Ownable} from "./base/Ownable.sol";
 import {Pausable} from "./base/Pausable.sol";
 
 /// @notice Allow owner to pause in case of emergency
+/// @dev This contract is inherited by ProtocolFees and part of both CL/BinPoolManager
 abstract contract Owner is Ownable, Pausable {
     constructor() Ownable(msg.sender) {}
 

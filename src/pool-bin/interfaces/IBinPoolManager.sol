@@ -24,9 +24,6 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @notice Error thrown when owner set max bin step too small
     error MaxBinStepTooSmall(uint16 maxBinStep);
 
-    /// @notice Error thrown when owner set min share too small
-    error MinShareTooSmall();
-
     /// @notice Error thrown when bin has insufficient shares to accept donation
     error InsufficientBinShareForDonate(uint256 shares);
 
@@ -213,5 +210,6 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @notice Set min shares in bin before donate is allowed in current bin
     /// @dev Bin share is 1:1 liquidity when liquidity is first added. And liquidity: price * x + y << 128, where price is a 128.128 number. A
     ///         min share amount required in the bin for donate prevents share inflation attack.
+    /// Min share should always be greater than 0, there should be a validation on BinPoolManagerOwner to prevent setting min share to 0
     function setMinBinSharesForDonate(uint256 minShare) external;
 }
