@@ -2688,46 +2688,6 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         assertEq(slot0.protocolFee, protocolFee);
     }
 
-    function testCollectProtocolFees_ERC20_allowsOwnerToAccumulateFees() public {
-        // protocol fee 0.1%
-        uint24 protocolFee = ProtocolFeeLibrary.MAX_PROTOCOL_FEE | (uint24(ProtocolFeeLibrary.MAX_PROTOCOL_FEE) << 12);
-        uint256 expectedProtocolFees =
-            uint256(10000) * ProtocolFeeLibrary.MAX_PROTOCOL_FEE / ProtocolFeeLibrary.PIPS_DENOMINATOR;
-
-        PoolKey memory key = PoolKey({
-            currency0: currency0,
-            currency1: currency1,
-            // 0.3% lp fee
-            fee: 3000,
-            hooks: IHooks(address(0)),
-            poolManager: poolManager,
-            parameters: bytes32(uint256(10) << 16)
-        });
-        poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
-        feeController.setProtocolFeeForPool(key.toId(), protocolFee);
-
-        poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
-        (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
-        assertEq(slot0.protocolFee, protocolFee);
-
-        ICLPoolManager.ModifyLiquidityParams memory params =
-            ICLPoolManager.ModifyLiquidityParams(-120, 120, 10 ether, 0);
-        router.modifyPosition(key, params, ZERO_BYTES);
-        router.swap(
-            key,
-            ICLPoolManager.SwapParams(true, 10000, SQRT_RATIO_1_2),
-            CLPoolManagerRouter.SwapTestSettings(true, true),
-            ZERO_BYTES
-        );
-
-        assertEq(poolManager.protocolFeesAccrued(currency0), expectedProtocolFees);
-        assertEq(poolManager.protocolFeesAccrued(currency1), 0);
-        assertEq(currency0.balanceOf(address(1)), 0);
-        poolManager.collectProtocolFees(address(1), currency0, expectedProtocolFees);
-        assertEq(currency0.balanceOf(address(1)), expectedProtocolFees);
-        assertEq(poolManager.protocolFeesAccrued(currency0), 0);
-    }
-
     function testCollectProtocolFees_ERC20_returnsAllFeesIf0IsProvidedAsParameter() public {
         // protocol fee 0.1%
         uint24 protocolFee = ProtocolFeeLibrary.MAX_PROTOCOL_FEE | (uint24(ProtocolFeeLibrary.MAX_PROTOCOL_FEE) << 12);
@@ -2762,12 +2722,13 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         assertEq(poolManager.protocolFeesAccrued(currency0), expectedProtocolFees);
         assertEq(poolManager.protocolFeesAccrued(currency1), 0);
         assertEq(currency0.balanceOf(address(1)), 0);
+        vm.prank(address(feeController));
         poolManager.collectProtocolFees(address(1), currency0, 0);
         assertEq(currency0.balanceOf(address(1)), expectedProtocolFees);
         assertEq(poolManager.protocolFeesAccrued(currency0), 0);
     }
 
-    function testCollectProtocolFees_nativeToken_allowsOwnerToAccumulateFees() public {
+    function testCollectProtocolFees_nativeToken_allowsFeeControllerToAccumulateFees() public {
         // protocol fee 0.1%
         uint24 protocolFee = ProtocolFeeLibrary.MAX_PROTOCOL_FEE | (uint24(ProtocolFeeLibrary.MAX_PROTOCOL_FEE) << 12);
         uint256 expectedProtocolFees =
@@ -2802,6 +2763,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         assertEq(poolManager.protocolFeesAccrued(nativeCurrency), expectedProtocolFees);
         assertEq(poolManager.protocolFeesAccrued(currency1), 0);
         assertEq(nativeCurrency.balanceOf(address(1)), 0);
+        vm.prank(address(feeController));
         poolManager.collectProtocolFees(address(1), nativeCurrency, expectedProtocolFees);
         assertEq(nativeCurrency.balanceOf(address(1)), expectedProtocolFees);
         assertEq(poolManager.protocolFeesAccrued(nativeCurrency), 0);
@@ -2842,6 +2804,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         assertEq(poolManager.protocolFeesAccrued(nativeCurrency), expectedProtocolFees);
         assertEq(poolManager.protocolFeesAccrued(currency1), 0);
         assertEq(nativeCurrency.balanceOf(address(1)), 0);
+        vm.prank(address(feeController));
         poolManager.collectProtocolFees(address(1), nativeCurrency, 0);
         assertEq(nativeCurrency.balanceOf(address(1)), expectedProtocolFees);
         assertEq(poolManager.protocolFeesAccrued(nativeCurrency), 0);

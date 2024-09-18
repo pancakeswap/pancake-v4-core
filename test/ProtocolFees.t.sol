@@ -184,10 +184,16 @@ contract ProtocolFeesTest is Test {
         assertEq(protocolFee1, 1e15);
     }
 
-    function test_CollectProtocolFee_OnlyOwnerOrFeeController() public {
+    function test_CollectProtocolFee_OnlyFeeController() public {
+        // random user
         vm.expectRevert(IProtocolFees.InvalidCaller.selector);
-
         vm.prank(address(alice));
+        poolManager.collectProtocolFees(alice, Currency.wrap(address(token0)), 1e18);
+
+        // owner
+        address pmOwner = poolManager.owner();
+        vm.expectRevert(IProtocolFees.InvalidCaller.selector);
+        vm.prank(pmOwner);
         poolManager.collectProtocolFees(alice, Currency.wrap(address(token0)), 1e18);
     }
 
@@ -212,7 +218,7 @@ contract ProtocolFeesTest is Test {
         assertEq(token1.balanceOf(address(vault)), 1e15);
 
         // collect
-        vm.prank(address(feeController));
+        vm.startPrank(address(feeController));
         poolManager.collectProtocolFees(alice, Currency.wrap(address(token0)), 1e15);
         poolManager.collectProtocolFees(alice, Currency.wrap(address(token1)), 1e15);
 
