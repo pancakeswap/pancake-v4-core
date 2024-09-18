@@ -944,13 +944,6 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         assertEq(poolManager.MIN_BIN_SHARE_FOR_DONATE(), minShare);
     }
 
-    function testMinBinSharesForDonate_TooSmall(uint256 minShare) public {
-        minShare = bound(minShare, 0, 1e3 - 1);
-
-        vm.expectRevert(IBinPoolManager.MinShareTooSmall.selector);
-        poolManager.setMinBinSharesForDonate(minShare);
-    }
-
     function testMinBinSharesForDonate_OnlyOwner() public {
         vm.prank(makeAddr("bob"));
         vm.expectRevert();

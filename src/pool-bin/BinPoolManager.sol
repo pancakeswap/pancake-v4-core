@@ -303,8 +303,6 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
 
     /// @inheritdoc IBinPoolManager
     function setMinBinSharesForDonate(uint256 minBinShare) external override onlyOwner {
-        if (minBinShare < 1e3) revert MinShareTooSmall();
-
         MIN_BIN_SHARE_FOR_DONATE = minBinShare;
         emit SetMinBinSharesForDonate(minBinShare);
     }
