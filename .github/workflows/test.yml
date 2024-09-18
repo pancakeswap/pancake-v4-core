@@ -31,7 +31,8 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
-
+      
+      # If FOUNDRY_PROFILE is removed, test will not revert if exceed contract size limit
       - name: Run tests
         run: yarn test -vvv
         env:

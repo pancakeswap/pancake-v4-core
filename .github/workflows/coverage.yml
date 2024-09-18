@@ -1,0 +1,67 @@
+name: coverage
+
+on:
+  pull_request:
+
+jobs:
+  forge-coverage-comment:
+    name: Forge coverage and comment
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+          
+      # install dependency 
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'yarn'
+
+      - run: yarn
+
+      # ignore test, script and total line
+      - name: Run forge coverage
+        id: coverage
+        run: |
+          {
+          echo 'COVERAGE<<EOF'
+          forge coverage --ir-minimum --fuzz-runs 100 --no-match-contract VaultInvariant | grep '^|' | grep -Ev 'test/|script/|Total'
+          echo EOF
+          } >> "$GITHUB_OUTPUT"
+
+      # 41898282 is github-actions bot id: https://github.com/marketplace/actions/bot-details
+      - name: Comment forge coverage report on PR
+        id: comment
+        uses: actions/github-script@v5
+        with:
+          script: |
+            const {data: comments} = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number, 
+              })
+
+            const botComment = comments.find(comment => comment.user.id === 41898282)
+            const coverageReport = `${{ steps.coverage.outputs.COVERAGE }}`;
+
+            if (botComment) {
+              github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: coverageReport
+              })
+            } else {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: coverageReport
+              });
+            }

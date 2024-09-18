@@ -113,7 +113,10 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
     function test_bytecodeSize() public {
         snapSize("BinPoolManagerBytecodeSize", address(poolManager));
-        if (address(poolManager).code.length > 24576) {
+
+        // forge coverage will run with '--ir-minimum' which set optimizer run to min
+        // thus we do not want to revert for forge coverage case
+        if (vm.envExists("FOUNDRY_PROFILE") && address(poolManager).code.length > 24576) {
             revert ContractSizeTooLarge(address(poolManager).code.length - 24576);
         }
     }
