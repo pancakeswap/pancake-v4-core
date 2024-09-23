@@ -8,6 +8,9 @@ foundry-out/
 .DS_Store
 .idea
 
+# Ignores local env variables, avoid committing sensitive information
+.env
+
 # Ignores development broadcast logs
 !/broadcast
 /broadcast/*
