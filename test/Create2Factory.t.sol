@@ -100,6 +100,8 @@ contract Create2FactoryTest is Test, GasSnapshot {
         bytes32 bytecodeHash = keccak256(abi.encodePacked(creationCode));
         bytes memory data = abi.encodeWithSignature("transferOwnership(address)", alice);
         create2Factory.execute(salt, bytecodeHash, data);
+
+        // frontrun doesn't work, the owner is still create2Factory
         assertEq(vault.owner(), address(create2Factory));
     }
 }

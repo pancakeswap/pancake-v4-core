@@ -41,7 +41,7 @@ contract Create3FactoryTest is Test, GasSnapshot {
     }
 
     /// @dev showcase a need to pass in owner address
-    function test_deploy_Vault() public {
+    function test_Create3_Deploy() public {
         // deploy
         bytes memory creationCode = type(Vault).creationCode;
         bytes32 salt = bytes32(uint256(0x1234));
@@ -49,10 +49,11 @@ contract Create3FactoryTest is Test, GasSnapshot {
         snapLastCall("Create3FactoryTest#test_deploy");
 
         vault = Vault(deployed);
-        assertEq(vault.owner(), address(create3Factory)); // fail as owner is the proxy contract, not factory
+        // note equal as owner is the proxy contract, not factory
+        assertNotEq(vault.owner(), address(create3Factory));
     }
 
-    function test_deploy_CLPoolManager() public {
+    function test_Create3_Deploy_CLPoolManager() public {
         // deploy vault
         bytes memory vaultCreationCode = type(Vault).creationCode;
         bytes32 vaultSalt = bytes32(uint256(0x1234));
