@@ -5,6 +5,7 @@ import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import "forge-std/Test.sol";
 import {CREATE3} from "solmate/src/utils/Create3.sol";
 import {Vault} from "../src/Vault.sol";
+import {CLPoolManager} from "../src/pool-cl/CLPoolManager.sol";
 
 /// @notice Through the use of solmate create3, deploy contracts with deterministic addresses
 contract Create3Factory {
@@ -33,6 +34,7 @@ contract Create3Factory {
 contract Create3FactoryTest is Test, GasSnapshot {
     Create3Factory create3Factory;
     Vault vault;
+    CLPoolManager clPoolManager;
 
     function setUp() public {
         create3Factory = new Create3Factory();
@@ -44,7 +46,8 @@ contract Create3FactoryTest is Test, GasSnapshot {
         snapLastCall("Create3FactoryTest#test_deploy_NonDeterministic");
     }
 
-    function test_deploy() public {
+    /// @dev showcase a need to pass in owner address
+    function test_deploy_Vault() public {
         // deploy
         bytes memory creationCode = type(Vault).creationCode;
         bytes32 salt = bytes32(uint256(0x1234));
@@ -53,5 +56,21 @@ contract Create3FactoryTest is Test, GasSnapshot {
 
         vault = Vault(deployed);
         assertEq(vault.owner(), address(create3Factory)); // fail as owner is the proxy contract, not factory
+    }
+
+    function test_deploy_CLPoolManager() public {
+        // deploy vault
+        bytes memory vaultCreationCode = type(Vault).creationCode;
+        bytes32 vaultSalt = bytes32(uint256(0x1234));
+        address deployedVault = create3Factory.deploy(vaultSalt, vaultCreationCode);
+        vault = Vault(deployedVault);
+
+        // deploy CLPoolManager
+        bytes memory pmCreationCode = type(CLPoolManager).creationCode;
+        bytes memory pmConstructorArgs = abi.encode(deployedVault);
+        bytes memory pmCreationcodeWithArgs = abi.encodePacked(pmCreationCode, pmConstructorArgs);
+        bytes32 pmSalt = bytes32(uint256(0x12345));
+        address deployedCLPoolManager = create3Factory.deploy(pmSalt, pmCreationcodeWithArgs);
+        clPoolManager = CLPoolManager(deployedVault);
     }
 }
