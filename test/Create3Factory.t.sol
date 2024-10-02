@@ -23,12 +23,6 @@ contract Create3Factory {
         salt = keccak256(abi.encodePacked(deployer, salt));
         return CREATE3.getDeployed(salt);
     }
-
-    /// @notice execute a call on a deployed contract
-    function execute(bytes32 salt, bytes calldata data) external {
-        address target = getDeployed(msg.sender, salt);
-        target.call(data);
-    }
 }
 
 contract Create3FactoryTest is Test, GasSnapshot {
