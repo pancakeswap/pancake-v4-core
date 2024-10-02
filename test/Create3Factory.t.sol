@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import "forge-std/Test.sol";
-import {CREATE3} from "solmate/src/utils/Create3.sol";
+import {CREATE3} from "solmate/src/utils/CREATE3.sol";
 import {Vault} from "../src/Vault.sol";
 import {CLPoolManager} from "../src/pool-cl/CLPoolManager.sol";
 
