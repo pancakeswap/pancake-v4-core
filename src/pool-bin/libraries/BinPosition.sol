@@ -23,7 +23,7 @@ library BinPosition {
         // make salt, binId, owner to be tightly packed in memory
         assembly ("memory-safe") {
             mstore(0x0, or(shl(160, binId), owner)) // binId at [0x09,0x0c), owner at [0x0c, 0x20)
-            mstore(0x20, salt) // owner at [0x20, 0x40)
+            mstore(0x20, salt) // salt at [0x20, 0x40)
             key := keccak256(0x09, 0x37)
         }
     }
