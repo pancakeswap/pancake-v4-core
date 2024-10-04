@@ -34,7 +34,6 @@ library CLPosition {
     {
         // same as `positionKey = keccak256(abi.encodePacked(tickLower, tickUpper, owner, salt))`
         // make salt, tickUpper, tickLower, owner to be tightly packed in memory
-        // mstore8(s) overwrite the 0 padding of the address
         assembly ("memory-safe") {
             mstore(0x0, or(shl(160, and(0xFFFFFF, tickUpper)), or(shl(184, tickLower), owner))) // tickLower at [0x06, 0x09), tickUpper at [0x09,0x0c), owner at [0x0c, 0x20)
             mstore(0x20, salt) // salt at [0x20, 0x40)
