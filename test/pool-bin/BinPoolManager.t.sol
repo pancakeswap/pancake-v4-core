@@ -51,7 +51,6 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
     error PoolAlreadyInitialized();
     error PoolNotInitialized();
-    error PoolInvalidParameter();
     error CurrenciesInitializedOutOfOrder();
     error MaxBinStepTooSmall(uint16 maxBinStep);
     error ContractSizeTooLarge(uint256 diff);
@@ -221,10 +220,38 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     }
 
     function testInitializeSamePool() public {
-        poolManager.initialize(key, 10, new bytes(0));
+        poolManager.initialize(key, 2 ** 23, new bytes(0));
 
         vm.expectRevert(PoolAlreadyInitialized.selector);
-        poolManager.initialize(key, 10, new bytes(0));
+        poolManager.initialize(key, 2 ** 23 + 1, new bytes(0)); // different activeId but same pool
+    }
+
+    function test_fuzz_InvalidPrice(uint24 activeId, bool isLeft) public {
+        uint24 ONE_ONE_BIN_ID = 2 ** 23; // when tokenX and tokenY are at the same price
+
+        // assume binStep as 10, so a max of 88,767 bin on each side
+        if (isLeft) {
+            activeId = uint24(bound(activeId, 0, ONE_ONE_BIN_ID - 88_767 - 1));
+        } else {
+            activeId = uint24(bound(activeId, ONE_ONE_BIN_ID + 88767 + 1, type(uint24).max));
+        }
+
+        vm.expectRevert();
+        poolManager.initialize(key, activeId, new bytes(0));
+    }
+
+    function test_fuzz_ValidPrice(uint24 activeId, bool isLeft) public {
+        uint24 ONE_ONE_BIN_ID = 2 ** 23; // when tokenX and tokenY are at the same price
+
+        // assume binStep as 10, so a max of 88,767 bin on each side
+        if (isLeft) {
+            activeId = uint24(bound(activeId, ONE_ONE_BIN_ID - 88_767, ONE_ONE_BIN_ID)); // between
+        } else {
+            activeId = uint24(bound(activeId, ONE_ONE_BIN_ID, ONE_ONE_BIN_ID + 88767));
+        }
+
+        // no revert expected
+        poolManager.initialize(key, activeId, new bytes(0));
     }
 
     function testInitializeDynamicFeeTooLarge(uint24 dynamicSwapFee) public {
@@ -265,11 +292,11 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         });
 
         vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, key.fee));
-        poolManager.initialize(key, 10, new bytes(0));
+        poolManager.initialize(key, 2 ** 23, new bytes(0));
     }
 
     function testInitializeInvalidId() public {
-        vm.expectRevert(PoolInvalidParameter.selector);
+        vm.expectRevert();
         poolManager.initialize(key, 0, new bytes(0));
     }
 
