@@ -19,6 +19,7 @@ import {LPFeeLibrary} from "../libraries/LPFeeLibrary.sol";
 import {PackedUint128Math} from "./libraries/math/PackedUint128Math.sol";
 import {Extsload} from "../Extsload.sol";
 import {BinHooks} from "./libraries/BinHooks.sol";
+import {PriceHelper} from "./libraries/PriceHelper.sol";
 import {BeforeSwapDelta} from "../types/BeforeSwapDelta.sol";
 import "./interfaces/IBinHooks.sol";
 
@@ -106,6 +107,9 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         if (key.currency0 >= key.currency1) {
             revert CurrenciesInitializedOutOfOrder(Currency.unwrap(key.currency0), Currency.unwrap(key.currency1));
         }
+
+        // safety check, making sure that the price can be calculated
+        PriceHelper.getPriceFromId(activeId, binStep);
 
         ParametersHelper.checkUnusedBitsAllZero(
             key.parameters, BinPoolParametersHelper.OFFSET_MOST_SIGNIFICANT_UNUSED_BITS
