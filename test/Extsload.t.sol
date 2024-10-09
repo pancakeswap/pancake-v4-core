@@ -17,11 +17,11 @@ contract ExtsloadTest is Test, GasSnapshot {
     // | Name                  | Type                                   | Slot | Offset | Bytes | Contract                                    |
     // |-----------------------|----------------------------------------|------|--------|-------|---------------------------------------------|
     // | _owner                | address                                | 0    | 0      | 20    | src/pool-cl/CLPoolManager.sol:CLPoolManager |
-    // | _paused               | bool                                   | 0    | 20     | 1     | src/pool-cl/CLPoolManager.sol:CLPoolManager |
-    // | hasPausableRole       | mapping(address => bool)               | 1    | 0      | 32    | src/pool-cl/CLPoolManager.sol:CLPoolManager |
+    // | _paused               | uint256                                | 1    | 0      | 32    | src/pool-cl/CLPoolManager.sol:CLPoolManager |
     // | protocolFeesAccrued   | mapping(Currency => uint256)           | 2    | 0      | 32    | src/pool-cl/CLPoolManager.sol:CLPoolManager |
     // | protocolFeeController | contract IProtocolFeeController        | 3    | 0      | 20    | src/pool-cl/CLPoolManager.sol:CLPoolManager |
     // | pools                 | mapping(PoolId => struct CLPool.State) | 4    | 0      | 32    | src/pool-cl/CLPoolManager.sol:CLPoolManager |
+    // | poolIdToPoolKey       | mapping(PoolId => struct PoolKey)      | 5    | 0      | 32    | src/pool-cl/CLPoolManager.sol:CLPoolManager |
     ICLPoolManager poolManager;
 
     Loadable loadable = new Loadable();
@@ -34,21 +34,19 @@ contract ExtsloadTest is Test, GasSnapshot {
     }
 
     function testExtsload() public {
-        // as contract is not paused, slot0 is 0x0...0_owner_address,
-        // if paused, slot0 is 0x0...1_owner_address
         snapStart("ExtsloadTest#extsload");
         bytes32 slot0 = poolManager.extsload(0x00);
         snapEnd();
-        assertEq(abi.encode(slot0), abi.encode(address(this)));
+        assertEq(abi.encode(slot0), abi.encode(address(this))); // owner
 
-        bytes32 slot2 = poolManager.extsload(bytes32(uint256(0x02)));
-        assertEq(abi.encode(slot2), abi.encode(address(0xabcd)));
+        bytes32 slot2 = poolManager.extsload(bytes32(uint256(0x03)));
+        assertEq(abi.encode(slot2), abi.encode(address(0xabcd))); // protocolFeeController
     }
 
     function testExtsloadInBatch() public {
         bytes32[] memory slots = new bytes32[](2);
         slots[0] = 0x00;
-        slots[1] = bytes32(uint256(0x02));
+        slots[1] = bytes32(uint256(0x03));
         snapStart("ExtsloadTest#extsloadInBatch");
         slots = poolManager.extsload(slots);
         snapEnd();

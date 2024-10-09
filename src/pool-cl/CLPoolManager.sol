@@ -127,7 +127,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         bytes calldata hookData
     ) external override returns (BalanceDelta delta, BalanceDelta feeDelta) {
         // Do not allow add liquidity when paused()
-        if (paused() && params.liquidityDelta > 0) revert PoolPaused();
+        if (params.liquidityDelta > 0 && paused()) revert PoolPaused();
 
         PoolId id = key.toId();
         CLPool.State storage pool = pools[id];
