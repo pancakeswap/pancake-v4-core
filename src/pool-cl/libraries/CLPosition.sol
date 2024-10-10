@@ -32,21 +32,18 @@ library CLPosition {
         pure
         returns (bytes32 key)
     {
-        // same as `positionKey = keccak256(abi.encodePacked(owner, tickLower, tickUpper, salt))`
+        // same as `positionKey = keccak256(abi.encodePacked(tickLower, tickUpper, owner, salt))`
         // make salt, tickUpper, tickLower, owner to be tightly packed in memory
-        // mstore in reverse order make sure latter can make use of the empty space in the former
         assembly ("memory-safe") {
-            let fmp := mload(0x40)
-            mstore(add(fmp, 0x26), salt) // salt at [0x26, 0x46)
-            mstore(add(fmp, 0x06), tickUpper) // tickUpper at [0x23, 0x26)
-            mstore(add(fmp, 0x03), tickLower) // tickLower at [0x20, 0x23)
-            mstore(fmp, owner) // owner at [0x0c, 0x20)
-            key := keccak256(add(fmp, 0x0c), 0x3a) // len is 58 bytes
-
-            // now clean the memory we used since we don't need it anymore
-            mstore(add(fmp, 0x40), 0) // fmp+0x40 held salt
-            mstore(add(fmp, 0x20), 0) // fmp+0x20 held tickLower, tickUpper, salt
-            mstore(fmp, 0) // fmp held owner
+            mstore(
+                0x0,
+                or(
+                    shl(160, and(0xFFFFFF, tickUpper)),
+                    or(shl(184, tickLower), and(owner, 0xffffffffffffffffffffffffffffffffffffffff))
+                )
+            ) // tickLower at [0x06, 0x09), tickUpper at [0x09,0x0c), owner at [0x0c, 0x20)
+            mstore(0x20, salt) // salt at [0x20, 0x40)
+            key := keccak256(0x06, 0x3a) // len is 58 bytes
         }
     }
 

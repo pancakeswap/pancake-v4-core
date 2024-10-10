@@ -46,10 +46,11 @@ contract CLHookRevertWithReasonTest is Test, Deployers, TokenFixture {
 
     function testRevertWithNoReason() public {
         vm.expectRevert(abi.encodeWithSelector(Hooks.Wrap__FailedHookCall.selector, hook, new bytes(0)));
-        poolManager.initialize(key, SQRT_RATIO_1_1, abi.encode(false));
+        poolManager.initialize(key, SQRT_RATIO_1_1);
     }
 
     function testRevertWithHookNotImplemented() public {
+        hook.setRevertWithHookNotImplemented(true);
         vm.expectRevert(
             abi.encodeWithSelector(
                 Hooks.Wrap__FailedHookCall.selector,
@@ -57,6 +58,6 @@ contract CLHookRevertWithReasonTest is Test, Deployers, TokenFixture {
                 abi.encodeWithSelector(BaseCLTestHook.HookNotImplemented.selector)
             )
         );
-        poolManager.initialize(key, SQRT_RATIO_1_1, abi.encode(true));
+        poolManager.initialize(key, SQRT_RATIO_1_1);
     }
 }

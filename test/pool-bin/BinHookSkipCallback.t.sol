@@ -94,17 +94,17 @@ contract BinHookSkipCallbackTest is Test, GasSnapshot, BinTestHelper {
     }
 
     function testInitialize_FromHook() external {
-        binSkipCallbackHook.initialize(key, activeId, new bytes(0));
+        binSkipCallbackHook.initialize(key, activeId);
         assertEq(binSkipCallbackHook.hookCounterCallbackCount(), 0);
     }
 
     function testInitialize_NotfromHook() external {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
         assertEq(binSkipCallbackHook.hookCounterCallbackCount(), 2);
     }
 
     function testMint_FromHook() external {
-        binSkipCallbackHook.initialize(key, activeId, new bytes(0));
+        binSkipCallbackHook.initialize(key, activeId);
 
         IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
         binLiquidityHelper.mint(key, mintParams, "");
@@ -113,7 +113,7 @@ contract BinHookSkipCallbackTest is Test, GasSnapshot, BinTestHelper {
     }
 
     function testMint_NotFromHook() external {
-        binSkipCallbackHook.initialize(key, activeId, new bytes(0));
+        binSkipCallbackHook.initialize(key, activeId);
 
         IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
         binSkipCallbackHook.mint(key, mintParams, "");
@@ -122,7 +122,7 @@ contract BinHookSkipCallbackTest is Test, GasSnapshot, BinTestHelper {
     }
 
     function testBurn_FromHook() external {
-        binSkipCallbackHook.initialize(key, activeId, new bytes(0));
+        binSkipCallbackHook.initialize(key, activeId);
 
         IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
         binSkipCallbackHook.mint(key, mintParams, "");
@@ -136,7 +136,7 @@ contract BinHookSkipCallbackTest is Test, GasSnapshot, BinTestHelper {
     }
 
     function testBurn_NotFromHook() external {
-        binSkipCallbackHook.initialize(key, activeId, new bytes(0));
+        binSkipCallbackHook.initialize(key, activeId);
 
         IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
         binLiquidityHelper.mint(key, mintParams, "");
@@ -150,7 +150,7 @@ contract BinHookSkipCallbackTest is Test, GasSnapshot, BinTestHelper {
     }
 
     function testDonate_FromHook() external {
-        binSkipCallbackHook.initialize(key, activeId, new bytes(0));
+        binSkipCallbackHook.initialize(key, activeId);
 
         IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
         binSkipCallbackHook.mint(key, mintParams, "");
@@ -160,7 +160,7 @@ contract BinHookSkipCallbackTest is Test, GasSnapshot, BinTestHelper {
     }
 
     function testDonate_NotFromHook() external {
-        binSkipCallbackHook.initialize(key, activeId, new bytes(0));
+        binSkipCallbackHook.initialize(key, activeId);
 
         IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
         binSkipCallbackHook.mint(key, mintParams, "");

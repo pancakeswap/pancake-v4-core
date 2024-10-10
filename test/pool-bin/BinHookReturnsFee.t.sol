@@ -91,7 +91,7 @@ contract BinHookReturnsFeeTest is Test, BinTestHelper {
             parameters: bytes32(uint256(dynamicReturnsFeesHook.getHooksRegistrationBitmap())).setBinStep(10)
         });
 
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
         binLiquidityHelper.mint(key, mintParams, abi.encode(0));
@@ -128,7 +128,7 @@ contract BinHookReturnsFeeTest is Test, BinTestHelper {
     function test_dynamicReturnSwapFee_initializeZeroSwapFee() public {
         key.parameters =
             BinPoolParametersHelper.setBinStep(bytes32(uint256(dynamicReturnsFeesHook.getHooksRegistrationBitmap())), 1);
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
         assertEq(_fetchPoolSwapFee(key), 0);
     }
 
@@ -136,7 +136,7 @@ contract BinHookReturnsFeeTest is Test, BinTestHelper {
         key.fee = 3000; // static fee
         dynamicReturnsFeesHook.setFee(1000); // 0.10% fee is NOT used because the pool has a static fee
 
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
         IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
         binLiquidityHelper.mint(key, mintParams, abi.encode(0));
         assertEq(_fetchPoolSwapFee(key), 3000);
@@ -160,7 +160,7 @@ contract BinHookReturnsFeeTest is Test, BinTestHelper {
         // create a new pool with an initial fee of 123
         key.parameters =
             BinPoolParametersHelper.setBinStep(bytes32(uint256(dynamicReturnsFeesHook.getHooksRegistrationBitmap())), 1);
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
         IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
         binLiquidityHelper.mint(key, mintParams, abi.encode(0));
 

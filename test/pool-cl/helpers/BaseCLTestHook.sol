@@ -32,15 +32,11 @@ contract BaseCLTestHook is ICLHooks {
         revert HookNotImplemented();
     }
 
-    function beforeInitialize(address, PoolKey calldata, uint160, bytes calldata) external virtual returns (bytes4) {
+    function beforeInitialize(address, PoolKey calldata, uint160) external virtual returns (bytes4) {
         revert HookNotImplemented();
     }
 
-    function afterInitialize(address, PoolKey calldata, uint160, int24, bytes calldata)
-        external
-        virtual
-        returns (bytes4)
-    {
+    function afterInitialize(address, PoolKey calldata, uint160, int24) external virtual returns (bytes4) {
         revert HookNotImplemented();
     }
 

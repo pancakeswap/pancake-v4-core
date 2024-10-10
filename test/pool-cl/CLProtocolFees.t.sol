@@ -69,7 +69,7 @@ contract CLProtocolFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
             parameters: bytes32(uint256((60 << 16) | hook.getHooksRegistrationBitmap()))
         });
 
-        manager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
+        manager.initialize(key, SQRT_RATIO_1_1);
     }
 
     function testSetProtocolFeeControllerFuzz(uint24 protocolFee) public {
@@ -171,7 +171,7 @@ contract CLProtocolFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
         key.fee = 6000;
         uint256 gasBefore = gasleft();
 
-        manager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
+        manager.initialize(key, SQRT_RATIO_1_1);
         uint256 gasConsumed = gasBefore - gasleft();
         /// @dev Return data size 230k would consume almost all the gas speicified in the controllerGasLimit i.e. 500k
         /// And the gas consumed by the tx would be more than 800K if the payload is copied to the caller context.

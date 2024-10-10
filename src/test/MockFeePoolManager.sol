@@ -25,7 +25,7 @@ contract MockFeePoolManager is ProtocolFees {
 
     constructor(IVault vault, uint256 controllerGasLimit) ProtocolFees(vault) {}
 
-    function initialize(PoolKey memory key, bytes calldata) external {
+    function initialize(PoolKey memory key) external {
         PoolId id = key.toId();
 
         uint24 protocolFee = _fetchProtocolFee(key);

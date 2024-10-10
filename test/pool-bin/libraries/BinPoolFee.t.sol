@@ -98,7 +98,7 @@ contract BinPoolFeeTest is BinTestHelper {
         uint24 binId = ID_ONE; // where token price are the same
         uint256 amountX = 1_000 * 1e18;
         uint256 amountY = 1_000 * 1e18;
-        poolManager.initialize(key, binId, new bytes(0));
+        poolManager.initialize(key, binId);
 
         // first mint: 5:5 ratio, will never incur composition fee for first mint
         addLiquidityToBin(key, poolManager, bob, binId, amountX, amountY, 1e18, 1e18, "");
@@ -128,8 +128,8 @@ contract BinPoolFeeTest is BinTestHelper {
 
         // initialize both pool
         uint24 binId = ID_ONE; // where token price are the same
-        poolManager.initialize(key, binId, new bytes(0));
-        poolManager.initialize(key2, binId, new bytes(0));
+        poolManager.initialize(key, binId);
+        poolManager.initialize(key2, binId);
 
         // add same liquidity (100 to 100_000 ether) to both pool
         initialAmt = uint256(bound(initialAmt, 100 ether, 100_000 ether));
@@ -167,7 +167,7 @@ contract BinPoolFeeTest is BinTestHelper {
         });
 
         uint24 activeId = ID_ONE; // where token price are the same
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         bytes memory data = abi.encode(true, uint24(swapFee));
         vm.expectRevert(
@@ -195,7 +195,7 @@ contract BinPoolFeeTest is BinTestHelper {
         });
 
         uint24 binId = ID_ONE; // where token price are the same
-        poolManager.initialize(key, binId, new bytes(0));
+        poolManager.initialize(key, binId);
 
         vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, 110_000));
         addLiquidityToBin(key, poolManager, bob, binId, 1000e18, 1000e18, 1e18, 1e18, "");
@@ -221,7 +221,7 @@ contract BinPoolFeeTest is BinTestHelper {
         uint24 binId = ID_ONE; // where token price are the same
         uint256 amountX = 1_000 * 1e18;
         uint256 amountY = 1_000 * 1e18;
-        poolManager.initialize(key, binId, new bytes(0));
+        poolManager.initialize(key, binId);
 
         // first mint: 5:5 ratio, will never incur composition fee for first mint
         addLiquidityToBin(key, poolManager, bob, binId, amountX, amountY, 1e18, 1e18, "");
@@ -252,7 +252,7 @@ contract BinPoolFeeTest is BinTestHelper {
         uint24 binId = ID_ONE; // where token price are the same
         uint256 amountX = 1_000 * 1e18;
         uint256 amountY = 1_000 * 1e18;
-        poolManager.initialize(key, binId, new bytes(0));
+        poolManager.initialize(key, binId);
 
         // first mint: 5:5 ratio, will never incur composition fee for first mint
         addLiquidityToBin(key, poolManager, bob, binId, amountX, amountY, 1e18, 1e18, "");
@@ -292,7 +292,7 @@ contract BinPoolFeeTest is BinTestHelper {
         uint24 binId = ID_ONE; // where token price are the same
         uint256 amountX = 1_000 * 1e18;
         uint256 amountY = 1_000 * 1e18;
-        poolManager.initialize(key, binId, new bytes(0));
+        poolManager.initialize(key, binId);
 
         // first mint: 1000e18 tokenX and 1000e18 tokenY with 5:5 ratio
         addLiquidityToBin(key, poolManager, bob, binId, amountX, amountY, 1e18, 1e18, "");
@@ -315,7 +315,7 @@ contract BinPoolFeeTest is BinTestHelper {
     function _addLiquidityForBurnTest(uint24 activeId, PoolKey memory _key) internal {
         uint256 amountX = 1000 ether;
         uint256 amountY = 1000 ether;
-        poolManager.initialize(_key, activeId, new bytes(0));
+        poolManager.initialize(_key, activeId);
 
         // mint 5:5 ratio
         addLiquidityToBin(_key, poolManager, bob, activeId, amountX, amountY, 1e18, 1e18, "");
@@ -340,7 +340,7 @@ contract BinPoolFeeTest is BinTestHelper {
 
     function test_Swap_NoFee() external {
         uint24 activeId = ID_ONE; // where token price are the same
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         // addLiquidity: 10_000 token0 and token1 on active bin
         addLiquidityToBin(key, poolManager, bob, activeId, 10_000e18, 10_000e18, 1e18, 1e18, "");
@@ -378,7 +378,7 @@ contract BinPoolFeeTest is BinTestHelper {
 
         // addLiquidity: 10_000 token0 and token1 on active bin
         uint24 activeId = ID_ONE; // where token price are the same
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
         addLiquidityToBin(key, poolManager, bob, activeId, 10_000 ether, 10_000 ether, 1e18, 1e18, "");
 
         // overwrite fee to 2%
@@ -410,7 +410,7 @@ contract BinPoolFeeTest is BinTestHelper {
 
         // addLiquidity: 10_000 token0 and token1 on active bin
         uint24 activeId = ID_ONE; // where token price are the same
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
         addLiquidityToBin(key, poolManager, bob, activeId, 10_000e18, 10_000e18, 1e18, 1e18, "");
 
         bytes memory data = abi.encode(true, uint24(swapFee));

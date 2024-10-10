@@ -96,7 +96,7 @@ contract CLPositionTest is Test, GasSnapshot {
         pure
     {
         bytes32 positionKey = CLPosition.calculatePositionKey(owner, tickLower, tickUpper, salt);
-        assertEq(positionKey, keccak256(abi.encodePacked(owner, tickLower, tickUpper, salt)));
+        assertEq(positionKey, keccak256(abi.encodePacked(tickLower, tickUpper, owner, salt)));
     }
 
     function test_MixFuzz(address owner, int24 tickLower, int24 tickUpper, bytes32 salt, int128 liquidityDelta)
@@ -106,7 +106,7 @@ contract CLPositionTest is Test, GasSnapshot {
         CLPosition.Info storage info = pool.positions.get(owner, tickLower, tickUpper, salt);
         info.update(liquidityDelta, 0, 0);
 
-        bytes32 key = keccak256(abi.encodePacked(owner, tickLower, tickUpper, salt));
+        bytes32 key = keccak256(abi.encodePacked(tickLower, tickUpper, owner, salt));
         assertEq(pool.positions[key].liquidity, uint128(liquidityDelta));
     }
 }

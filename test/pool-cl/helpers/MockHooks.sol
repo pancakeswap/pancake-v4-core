@@ -12,8 +12,6 @@ import {PoolId} from "../../../src/types/PoolId.sol";
 contract MockHooks is ICLHooks {
     using Hooks for ICLHooks;
 
-    bytes public beforeInitializeData;
-    bytes public afterInitializeData;
     bytes public beforeAddLiquidityData;
     bytes public afterAddLiquidityData;
     bytes public beforeRemoveLiquidityData;
@@ -37,22 +35,12 @@ contract MockHooks is ICLHooks {
         bitmap = newBitmapValue;
     }
 
-    function beforeInitialize(address, PoolKey calldata, uint160, bytes calldata hookData)
-        external
-        override
-        returns (bytes4)
-    {
-        beforeInitializeData = hookData;
+    function beforeInitialize(address, PoolKey calldata, uint160) external override returns (bytes4) {
         bytes4 selector = MockHooks.beforeInitialize.selector;
         return returnValues[selector] == bytes4(0) ? selector : returnValues[selector];
     }
 
-    function afterInitialize(address, PoolKey calldata, uint160, int24, bytes calldata hookData)
-        external
-        override
-        returns (bytes4)
-    {
-        afterInitializeData = hookData;
+    function afterInitialize(address, PoolKey calldata, uint160, int24) external override returns (bytes4) {
         bytes4 selector = MockHooks.afterInitialize.selector;
         return returnValues[selector] == bytes4(0) ? selector : returnValues[selector];
     }

@@ -167,7 +167,7 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     function getNextNonEmptyBin(PoolId id, bool swapForY, uint24 binId) external view returns (uint24 nextId);
 
     /// @notice Initialize a new pool
-    function initialize(PoolKey memory key, uint24 activeId, bytes calldata hookData) external;
+    function initialize(PoolKey memory key, uint24 activeId) external;
 
     /// @notice Add liquidity to a pool
     /// @return delta BalanceDelta, will be negative indicating how much total amt0 and amt1 liquidity added

@@ -49,12 +49,12 @@ contract BinPositionTest is Test {
 
     function testFuzz_CalculatePositionKey(address owner, uint24 binId, bytes32 salt) public pure {
         bytes32 positionKey = BinPosition.calculatePositionKey(owner, binId, salt);
-        assertEq(positionKey, keccak256(abi.encodePacked(owner, binId, salt)));
+        assertEq(positionKey, keccak256(abi.encodePacked(binId, owner, salt)));
     }
 
     function testFuzz_GetPosition(address owner, uint24 binId, bytes32 salt, uint256 share) public {
         // manual keccak and add share
-        bytes32 key = keccak256(abi.encodePacked(owner, binId, salt));
+        bytes32 key = keccak256(abi.encodePacked(binId, owner, salt));
         _self.positions[key].addShare(share);
 
         // verify assembly version of keccak retrival works

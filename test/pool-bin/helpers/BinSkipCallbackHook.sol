@@ -198,16 +198,16 @@ contract BinSkipCallbackHook is BaseBinTestHook {
         return abi.encode(delta);
     }
 
-    function initialize(PoolKey memory key, uint24 activeId, bytes memory hookData) external {
-        poolManager.initialize(key, activeId, hookData);
+    function initialize(PoolKey memory key, uint24 activeId) external {
+        poolManager.initialize(key, activeId);
     }
 
-    function beforeInitialize(address, PoolKey calldata, uint24, bytes calldata) external override returns (bytes4) {
+    function beforeInitialize(address, PoolKey calldata, uint24) external override returns (bytes4) {
         hookCounterCallbackCount++;
         return BinSkipCallbackHook.beforeInitialize.selector;
     }
 
-    function afterInitialize(address, PoolKey calldata, uint24, bytes calldata) external override returns (bytes4) {
+    function afterInitialize(address, PoolKey calldata, uint24) external override returns (bytes4) {
         hookCounterCallbackCount++;
         return BinSkipCallbackHook.afterInitialize.selector;
     }
