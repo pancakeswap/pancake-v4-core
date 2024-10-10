@@ -35,11 +35,7 @@ contract CLFeeManagerHook is BaseCLTestHook {
     }
 
     /// @dev update swap fee once pool is initialized
-    function afterInitialize(address, PoolKey calldata key, uint160, int24, bytes calldata)
-        external
-        override
-        returns (bytes4)
-    {
+    function afterInitialize(address, PoolKey calldata key, uint160, int24) external override returns (bytes4) {
         clManager.updateDynamicLPFee(key, fee);
         return ICLHooks.afterInitialize.selector;
     }

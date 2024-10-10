@@ -68,7 +68,7 @@ contract ProtocolFeesTest is Test {
     }
 
     function testSwap_NoProtocolFee() public {
-        poolManager.initialize(key, new bytes(0));
+        poolManager.initialize(key);
 
         (uint256 protocolFee0, uint256 protocolFee1) = poolManager.swap(key, 1e18, 1e18);
         assertEq(protocolFee0, 0);
@@ -89,12 +89,12 @@ contract ProtocolFeesTest is Test {
         poolManagerWithLowControllerGasLimit.setProtocolFeeController(feeController);
 
         vm.expectRevert(IProtocolFees.ProtocolFeeCannotBeFetched.selector);
-        poolManagerWithLowControllerGasLimit.initialize{gas: 2000_000}(_key, new bytes(0));
+        poolManagerWithLowControllerGasLimit.initialize{gas: 2000_000}(_key);
     }
 
     function testInit_WhenFeeControllerRevert() public {
         poolManager.setProtocolFeeController(revertingFeeController);
-        poolManager.initialize(key, new bytes(0));
+        poolManager.initialize(key);
 
         assertEq(poolManager.getProtocolFee(key), 0);
     }
@@ -102,7 +102,7 @@ contract ProtocolFeesTest is Test {
     function testInit_WhenFeeControllerOutOfBound() public {
         poolManager.setProtocolFeeController(outOfBoundsFeeController);
         assertEq(address(poolManager.protocolFeeController()), address(outOfBoundsFeeController));
-        poolManager.initialize(key, new bytes(0));
+        poolManager.initialize(key);
 
         assertEq(poolManager.getProtocolFee(key), 0);
     }
@@ -110,7 +110,7 @@ contract ProtocolFeesTest is Test {
     function testInit_WhenFeeControllerOverflow() public {
         poolManager.setProtocolFeeController(overflowFeeController);
         assertEq(address(poolManager.protocolFeeController()), address(overflowFeeController));
-        poolManager.initialize(key, new bytes(0));
+        poolManager.initialize(key);
 
         assertEq(poolManager.getProtocolFee(key), 0);
     }
@@ -118,7 +118,7 @@ contract ProtocolFeesTest is Test {
     function testInit_WhenFeeControllerInvalidReturnSize() public {
         poolManager.setProtocolFeeController(invalidReturnSizeFeeController);
         assertEq(address(poolManager.protocolFeeController()), address(invalidReturnSizeFeeController));
-        poolManager.initialize(key, new bytes(0));
+        poolManager.initialize(key);
 
         assertEq(poolManager.getProtocolFee(key), 0);
     }
@@ -130,7 +130,7 @@ contract ProtocolFeesTest is Test {
             address(feeController), abi.encodeCall(IProtocolFeeController.protocolFeeForPool, key), abi.encode(fee)
         );
 
-        poolManager.initialize(key, new bytes(0));
+        poolManager.initialize(key);
 
         if (fee != 0) {
             uint24 fee0 = fee % 4096;
@@ -146,7 +146,7 @@ contract ProtocolFeesTest is Test {
     }
 
     function testSetProtocolFee() public {
-        poolManager.initialize(key, new bytes(0));
+        poolManager.initialize(key);
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
 
         assertEq(poolManager.getProtocolFee(key), 0);
@@ -178,7 +178,7 @@ contract ProtocolFeesTest is Test {
         feeController.setProtocolFeeForPool(key, protocolFee);
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
 
-        poolManager.initialize(key, new bytes(0));
+        poolManager.initialize(key);
         (uint256 protocolFee0, uint256 protocolFee1) = poolManager.swap(key, 1e18, 1e18);
         assertEq(protocolFee0, 1e15);
         assertEq(protocolFee1, 1e15);
@@ -202,7 +202,7 @@ contract ProtocolFeesTest is Test {
         uint24 protocolFee = _buildProtocolFee(ProtocolFeeLibrary.MAX_PROTOCOL_FEE, ProtocolFeeLibrary.MAX_PROTOCOL_FEE);
         feeController.setProtocolFeeForPool(key, protocolFee);
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
-        poolManager.initialize(key, new bytes(0));
+        poolManager.initialize(key);
         (uint256 protocolFee0, uint256 protocolFee1) = poolManager.swap(key, 1e18, 1e18);
         assertEq(protocolFee0, 1e15);
         assertEq(protocolFee1, 1e15);

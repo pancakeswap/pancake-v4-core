@@ -66,7 +66,7 @@ abstract contract V3Fuzzer is V3Helper, Deployers, Fuzzers, IUniswapV3MintCallba
             fee: fee,
             parameters: bytes32(0).setTickSpacing(tickSpacing)
         });
-        manager.initialize(key_, sqrtPriceX96, "");
+        manager.initialize(key_, sqrtPriceX96);
     }
 
     function addLiquidity(

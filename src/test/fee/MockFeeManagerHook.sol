@@ -29,7 +29,7 @@ contract MockFeeManagerHook is IHooks {
     }
 
     // swap fee for dynamic fee pool is 0 by default, so we need to update it after pool initialization
-    function afterInitialize(address, PoolKey calldata key, uint24, bytes calldata) external returns (bytes4) {
+    function afterInitialize(address, PoolKey calldata key, uint24) external returns (bytes4) {
         IBinPoolManager(msg.sender).updateDynamicLPFee(key, swapfee);
         return MockFeeManagerHook.afterInitialize.selector;
     }

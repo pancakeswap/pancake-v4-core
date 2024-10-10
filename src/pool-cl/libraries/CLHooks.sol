@@ -50,21 +50,19 @@ library CLHooks {
         }
     }
 
-    function beforeInitialize(PoolKey memory key, uint160 sqrtPriceX96, bytes calldata hookData) internal {
+    function beforeInitialize(PoolKey memory key, uint160 sqrtPriceX96) internal {
         ICLHooks hooks = ICLHooks(address(key.hooks));
 
         if (key.parameters.shouldCall(HOOKS_BEFORE_INITIALIZE_OFFSET, hooks)) {
-            Hooks.callHook(hooks, abi.encodeCall(ICLHooks.beforeInitialize, (msg.sender, key, sqrtPriceX96, hookData)));
+            Hooks.callHook(hooks, abi.encodeCall(ICLHooks.beforeInitialize, (msg.sender, key, sqrtPriceX96)));
         }
     }
 
-    function afterInitialize(PoolKey memory key, uint160 sqrtPriceX96, int24 tick, bytes calldata hookData) internal {
+    function afterInitialize(PoolKey memory key, uint160 sqrtPriceX96, int24 tick) internal {
         ICLHooks hooks = ICLHooks(address(key.hooks));
 
         if (key.parameters.shouldCall(HOOKS_AFTER_INITIALIZE_OFFSET, hooks)) {
-            Hooks.callHook(
-                hooks, abi.encodeCall(ICLHooks.afterInitialize, (msg.sender, key, sqrtPriceX96, tick, hookData))
-            );
+            Hooks.callHook(hooks, abi.encodeCall(ICLHooks.afterInitialize, (msg.sender, key, sqrtPriceX96, tick)));
         }
     }
 

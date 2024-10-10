@@ -5,6 +5,8 @@ import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {BaseBinTestHook} from "./BaseBinTestHook.sol";
 
 contract BinRevertHook is BaseBinTestHook {
+    bool public revertWithHookNotImplemented = false;
+
     function getHooksRegistrationBitmap() external pure override returns (uint16) {
         return _hooksRegistrationBitmapFrom(
             Permissions({
@@ -26,13 +28,11 @@ contract BinRevertHook is BaseBinTestHook {
         );
     }
 
-    function afterInitialize(address, PoolKey calldata, uint24, bytes calldata data)
-        external
-        pure
-        override
-        returns (bytes4)
-    {
-        (bool revertWithHookNotImplemented) = abi.decode(data, (bool));
+    function setRevertWithHookNotImplemented(bool value) external {
+        revertWithHookNotImplemented = value;
+    }
+
+    function afterInitialize(address, PoolKey calldata, uint24) external view override returns (bytes4) {
         if (revertWithHookNotImplemented) {
             revert HookNotImplemented();
         } else {

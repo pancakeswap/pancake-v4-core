@@ -45,7 +45,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
 
         mockHooks.setReturnValue(mockHooks.beforeInitialize.selector, bytes4(0xdeadbeef));
         vm.expectRevert(Hooks.InvalidHookResponse.selector);
-        poolManager.initialize(key, binId, ZERO_BYTES);
+        poolManager.initialize(key, binId);
     }
 
     function testAfterInitializeInvalidReturn() public {
@@ -55,7 +55,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
 
         mockHooks.setReturnValue(mockHooks.afterInitialize.selector, bytes4(0xdeadbeef));
         vm.expectRevert(Hooks.InvalidHookResponse.selector);
-        poolManager.initialize(key, binId, ZERO_BYTES);
+        poolManager.initialize(key, binId);
     }
 
     function testInitializeSucceedsWithHook() public {
@@ -64,10 +64,8 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         _createPoolWithBitMap(bitMap);
 
         snapStart("BinHookTest#testInitializeSucceedsWithHook");
-        poolManager.initialize(key, binId, new bytes(123));
+        poolManager.initialize(key, binId);
         snapEnd();
-        assertEq(mockHooks.beforeInitializeData(), new bytes(123));
-        assertEq(mockHooks.afterInitializeData(), new bytes(123));
     }
 
     function testMintInvalidReturn() public {
@@ -78,7 +76,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         mockHooks.setReturnValue(mockHooks.beforeMint.selector, bytes4(0xdeadbeef));
 
         // initialize and add 1e18 token0, 1e18 token1 into a single binId
-        poolManager.initialize(key, binId, "");
+        poolManager.initialize(key, binId);
         vm.expectRevert(Hooks.InvalidHookResponse.selector);
         addLiquidityToBin(key, poolManager, bob, binId, 1e18, 1e18, 1e18, 1e18, "");
     }
@@ -91,7 +89,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         mockHooks.setReturnValue(mockHooks.afterMint.selector, bytes4(0xdeadbeef));
 
         // initialize and add 1e18 token0, 1e18 token1 into a single binId
-        poolManager.initialize(key, binId, "");
+        poolManager.initialize(key, binId);
         vm.expectRevert(Hooks.InvalidHookResponse.selector);
         addLiquidityToBin(key, poolManager, bob, binId, 1e18, 1e18, 1e18, 1e18, "");
     }
@@ -102,7 +100,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         _createPoolWithBitMap(bitMap);
 
         // initialize and add 1e18 token0, 1e18 token1 into a single binId
-        poolManager.initialize(key, binId, "");
+        poolManager.initialize(key, binId);
 
         snapStart("BinHookTest#testMintSucceedsWithHook");
         addLiquidityToBin(key, poolManager, bob, binId, 1e18, 1e18, 1e18, 1e18, new bytes(123));
@@ -118,7 +116,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         _createPoolWithBitMap(bitMap);
 
         // initialize and add 1e18 token0, 1e18 token1 into a single binId
-        poolManager.initialize(key, binId, "");
+        poolManager.initialize(key, binId);
         addLiquidityToBin(key, poolManager, bob, binId, 1e18, 1e18, 1e18, 1e18, new bytes(123));
 
         uint256 bobBal = poolManager.getPosition(key.toId(), bob, binId, 0).share;
@@ -139,7 +137,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         mockHooks.setReturnValue(mockHooks.beforeBurn.selector, bytes4(0xdeadbeef));
 
         // initialize and add 1e18 token0, 1e18 token1 into a single binId
-        poolManager.initialize(key, binId, "");
+        poolManager.initialize(key, binId);
         addLiquidityToBin(key, poolManager, bob, binId, 1e18, 1e18, 1e18, 1e18, "");
 
         uint256 bobBal = poolManager.getPosition(key.toId(), bob, binId, 0).share;
@@ -155,7 +153,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         mockHooks.setReturnValue(mockHooks.afterBurn.selector, bytes4(0xdeadbeef));
 
         // initialize and add 1e18 token0, 1e18 token1 into a single binId
-        poolManager.initialize(key, binId, "");
+        poolManager.initialize(key, binId);
         addLiquidityToBin(key, poolManager, bob, binId, 1e18, 1e18, 1e18, 1e18, "");
 
         uint256 bobBal = poolManager.getPosition(key.toId(), bob, binId, 0).share;
@@ -169,7 +167,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         _createPoolWithBitMap(bitMap);
 
         // initialize and add 1e18 token0, 1e18 token1 into a single binId
-        poolManager.initialize(key, binId, "");
+        poolManager.initialize(key, binId);
         addLiquidityToBin(key, poolManager, bob, binId, 1e18, 1e18, 1e18, 1e18, new bytes(123));
 
         snapStart("BinHookTest#testSwapSucceedsWithHook");
@@ -188,7 +186,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         mockHooks.setReturnValue(mockHooks.beforeSwap.selector, bytes4(0xdeadbeef));
 
         // initialize and add 1e18 token0, 1e18 token1 into a single binId
-        poolManager.initialize(key, binId, "");
+        poolManager.initialize(key, binId);
         addLiquidityToBin(key, poolManager, bob, binId, 1e18, 1e18, 1e18, 1e18, new bytes(123));
 
         vm.expectRevert(Hooks.InvalidHookResponse.selector);
@@ -203,7 +201,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         mockHooks.setReturnValue(mockHooks.afterSwap.selector, bytes4(0xdeadbeef));
 
         // initialize and add 1e18 token0, 1e18 token1 into a single binId
-        poolManager.initialize(key, binId, "");
+        poolManager.initialize(key, binId);
         addLiquidityToBin(key, poolManager, bob, binId, 1e18, 1e18, 1e18, 1e18, new bytes(123));
 
         vm.expectRevert(Hooks.InvalidHookResponse.selector);
@@ -216,7 +214,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         _createPoolWithBitMap(bitMap);
 
         // initialize and add 1e18 token0, 1e18 token1 into a single binId
-        poolManager.initialize(key, binId, "");
+        poolManager.initialize(key, binId);
         addLiquidityToBin(key, poolManager, bob, binId, 1e18, 1e18, 1e18, 1e18, new bytes(123));
 
         snapStart("BinHookTest#testDonateSucceedsWithHook");
@@ -235,7 +233,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         mockHooks.setReturnValue(mockHooks.beforeDonate.selector, bytes4(0xdeadbeef));
 
         // initialize and add 1e18 token0, 1e18 token1 into a single binId
-        poolManager.initialize(key, binId, "");
+        poolManager.initialize(key, binId);
         addLiquidityToBin(key, poolManager, bob, binId, 1e18, 1e18, 1e18, 1e18, new bytes(123));
 
         vm.expectRevert(Hooks.InvalidHookResponse.selector);
@@ -250,7 +248,7 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         mockHooks.setReturnValue(mockHooks.afterDonate.selector, bytes4(0xdeadbeef));
 
         // initialize and add 1e18 token0, 1e18 token1 into a single binId
-        poolManager.initialize(key, binId, "");
+        poolManager.initialize(key, binId);
         addLiquidityToBin(key, poolManager, bob, binId, 1e18, 1e18, 1e18, 1e18, new bytes(123));
 
         vm.expectRevert(Hooks.InvalidHookResponse.selector);

@@ -56,8 +56,8 @@ contract CLSkipCallbackHook is BaseCLTestHook {
         bytes rawCallbackData;
     }
 
-    function initialize(PoolKey memory key, uint160 sqrtPriceX96, bytes memory hookData) external {
-        poolManager.initialize(key, sqrtPriceX96, hookData);
+    function initialize(PoolKey memory key, uint160 sqrtPriceX96) external {
+        poolManager.initialize(key, sqrtPriceX96);
     }
 
     struct ModifyPositionCallbackData {
@@ -215,16 +215,12 @@ contract CLSkipCallbackHook is BaseCLTestHook {
         }
     }
 
-    function beforeInitialize(address, PoolKey calldata, uint160, bytes calldata) external override returns (bytes4) {
+    function beforeInitialize(address, PoolKey calldata, uint160) external override returns (bytes4) {
         hookCounterCallbackCount++;
         return CLSkipCallbackHook.beforeInitialize.selector;
     }
 
-    function afterInitialize(address, PoolKey calldata, uint160, int24, bytes calldata)
-        external
-        override
-        returns (bytes4)
-    {
+    function afterInitialize(address, PoolKey calldata, uint160, int24) external override returns (bytes4) {
         hookCounterCallbackCount++;
         return CLSkipCallbackHook.afterInitialize.selector;
     }

@@ -63,7 +63,7 @@ contract CLHookReturnsFeeTest is Test, Deployers, TokenFixture, GasSnapshot {
             )
         });
 
-        poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
+        poolManager.initialize(key, SQRT_RATIO_1_1);
 
         IERC20(Currency.unwrap(currency0)).approve(address(router), type(uint256).max);
         IERC20(Currency.unwrap(currency1)).approve(address(router), type(uint256).max);
@@ -118,7 +118,7 @@ contract CLHookReturnsFeeTest is Test, Deployers, TokenFixture, GasSnapshot {
         key.parameters = CLPoolParametersHelper.setTickSpacing(
             bytes32(uint256(dynamicReturnsFeesHook.getHooksRegistrationBitmap())), 10
         );
-        poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
+        poolManager.initialize(key, SQRT_RATIO_1_1);
         assertEq(_fetchPoolSwapFee(key), 0);
     }
 
@@ -126,7 +126,7 @@ contract CLHookReturnsFeeTest is Test, Deployers, TokenFixture, GasSnapshot {
         key.fee = 3000; // static fee
         dynamicReturnsFeesHook.setFee(1000); // 0.10% fee is NOT used because the pool has a static fee
 
-        poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
+        poolManager.initialize(key, SQRT_RATIO_1_1);
 
         IERC20(Currency.unwrap(currency0)).approve(address(router), type(uint256).max);
         IERC20(Currency.unwrap(currency1)).approve(address(router), type(uint256).max);
@@ -165,7 +165,7 @@ contract CLHookReturnsFeeTest is Test, Deployers, TokenFixture, GasSnapshot {
         key.parameters = CLPoolParametersHelper.setTickSpacing(
             bytes32(uint256(dynamicReturnsFeesHook.getHooksRegistrationBitmap())), 10
         );
-        poolManager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
+        poolManager.initialize(key, SQRT_RATIO_1_1);
 
         IERC20(Currency.unwrap(currency0)).approve(address(router), type(uint256).max);
         IERC20(Currency.unwrap(currency1)).approve(address(router), type(uint256).max);

@@ -92,7 +92,7 @@ contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
             parameters: bytes32(uint256(binReturnsDeltaHook.getHooksRegistrationBitmap())).setBinStep(10)
         });
 
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
     }
 
     function testMint_MintMore() external {
