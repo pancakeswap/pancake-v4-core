@@ -66,13 +66,13 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
     function testPoolInitializeFailsWithTooLargeFee() public {
         staticFeeKey.fee = LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1;
         vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, staticFeeKey.fee));
-        poolManager.initialize(staticFeeKey, SQRT_RATIO_1_1, ZERO_BYTES);
+        poolManager.initialize(staticFeeKey, SQRT_RATIO_1_1);
     }
 
     function testUpdateFailsWithTooLargeFee() public {
         hook.setFee(LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE / 2);
         hook.setHooksRegistrationBitmap(uint16((1 << HOOKS_BEFORE_SWAP_OFFSET) | (1 << HOOKS_AFTER_INITIALIZE_OFFSET)));
-        poolManager.initialize(dynamicFeeKey, SQRT_RATIO_1_1, ZERO_BYTES);
+        poolManager.initialize(dynamicFeeKey, SQRT_RATIO_1_1);
 
         hook.setFee(LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE + 1);
         vm.expectRevert(
@@ -87,7 +87,7 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
 
         // starts from price = 1
         hook.setHooksRegistrationBitmap(uint16((1 << HOOKS_BEFORE_SWAP_OFFSET) | (1 << HOOKS_AFTER_INITIALIZE_OFFSET)));
-        poolManager.initialize(dynamicFeeKey, SQRT_RATIO_1_1, ZERO_BYTES);
+        poolManager.initialize(dynamicFeeKey, SQRT_RATIO_1_1);
 
         ICLPoolManager.ModifyLiquidityParams memory modifyPositionParams =
             ICLPoolManager.ModifyLiquidityParams({tickLower: -60, tickUpper: 60, liquidityDelta: 1 ether, salt: 0});
@@ -117,7 +117,7 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
 
     function testSwapWorksWithStaticFee() public {
         // starts from price = 1
-        poolManager.initialize(staticFeeKey, SQRT_RATIO_1_1, ZERO_BYTES);
+        poolManager.initialize(staticFeeKey, SQRT_RATIO_1_1);
 
         ICLPoolManager.ModifyLiquidityParams memory modifyPositionParams =
             ICLPoolManager.ModifyLiquidityParams({tickLower: -60, tickUpper: 60, liquidityDelta: 1 ether, salt: 0});
@@ -150,7 +150,7 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
         hook.setHooksRegistrationBitmap(uint16((1 << HOOKS_BEFORE_SWAP_OFFSET) | (1 << HOOKS_AFTER_INITIALIZE_OFFSET)));
 
         // starts from price = 1
-        poolManager.initialize(dynamicFeeKey, SQRT_RATIO_1_1, ZERO_BYTES);
+        poolManager.initialize(dynamicFeeKey, SQRT_RATIO_1_1);
 
         ICLPoolManager.ModifyLiquidityParams memory modifyPositionParams =
             ICLPoolManager.ModifyLiquidityParams({tickLower: -60, tickUpper: 60, liquidityDelta: 1 ether, salt: 0});
@@ -183,6 +183,6 @@ contract CLPoolSwapFeeTest is Deployers, TokenFixture, Test {
         });
 
         vm.expectRevert(Hooks.HookConfigValidationError.selector);
-        poolManager.initialize(_key, SQRT_RATIO_1_1, ZERO_BYTES);
+        poolManager.initialize(_key, SQRT_RATIO_1_1);
     }
 }

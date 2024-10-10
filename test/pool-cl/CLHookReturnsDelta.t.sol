@@ -54,7 +54,7 @@ contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
             parameters: bytes32(uint256(clReturnsDeltaHook.getHooksRegistrationBitmap())).setTickSpacing(10)
         });
 
-        poolManager.initialize(key, SQRT_RATIO_1_1, new bytes(0));
+        poolManager.initialize(key, SQRT_RATIO_1_1);
     }
 
     function testModifyPosition_AddMore() external {

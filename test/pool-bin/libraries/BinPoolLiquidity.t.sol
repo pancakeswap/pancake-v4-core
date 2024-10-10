@@ -54,7 +54,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
     }
 
     function test_SimpleMintX() external {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         uint256 amountX = 120 * 10 ** 18;
         uint256 amountY = 2_400 * 10 ** 6;
@@ -129,7 +129,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
     }
 
     function test_MintTwice() external {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         uint256 amountX = 100 * 10 ** 18;
         uint256 amountY = 2_000 * 10 ** 6;
@@ -176,7 +176,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
 
     /// @dev Ensure composition fee all goes to LP
     function test_Mint_CompositionFeeGoesToLp() external {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         uint256 amountX = 100 ether;
         uint256 amountY = 1 ether;
@@ -195,7 +195,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
     }
 
     function test_MintWithDifferentBins() external {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         uint256 amountX = 100 * 10 ** 18;
         uint256 amountY = 2_000 * 10 ** 6;
@@ -234,7 +234,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
     }
 
     function test_revert_MintEmptyConfig() public {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         IBinPoolManager.MintParams memory params = IBinPoolManager.MintParams({
             liquidityConfigs: new bytes32[](0),
@@ -247,7 +247,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
     }
 
     function test_revert_MintZeroShares() external {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         bytes32[] memory data = new bytes32[](1);
         data[0] = LiquidityConfigurations.encodeParams(1e18, 1e18, activeId);
@@ -260,7 +260,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
     }
 
     function test_revert_MintMoreThanAmountSent() external {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         bytes32[] memory data = new bytes32[](2);
         data[0] = LiquidityConfigurations.encodeParams(0, 0.5e18, activeId - 1);
@@ -286,7 +286,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
     }
 
     function test_SimpleBurn() external {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         uint256 amountX = 100 * 10 ** 18;
         uint256 amountY = 100 * 10 ** 18;
@@ -326,7 +326,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
     }
 
     function test_BurnHalfTwice() external {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         uint256 amountX = 100 * 10 ** 18;
         uint256 amountY = 100 * 10 ** 18;
@@ -375,7 +375,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
     }
 
     function test_revert_BurnEmptyArraysOrDifferent() external {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         uint256[] memory ids = new uint256[](0);
         uint256[] memory balances = new uint256[](1);
@@ -403,7 +403,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
     }
 
     function test_revert_BurnMoreThanBalance() external {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         addLiquidity(key, poolManager, alice, activeId, 1e18, 1e18, 1, 0);
         addLiquidity(key, poolManager, bob, activeId, 1e18, 1e18, 1, 0);
@@ -419,7 +419,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
     }
 
     function test_revert_BurnZeroShares() external {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         uint256[] memory ids = new uint256[](1);
         uint256[] memory balances = new uint256[](1);
@@ -432,7 +432,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
     }
 
     function test_revert_BurnForZeroAmounts() external {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         uint256[] memory ids = new uint256[](1);
         uint256[] memory balances = new uint256[](1);

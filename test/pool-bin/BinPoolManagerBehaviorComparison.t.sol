@@ -91,7 +91,7 @@ abstract contract LBFuzzer is LBHelper, BinTestHelper {
             fee: 0,
             parameters: bytes32(0).setBinStep(boundBinStep)
         });
-        manager.initialize(key_, boundActiveId, "");
+        manager.initialize(key_, boundActiveId);
     }
 
     function mint(ILBPair lbPair, PoolKey memory key, uint24 boundId, uint256 amountX, uint256 amountY, uint8 binNum)

@@ -5,6 +5,8 @@ import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {BaseCLTestHook} from "./BaseCLTestHook.sol";
 
 contract CLRevertHook is BaseCLTestHook {
+    bool public revertWithHookNotImplemented;
+
     function getHooksRegistrationBitmap() external pure override returns (uint16) {
         return _hooksRegistrationBitmapFrom(
             Permissions({
@@ -26,13 +28,11 @@ contract CLRevertHook is BaseCLTestHook {
         );
     }
 
-    function afterInitialize(address, PoolKey calldata, uint160, int24, bytes calldata data)
-        external
-        pure
-        override
-        returns (bytes4)
-    {
-        (bool revertWithHookNotImplemented) = abi.decode(data, (bool));
+    function setRevertWithHookNotImplemented(bool value) public {
+        revertWithHookNotImplemented = value;
+    }
+
+    function afterInitialize(address, PoolKey calldata, uint160, int24) external view override returns (bytes4) {
         if (revertWithHookNotImplemented) {
             revert HookNotImplemented();
         } else {

@@ -53,7 +53,7 @@ contract BinPoolSwapTest is BinTestHelper {
     }
 
     function test_exactInputSingleBin_SwapForY() public {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
         addLiquidityToBin(key, poolManager, bob, activeId, 1e18, 1e18, 1e18, 1e18, "");
 
         BalanceDelta delta = poolManager.swap(key, true, -int128(1e18), "");
@@ -62,7 +62,7 @@ contract BinPoolSwapTest is BinTestHelper {
     }
 
     function test_exactInputSingleBin_SwapForX() public {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
         addLiquidityToBin(key, poolManager, bob, activeId, 1e18, 1e18, 1e18, 1e18, "");
 
         BalanceDelta delta = poolManager.swap(key, false, -int128(1e18), "");
@@ -71,7 +71,7 @@ contract BinPoolSwapTest is BinTestHelper {
     }
 
     function test_exactOutputSingleBin_SwapForY() public {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
         addLiquidityToBin(key, poolManager, bob, activeId, 1e18, 1e18, 1e18, 1e18, "");
 
         BalanceDelta delta = poolManager.swap(key, true, 1e18, "");
@@ -80,7 +80,7 @@ contract BinPoolSwapTest is BinTestHelper {
     }
 
     function test_exactOutputSingleBin_SwapForX() public {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
         addLiquidityToBin(key, poolManager, bob, activeId, 1e18, 1e18, 1e18, 1e18, "");
 
         BalanceDelta delta = poolManager.swap(key, false, 1e18, "");
@@ -89,7 +89,7 @@ contract BinPoolSwapTest is BinTestHelper {
     }
 
     function test_exactInputMultipleBin() public {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
         addLiquidity(key, poolManager, bob, activeId, 1e18, 1e18, 10, 10);
 
         BalanceDelta delta = poolManager.swap(key, true, -1e18, "");
@@ -98,7 +98,7 @@ contract BinPoolSwapTest is BinTestHelper {
     }
 
     function test_exactOutputMultipleBin() public {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
         addLiquidity(key, poolManager, bob, activeId, 1e18, 1e18, 10, 10);
 
         BalanceDelta delta = poolManager.swap(key, true, 1e18, "");
@@ -114,7 +114,7 @@ contract BinPoolSwapTest is BinTestHelper {
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
 
         // add 1 ether on each side to active bin
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
         addLiquidityToBin(key, poolManager, bob, activeId, 1e18, 1e18, 1e18, 1e18, "");
 
         // before swap
@@ -139,7 +139,7 @@ contract BinPoolSwapTest is BinTestHelper {
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
 
         // add 1 ether on each side to active bin
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
         addLiquidityToBin(key, poolManager, bob, activeId, 1e18, 1e18, 1e18, 1e18, "");
 
         // before swap
@@ -164,7 +164,7 @@ contract BinPoolSwapTest is BinTestHelper {
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
 
         // add 1 ether on each side to active bin
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
         addLiquidityToBin(key, poolManager, bob, activeId, 1e18, 1e18, 1e18, 1e18, "");
 
         // before swap
@@ -189,7 +189,7 @@ contract BinPoolSwapTest is BinTestHelper {
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
 
         // add liquidity to multiple bin
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
         addLiquidity(key, poolManager, bob, activeId, 1e18, 1e18, 10, 10);
 
         // before swap
@@ -208,7 +208,7 @@ contract BinPoolSwapTest is BinTestHelper {
 
     function test_revert_SwapAmountSpecifiedIsZero() external {
         // Add liquidity of 1e18 on each side
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
         addLiquidity(key, poolManager, bob, activeId, 1e18, 1e18, 50, 50);
 
         uint128 amountIn = 0;
@@ -222,7 +222,7 @@ contract BinPoolSwapTest is BinTestHelper {
 
     function test_revert_SwapInsufficientAmountOut() external {
         // Add liquidity of 1e18 on each side
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
         addLiquidity(key, poolManager, bob, activeId, 1e18, 1e18, 50, 50);
 
         uint128 amountIn = 1;
@@ -236,7 +236,7 @@ contract BinPoolSwapTest is BinTestHelper {
 
     function test_revert_SwapOutOfLiquidity() external {
         // Add liquidity of 1e18 on each side
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
         addLiquidity(key, poolManager, bob, activeId, 1e18, 1e18, 50, 50);
 
         // pool only have 1e18 token0, 1e18 token1

@@ -46,13 +46,6 @@ contract Deployers {
         private
         returns (PoolKey memory key, PoolId id)
     {
-        (key, id) = createPool(manager, hooks, fee, sqrtPriceX96, ZERO_BYTES);
-    }
-
-    function createPool(ICLPoolManager manager, IHooks hooks, uint24 fee, uint160 sqrtPriceX96, bytes memory initData)
-        private
-        returns (PoolKey memory key, PoolId id)
-    {
         MockERC20[] memory tokens = deployTokens(2, 2 ** 255);
         (Currency currency0, Currency currency1) = SortTokens.sort(tokens[0], tokens[1]);
         key = PoolKey(
@@ -66,22 +59,15 @@ contract Deployers {
                 : bytes32(uint256(((fee / 100 * 2) << 16) | 0x00ff))
         );
         id = key.toId();
-        manager.initialize(key, sqrtPriceX96, initData);
+        manager.initialize(key, sqrtPriceX96);
     }
 
     function createFreshPool(IHooks hooks, uint24 fee, uint160 sqrtPriceX96)
         internal
         returns (IVault vault, ICLPoolManager manager, PoolKey memory key, PoolId id)
     {
-        (vault, manager, key, id) = createFreshPool(hooks, fee, sqrtPriceX96, ZERO_BYTES);
-    }
-
-    function createFreshPool(IHooks hooks, uint24 fee, uint160 sqrtPriceX96, bytes memory initData)
-        internal
-        returns (IVault vault, ICLPoolManager manager, PoolKey memory key, PoolId id)
-    {
         (vault, manager) = createFreshManager();
-        (key, id) = createPool(manager, hooks, fee, sqrtPriceX96, initData);
+        (key, id) = createPool(manager, hooks, fee, sqrtPriceX96);
         return (vault, manager, key, id);
     }
 

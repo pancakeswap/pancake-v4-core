@@ -51,19 +51,19 @@ library BinHooks {
         }
     }
 
-    function beforeInitialize(PoolKey memory key, uint24 activeId, bytes calldata hookData) internal {
+    function beforeInitialize(PoolKey memory key, uint24 activeId) internal {
         IBinHooks hooks = IBinHooks(address(key.hooks));
 
         if (key.parameters.shouldCall(HOOKS_BEFORE_INITIALIZE_OFFSET, hooks)) {
-            Hooks.callHook(hooks, abi.encodeCall(IBinHooks.beforeInitialize, (msg.sender, key, activeId, hookData)));
+            Hooks.callHook(hooks, abi.encodeCall(IBinHooks.beforeInitialize, (msg.sender, key, activeId)));
         }
     }
 
-    function afterInitialize(PoolKey memory key, uint24 activeId, bytes calldata hookData) internal {
+    function afterInitialize(PoolKey memory key, uint24 activeId) internal {
         IBinHooks hooks = IBinHooks(address(key.hooks));
 
         if (key.parameters.shouldCall(HOOKS_AFTER_INITIALIZE_OFFSET, hooks)) {
-            Hooks.callHook(hooks, abi.encodeCall(IBinHooks.afterInitialize, (msg.sender, key, activeId, hookData)));
+            Hooks.callHook(hooks, abi.encodeCall(IBinHooks.afterInitialize, (msg.sender, key, activeId)));
         }
     }
 

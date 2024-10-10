@@ -57,17 +57,17 @@ contract CLHookSkipCallbackTest is Test, Deployers, TokenFixture, GasSnapshot {
     }
 
     function testInitialize_FromHook() external {
-        clSkipCallbackHook.initialize(key, SQRT_RATIO_1_1, new bytes(0));
+        clSkipCallbackHook.initialize(key, SQRT_RATIO_1_1);
         assertEq(clSkipCallbackHook.hookCounterCallbackCount(), 0);
     }
 
     function testInitialize_NotFromHook() external {
-        poolManager.initialize(key, SQRT_RATIO_1_1, new bytes(0));
+        poolManager.initialize(key, SQRT_RATIO_1_1);
         assertEq(clSkipCallbackHook.hookCounterCallbackCount(), 2);
     }
 
     function testModifyPosition_FromHook() external {
-        clSkipCallbackHook.initialize(key, SQRT_RATIO_1_1, new bytes(0));
+        clSkipCallbackHook.initialize(key, SQRT_RATIO_1_1);
 
         // Add and remove liquidity
         clSkipCallbackHook.modifyPosition(
@@ -84,7 +84,7 @@ contract CLHookSkipCallbackTest is Test, Deployers, TokenFixture, GasSnapshot {
     }
 
     function testModifyPosition_NotFromHook() external {
-        clSkipCallbackHook.initialize(key, SQRT_RATIO_1_1, new bytes(0));
+        clSkipCallbackHook.initialize(key, SQRT_RATIO_1_1);
 
         // Add and remove liquidity
         router.modifyPosition(
@@ -101,7 +101,7 @@ contract CLHookSkipCallbackTest is Test, Deployers, TokenFixture, GasSnapshot {
     }
 
     function testSwap_FromHook() external {
-        clSkipCallbackHook.initialize(key, SQRT_RATIO_1_1, new bytes(0));
+        clSkipCallbackHook.initialize(key, SQRT_RATIO_1_1);
 
         // Pre-req add some liqudiity
         clSkipCallbackHook.modifyPosition(
@@ -121,7 +121,7 @@ contract CLHookSkipCallbackTest is Test, Deployers, TokenFixture, GasSnapshot {
     }
 
     function testSwap_NotFromHook() external {
-        clSkipCallbackHook.initialize(key, SQRT_RATIO_1_1, new bytes(0));
+        clSkipCallbackHook.initialize(key, SQRT_RATIO_1_1);
 
         // Pre-req add some liqudiity
         clSkipCallbackHook.modifyPosition(
@@ -141,7 +141,7 @@ contract CLHookSkipCallbackTest is Test, Deployers, TokenFixture, GasSnapshot {
     }
 
     function testDonate_FromHook() external {
-        clSkipCallbackHook.initialize(key, SQRT_RATIO_1_1, new bytes(0));
+        clSkipCallbackHook.initialize(key, SQRT_RATIO_1_1);
 
         // Pre-req add some liqudiity
         clSkipCallbackHook.modifyPosition(
@@ -156,7 +156,7 @@ contract CLHookSkipCallbackTest is Test, Deployers, TokenFixture, GasSnapshot {
     }
 
     function testDonate_NotFromHook() external {
-        clSkipCallbackHook.initialize(key, SQRT_RATIO_1_1, new bytes(0));
+        clSkipCallbackHook.initialize(key, SQRT_RATIO_1_1);
 
         // Pre-req add some liqudiity
         clSkipCallbackHook.modifyPosition(

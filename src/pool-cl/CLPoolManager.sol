@@ -83,7 +83,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     }
 
     /// @inheritdoc ICLPoolManager
-    function initialize(PoolKey memory key, uint160 sqrtPriceX96, bytes calldata hookData)
+    function initialize(PoolKey memory key, uint160 sqrtPriceX96)
         external
         override
         poolManagerMatch(address(key.poolManager))
@@ -106,7 +106,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         uint24 lpFee = key.fee.getInitialLPFee();
         lpFee.validate(LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE);
 
-        CLHooks.beforeInitialize(key, sqrtPriceX96, hookData);
+        CLHooks.beforeInitialize(key, sqrtPriceX96);
 
         PoolId id = key.toId();
         uint24 protocolFee = _fetchProtocolFee(key);
@@ -117,7 +117,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
         emit Initialize(id, key.currency0, key.currency1, key.hooks, key.fee, key.parameters, sqrtPriceX96, tick);
 
-        CLHooks.afterInitialize(key, sqrtPriceX96, tick, hookData);
+        CLHooks.afterInitialize(key, sqrtPriceX96, tick);
     }
 
     /// @inheritdoc ICLPoolManager

@@ -120,9 +120,7 @@ interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload {
         returns (CLPosition.Info memory position);
 
     /// @notice Initialize the state for a given pool ID
-    function initialize(PoolKey memory key, uint160 sqrtPriceX96, bytes calldata hookData)
-        external
-        returns (int24 tick);
+    function initialize(PoolKey memory key, uint160 sqrtPriceX96) external returns (int24 tick);
 
     struct ModifyLiquidityParams {
         // the lower and upper tick of the position

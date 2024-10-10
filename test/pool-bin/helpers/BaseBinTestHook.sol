@@ -32,11 +32,11 @@ contract BaseBinTestHook is IBinHooks {
         revert HookNotImplemented();
     }
 
-    function beforeInitialize(address, PoolKey calldata, uint24, bytes calldata) external virtual returns (bytes4) {
+    function beforeInitialize(address, PoolKey calldata, uint24) external virtual returns (bytes4) {
         revert HookNotImplemented();
     }
 
-    function afterInitialize(address, PoolKey calldata, uint24, bytes calldata) external virtual returns (bytes4) {
+    function afterInitialize(address, PoolKey calldata, uint24) external virtual returns (bytes4) {
         revert HookNotImplemented();
     }
 

@@ -122,7 +122,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
     function testInitialize_gasCheck_withoutHooks() public {
         snapStart("BinPoolManagerTest#testInitialize_gasCheck_withoutHooks");
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
         snapEnd();
     }
 
@@ -148,7 +148,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             key.toId(), key.currency0, key.currency1, IHooks(address(mockHooks)), key.fee, key.parameters, activeId
         );
 
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         (Currency curr0, Currency curr1, IHooks hooks, IPoolManager pm, uint24 fee, bytes32 parameters) =
             poolManager.poolIdToPoolKey(key.toId());
@@ -178,7 +178,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         });
 
         vm.expectRevert(abi.encodeWithSelector(ParametersHelper.UnusedBitsNonZero.selector));
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
     }
 
     function testInitializeHookValidation() public {
@@ -198,7 +198,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
                 parameters: bytes32(uint256(bitMap - 1)).setBinStep(10)
             });
             vm.expectRevert(abi.encodeWithSelector(Hooks.HookConfigValidationError.selector));
-            poolManager.initialize(key, activeId, new bytes(0));
+            poolManager.initialize(key, activeId);
         }
 
         // hook permission
@@ -215,15 +215,15 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
                 parameters: bytes32(uint256(bitMap)).setBinStep(10)
             });
             vm.expectRevert(abi.encodeWithSelector(Hooks.HookPermissionsValidationError.selector));
-            poolManager.initialize(key, activeId, new bytes(0));
+            poolManager.initialize(key, activeId);
         }
     }
 
     function testInitializeSamePool() public {
-        poolManager.initialize(key, 2 ** 23, new bytes(0));
+        poolManager.initialize(key, 2 ** 23);
 
         vm.expectRevert(PoolAlreadyInitialized.selector);
-        poolManager.initialize(key, 2 ** 23 + 1, new bytes(0)); // different activeId but same pool
+        poolManager.initialize(key, 2 ** 23 + 1); // different activeId but same pool
     }
 
     function test_fuzz_InvalidPrice(uint24 activeId, bool isLeft) public {
@@ -237,7 +237,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         }
 
         vm.expectRevert();
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
     }
 
     function test_fuzz_ValidPrice(uint24 activeId, bool isLeft) public {
@@ -251,7 +251,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         }
 
         // no revert expected
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
     }
 
     function testInitializeDynamicFeeTooLarge(uint24 dynamicSwapFee) public {
@@ -292,12 +292,12 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         });
 
         vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, key.fee));
-        poolManager.initialize(key, 2 ** 23, new bytes(0));
+        poolManager.initialize(key, 2 ** 23);
     }
 
     function testInitializeInvalidId() public {
         vm.expectRevert();
-        poolManager.initialize(key, 0, new bytes(0));
+        poolManager.initialize(key, 0);
     }
 
     function testInitializeSwapFeeTooLarge() public {
@@ -313,7 +313,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         });
 
         vm.expectRevert(abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, swapFee));
-        poolManager.initialize(key, activeId, "");
+        poolManager.initialize(key, activeId);
     }
 
     function testInitializeInvalidBinStep() public {
@@ -329,7 +329,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         vm.expectRevert(
             abi.encodeWithSelector(IBinPoolManager.BinStepTooSmall.selector, poolManager.MIN_BIN_STEP() - 1)
         );
-        poolManager.initialize(key, activeId, "");
+        poolManager.initialize(key, activeId);
 
         key = PoolKey({
             currency0: currency0,
@@ -343,11 +343,11 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         vm.expectRevert(
             abi.encodeWithSelector(IBinPoolManager.BinStepTooLarge.selector, poolManager.MAX_BIN_STEP() + 1)
         );
-        poolManager.initialize(key, activeId, "");
+        poolManager.initialize(key, activeId);
     }
 
     function testGasMintOneBin() public {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         token0.mint(address(this), 2 ether);
         token1.mint(address(this), 2 ether);
@@ -373,7 +373,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     }
 
     function testGasMintNneBins() public {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         token0.mint(address(this), 10 ether);
         token1.mint(address(this), 10 ether);
@@ -397,7 +397,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             fee: uint24(3000), // 3000 = 0.3%
             parameters: poolParam.setBinStep(10) // binStep
         });
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         token1.mint(address(this), 1 ether);
         IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
@@ -419,7 +419,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
     function testMintAndBurnWithSalt() public {
         bytes32 salt = bytes32(uint256(0x1234));
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         token0.mint(address(this), 10 ether);
         token1.mint(address(this), 10 ether);
@@ -477,7 +477,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         bytes32 salt0 = bytes32(0);
         bytes32 salt1 = bytes32(uint256(0x1234));
         bytes32 salt2 = bytes32(uint256(0x5678));
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         token0.mint(address(this), 30 ether);
         token1.mint(address(this), 30 ether);
@@ -615,7 +615,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
     function testGasBurnOneBin() public {
         // initialize
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         // mint
         token0.mint(address(this), 2 ether);
@@ -641,7 +641,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
     function testGasBurnHalfBin() public {
         // initialize
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         // mint
         token0.mint(address(this), 2 ether);
@@ -659,7 +659,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     }
 
     function testGasBurnNineBins() public {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         // mint on 9 bins
         token0.mint(address(this), 10 ether);
@@ -685,7 +685,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             fee: uint24(3000), // 3000 = 0.3%
             parameters: poolParam.setBinStep(10) // binStep
         });
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         // mint
         token1.mint(address(this), 1 ether);
@@ -710,7 +710,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
     function testGasSwapSingleBin() public {
         // initialize
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         // mint
         token0.mint(address(this), 10 ether);
@@ -733,7 +733,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     }
 
     function testGasSwapMultipleBins() public {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         // mint on 9 bins, around 2 eth worth on each bin. eg. 4 binY || activeBin || 4 binX
         token0.mint(address(this), 10 ether);
@@ -751,7 +751,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     }
 
     function testGasSwapOverBigBinIdGate() public {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         // mint on 9 bins, around 2 eth worth on each bin. eg. 4 binY || activeBin || 4 binX
         token0.mint(address(this), 1 ether);
@@ -779,7 +779,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     }
 
     function testGasDonate() public {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         token0.mint(address(this), 11 ether);
         token1.mint(address(this), 11 ether);
@@ -800,7 +800,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         BinSwapHelper.TestSettings memory testSettings;
 
         // initialize the pool
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         // mint
         token0.mint(address(this), 10 ether);
@@ -869,7 +869,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         assertEq(abi.encode(owner), abi.encode(address(this)));
 
         // initialize
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         // verify poolId.
         uint256 POOL_SLOT = 5;
@@ -911,7 +911,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
     function testSetProtocolFee() public {
         // initialize the pool and asset protocolFee is 0
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
         (, uint24 protocolFee,) = poolManager.getSlot0(key.toId());
         assertEq(protocolFee, 0);
 
@@ -1030,7 +1030,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             parameters: bytes32(uint256(bitMap)).setBinStep(10)
         });
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         binFeeManagerHook.setFee(_lpFee);
 
@@ -1059,7 +1059,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             parameters: bytes32(uint256(bitMap)).setBinStep(10)
         });
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         binFeeManagerHook.setFee(_lpFee);
 
@@ -1079,7 +1079,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         BinSwapHelper.TestSettings memory testSettings;
 
         // initialize the pool
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         // mint
         token0.mint(address(this), 10 ether);
@@ -1101,7 +1101,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         token0.mint(address(this), 1 ether);
         token1.mint(address(this), 1 ether);
 
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
         IBinPoolManager.MintParams memory mintParams;
 
         // add 1 eth of tokenX and 1 eth of tokenY liquidity at activeId
@@ -1117,7 +1117,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     // verify remove liquidity is fine when paused
     function testBurn_WhenPaused() public {
         // initialize
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         // mint
         token0.mint(address(this), 2 ether);
@@ -1142,7 +1142,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     }
 
     function testDonate_WhenPaused() public {
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         token0.mint(address(this), 11 ether);
         token1.mint(address(this), 11 ether);
@@ -1160,7 +1160,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
 
     function testGasGetBin() public {
         // Initialize and add 1e18 token0, token1 to the active bin. price of bin: 2**128, 3.4e38
-        poolManager.initialize(key, activeId, new bytes(0));
+        poolManager.initialize(key, activeId);
 
         // add 1 eth of tokenX and 1 eth of tokenY liquidity at activeId
         token0.mint(address(this), 1 ether);

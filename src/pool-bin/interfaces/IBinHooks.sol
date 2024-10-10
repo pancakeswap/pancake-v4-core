@@ -31,21 +31,15 @@ interface IBinHooks is IHooks {
     /// @param sender The initial msg.sender for the initialize call
     /// @param key The key for the pool being initialized
     /// @param activeId The binId of the pool, when the value is 2 ** 23, token price is 1:1
-    /// @param hookData Arbitrary data handed into the PoolManager by the initializer to be be passed on to the hook
     /// @return bytes4 The function selector for the hook
-    function beforeInitialize(address sender, PoolKey calldata key, uint24 activeId, bytes calldata hookData)
-        external
-        returns (bytes4);
+    function beforeInitialize(address sender, PoolKey calldata key, uint24 activeId) external returns (bytes4);
 
     /// @notice The hook called after the state of a pool is initialized
     /// @param sender The initial msg.sender for the initialize call
     /// @param key The key for the pool being initialized
     /// @param activeId The binId of the pool, when the value is 2 ** 23, token price is 1:1
-    /// @param hookData Arbitrary data handed into the PoolManager by the initializer to be be passed on to the hook
     /// @return bytes4 The function selector for the hook
-    function afterInitialize(address sender, PoolKey calldata key, uint24 activeId, bytes calldata hookData)
-        external
-        returns (bytes4);
+    function afterInitialize(address sender, PoolKey calldata key, uint24 activeId) external returns (bytes4);
 
     /// @notice The hook called before adding liquidity
     /// @param sender The initial msg.sender for the modify position call

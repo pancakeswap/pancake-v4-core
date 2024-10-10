@@ -96,7 +96,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
     }
 
     /// @inheritdoc IBinPoolManager
-    function initialize(PoolKey memory key, uint24 activeId, bytes calldata hookData)
+    function initialize(PoolKey memory key, uint24 activeId)
         external
         override
         poolManagerMatch(address(key.poolManager))
@@ -121,7 +121,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         uint24 lpFee = key.fee.getInitialLPFee();
         lpFee.validate(LPFeeLibrary.TEN_PERCENT_FEE);
 
-        BinHooks.beforeInitialize(key, activeId, hookData);
+        BinHooks.beforeInitialize(key, activeId);
 
         PoolId id = key.toId();
 
@@ -133,7 +133,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
         emit Initialize(id, key.currency0, key.currency1, key.hooks, key.fee, key.parameters, activeId);
 
-        BinHooks.afterInitialize(key, activeId, hookData);
+        BinHooks.afterInitialize(key, activeId);
     }
 
     /// @inheritdoc IBinPoolManager

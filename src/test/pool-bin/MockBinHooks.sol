@@ -12,8 +12,6 @@ import {PoolId} from "../../types/PoolId.sol";
 contract MockBinHooks is IBinHooks {
     using Hooks for IBinHooks;
 
-    bytes public beforeInitializeData;
-    bytes public afterInitializeData;
     bytes public beforeMintData;
     bytes public afterMintData;
     bytes public beforeSwapData;
@@ -35,18 +33,12 @@ contract MockBinHooks is IBinHooks {
         return bitmap;
     }
 
-    function beforeInitialize(address, PoolKey calldata, uint24, bytes calldata hookData) external returns (bytes4) {
-        beforeInitializeData = hookData;
+    function beforeInitialize(address, PoolKey calldata, uint24) external returns (bytes4) {
         bytes4 selector = MockBinHooks.beforeInitialize.selector;
         return returnValues[selector] == bytes4(0) ? selector : returnValues[selector];
     }
 
-    function afterInitialize(address, PoolKey calldata, uint24, bytes calldata hookData)
-        external
-        override
-        returns (bytes4)
-    {
-        afterInitializeData = hookData;
+    function afterInitialize(address, PoolKey calldata, uint24) external override returns (bytes4) {
         bytes4 selector = MockBinHooks.afterInitialize.selector;
         return returnValues[selector] == bytes4(0) ? selector : returnValues[selector];
     }
