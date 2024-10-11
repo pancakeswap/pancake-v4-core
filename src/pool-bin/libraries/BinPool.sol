@@ -308,13 +308,14 @@ library BinPool {
         returns (BalanceDelta result, uint256[] memory ids, bytes32[] memory amounts)
     {
         ids = params.ids;
+        uint256 idsLength = ids.length;
         uint256[] memory amountsToBurn = params.amountsToBurn;
 
-        if (ids.length == 0 || ids.length != amountsToBurn.length) revert BinPool__InvalidBurnInput();
+        if (idsLength == 0 || idsLength != amountsToBurn.length) revert BinPool__InvalidBurnInput();
 
         bytes32 amountsOut;
-        amounts = new bytes32[](ids.length);
-        for (uint256 i; i < ids.length;) {
+        amounts = new bytes32[](idsLength);
+        for (uint256 i; i < idsLength;) {
             uint24 id = ids[i].safe24();
             uint256 amountToBurn = amountsToBurn[i];
 
