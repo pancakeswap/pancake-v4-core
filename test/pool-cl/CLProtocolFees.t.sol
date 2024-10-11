@@ -27,6 +27,7 @@ import {PoolKey} from "../../src/types/PoolKey.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
 import {ProtocolFeeLibrary} from "../../src/libraries/ProtocolFeeLibrary.sol";
 import {CLPoolGetter} from "./helpers/CLPoolGetter.sol";
+import {CLSlot0} from "../../src/pool-cl/types/CLSlot0.sol";
 
 contract CLProtocolFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
     using Hooks for IHooks;
@@ -73,8 +74,8 @@ contract CLProtocolFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
     }
 
     function testSetProtocolFeeControllerFuzz(uint24 protocolFee) public {
-        (CLPool.Slot0 memory slot0,,,) = manager.pools(key.toId());
-        assertEq(slot0.protocolFee, 0);
+        (CLSlot0 slot0,,,) = manager.pools(key.toId());
+        assertEq(slot0.protocolFee(), 0);
 
         manager.setProtocolFeeController(IProtocolFeeController(protocolFeeController));
 
@@ -92,7 +93,7 @@ contract CLProtocolFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
         manager.setProtocolFee(key, protocolFee);
 
         (slot0,,,) = manager.pools(key.toId());
-        assertEq(slot0.protocolFee, protocolFee);
+        assertEq(slot0.protocolFee(), protocolFee);
     }
 
     function testNoProtocolFee(uint24 protocolFee) public {
@@ -104,8 +105,8 @@ contract CLProtocolFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
         vm.prank(address(protocolFeeController));
         manager.setProtocolFee(key, protocolFee);
 
-        (CLPool.Slot0 memory slot0,,,) = manager.pools(key.toId());
-        assertEq(slot0.protocolFee, protocolFee);
+        (CLSlot0 slot0,,,) = manager.pools(key.toId());
+        assertEq(slot0.protocolFee(), protocolFee);
 
         int256 liquidityDelta = 10000;
         ICLPoolManager.ModifyLiquidityParams memory params =
@@ -143,8 +144,8 @@ contract CLProtocolFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
         vm.prank(address(protocolFeeController));
         manager.setProtocolFee(key, protocolFee);
 
-        (CLPool.Slot0 memory slot0,,,) = manager.pools(key.toId());
-        assertEq(slot0.protocolFee, protocolFee);
+        (CLSlot0 slot0,,,) = manager.pools(key.toId());
+        assertEq(slot0.protocolFee(), protocolFee);
 
         ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-120, 120, 10e18, 0);
         router.modifyPosition(key, params, ZERO_BYTES);

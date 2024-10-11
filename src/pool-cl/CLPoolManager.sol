@@ -24,6 +24,7 @@ import {CLHooks} from "./libraries/CLHooks.sol";
 import {BeforeSwapDelta} from "../types/BeforeSwapDelta.sol";
 import {Currency} from "../types/Currency.sol";
 import {TickMath} from "./libraries/TickMath.sol";
+import {CLSlot0} from "./types/CLSlot0.sol";
 
 contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     using SafeCast for int256;
@@ -53,8 +54,8 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         override
         returns (uint160 sqrtPriceX96, int24 tick, uint24 protocolFee, uint24 lpFee)
     {
-        CLPool.Slot0 memory slot0 = pools[id].slot0;
-        return (slot0.sqrtPriceX96, slot0.tick, slot0.protocolFee, slot0.lpFee);
+        CLSlot0 slot0 = pools[id].slot0;
+        return (slot0.sqrtPriceX96(), slot0.tick(), slot0.protocolFee(), slot0.lpFee());
     }
 
     /// @inheritdoc ICLPoolManager

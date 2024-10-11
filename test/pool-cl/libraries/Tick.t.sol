@@ -38,11 +38,11 @@ contract TickTest is Test, GasSnapshot {
         uint256 feeGrowthGlobal0X128,
         uint256 feeGrowthGlobal1X128
     ) internal returns (uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128) {
-        pool.slot0.tick = tickCurrent;
+        pool.slot0 = pool.slot0.setTick(tickCurrent);
         pool.feeGrowthGlobal0X128 = feeGrowthGlobal0X128;
         pool.feeGrowthGlobal1X128 = feeGrowthGlobal1X128;
         return pool.ticks.getFeeGrowthInside(
-            tickLower, tickUpper, pool.slot0.tick, pool.feeGrowthGlobal0X128, pool.feeGrowthGlobal1X128
+            tickLower, tickUpper, pool.slot0.tick(), pool.feeGrowthGlobal0X128, pool.feeGrowthGlobal1X128
         );
     }
 
@@ -54,7 +54,7 @@ contract TickTest is Test, GasSnapshot {
         uint256 feeGrowthGlobal1X128,
         bool upper
     ) internal returns (bool flipped, uint128 liquidityGrossAfter) {
-        pool.slot0.tick = tickCurrent;
+        pool.slot0 = pool.slot0.setTick(tickCurrent);
         pool.feeGrowthGlobal0X128 = feeGrowthGlobal0X128;
         pool.feeGrowthGlobal1X128 = feeGrowthGlobal1X128;
         flipped = pool.ticks.update(
@@ -79,7 +79,7 @@ contract TickTest is Test, GasSnapshot {
         bool upper,
         uint128 maxLiquidityPerTick
     ) internal returns (bool flipped, uint128 liquidityGrossAfter) {
-        pool.slot0.tick = tickCurrent;
+        pool.slot0 = pool.slot0.setTick(tickCurrent);
         pool.feeGrowthGlobal0X128 = feeGrowthGlobal0X128;
         pool.feeGrowthGlobal1X128 = feeGrowthGlobal1X128;
         flipped = pool.ticks.update(
