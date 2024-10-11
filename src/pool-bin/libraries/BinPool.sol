@@ -382,7 +382,8 @@ library BinPool {
         bytes32 amountsInToBin;
         bytes32 binFeeAmt;
         bytes32 binCompositionFee;
-        for (uint256 i; i < params.liquidityConfigs.length;) {
+        uint256 liquidityConfigsLength = params.liquidityConfigs.length;
+        for (uint256 i; i < liquidityConfigsLength;) {
             // fix stack too deep
             {
                 bytes32 maxAmountsInToBin;
