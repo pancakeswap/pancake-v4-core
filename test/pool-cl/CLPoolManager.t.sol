@@ -38,6 +38,7 @@ import {SafeCast} from "../../src/libraries/SafeCast.sol";
 import {NoIsolate} from "../helpers/NoIsolate.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {CLPoolGetter} from "./helpers/CLPoolGetter.sol";
+import {CLSlot0} from "../../src/pool-cl/types/CLSlot0.sol";
 
 contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnapshot {
     using CLPoolParametersHelper for bytes32;
@@ -346,12 +347,12 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         poolManager.initialize(key, TickMath.MIN_SQRT_RATIO);
 
-        (CLPool.Slot0 memory slot0, uint256 feeGrowthGlobal0X128, uint256 feeGrowthGlobal1X128, uint128 liquidity) =
+        (CLSlot0 slot0, uint256 feeGrowthGlobal0X128, uint256 feeGrowthGlobal1X128, uint128 liquidity) =
             poolManager.pools(key.toId());
 
-        assertEq(slot0.sqrtPriceX96, TickMath.MIN_SQRT_RATIO);
-        assertEq(slot0.tick, TickMath.MIN_TICK);
-        assertEq(slot0.protocolFee, 0);
+        assertEq(slot0.sqrtPriceX96(), TickMath.MIN_SQRT_RATIO);
+        assertEq(slot0.tick(), TickMath.MIN_TICK);
+        assertEq(slot0.protocolFee(), 0);
         assertEq(feeGrowthGlobal0X128, 0);
         assertEq(feeGrowthGlobal1X128, 0);
         assertEq(liquidity, 0);
@@ -419,9 +420,9 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             );
             poolManager.initialize(key, sqrtPriceX96);
 
-            (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
-            assertEq(slot0.sqrtPriceX96, sqrtPriceX96);
-            assertEq(slot0.protocolFee, 0);
+            (CLSlot0 slot0,,,) = poolManager.pools(key.toId());
+            assertEq(slot0.sqrtPriceX96(), sqrtPriceX96);
+            assertEq(slot0.protocolFee(), 0);
         }
     }
 
@@ -451,10 +452,10 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         );
         poolManager.initialize(key, sqrtPriceX96);
 
-        (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
-        assertEq(slot0.sqrtPriceX96, sqrtPriceX96);
-        assertEq(slot0.protocolFee, 0);
-        assertEq(slot0.tick, TickMath.getTickAtSqrtRatio(sqrtPriceX96));
+        (CLSlot0 slot0,,,) = poolManager.pools(key.toId());
+        assertEq(slot0.sqrtPriceX96(), sqrtPriceX96);
+        assertEq(slot0.protocolFee(), 0);
+        assertEq(slot0.tick(), TickMath.getTickAtSqrtRatio(sqrtPriceX96));
     }
 
     function test_initialize_succeedsWithHooks(uint160 sqrtPriceX96) public {
@@ -483,8 +484,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         vm.expectCall(address(hookAddr), 0, afterPayload, 1);
 
         poolManager.initialize(key, sqrtPriceX96);
-        (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
-        assertEq(slot0.sqrtPriceX96, sqrtPriceX96);
+        (CLSlot0 slot0,,,) = poolManager.pools(key.toId());
+        assertEq(slot0.sqrtPriceX96(), sqrtPriceX96);
 
         (Currency curr0, Currency curr1, IHooks hooks, IPoolManager pm, uint24 fee, bytes32 parameters) =
             poolManager.poolIdToPoolKey(key.toId());
@@ -540,8 +541,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
 
         poolManager.initialize(key, sqrtPriceX96);
-        (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
-        assertEq(slot0.sqrtPriceX96, sqrtPriceX96);
+        (CLSlot0 slot0,,,) = poolManager.pools(key.toId());
+        assertEq(slot0.sqrtPriceX96(), sqrtPriceX96);
     }
 
     function test_initialize_revertsWithIdenticalTokens(uint160 sqrtPriceX96) public {
@@ -2661,8 +2662,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         });
         poolManager.initialize(key, SQRT_RATIO_1_1);
 
-        (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
-        assertEq(slot0.protocolFee, 0);
+        (CLSlot0 slot0,,,) = poolManager.pools(key.toId());
+        assertEq(slot0.protocolFee(), 0);
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
         feeController.setProtocolFeeForPool(key.toId(), protocolFee);
 
@@ -2686,8 +2687,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         feeController.setProtocolFeeForPool(key.toId(), protocolFee);
 
         poolManager.initialize(key, SQRT_RATIO_1_1);
-        (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
-        assertEq(slot0.protocolFee, protocolFee);
+        (CLSlot0 slot0,,,) = poolManager.pools(key.toId());
+        assertEq(slot0.protocolFee(), protocolFee);
     }
 
     function testCollectProtocolFees_ERC20_returnsAllFeesIf0IsProvidedAsParameter() public {
@@ -2708,8 +2709,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         feeController.setProtocolFeeForPool(key.toId(), protocolFee);
 
         poolManager.initialize(key, SQRT_RATIO_1_1);
-        (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
-        assertEq(slot0.protocolFee, protocolFee);
+        (CLSlot0 slot0,,,) = poolManager.pools(key.toId());
+        assertEq(slot0.protocolFee(), protocolFee);
 
         ICLPoolManager.ModifyLiquidityParams memory params =
             ICLPoolManager.ModifyLiquidityParams(-120, 120, 10 ether, 0);
@@ -2749,8 +2750,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         feeController.setProtocolFeeForPool(key.toId(), protocolFee);
 
         poolManager.initialize(key, SQRT_RATIO_1_1);
-        (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
-        assertEq(slot0.protocolFee, protocolFee);
+        (CLSlot0 slot0,,,) = poolManager.pools(key.toId());
+        assertEq(slot0.protocolFee(), protocolFee);
 
         ICLPoolManager.ModifyLiquidityParams memory params =
             ICLPoolManager.ModifyLiquidityParams(-120, 120, 10 ether, 0);
@@ -2790,8 +2791,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         feeController.setProtocolFeeForPool(key.toId(), protocolFee);
 
         poolManager.initialize(key, SQRT_RATIO_1_1);
-        (CLPool.Slot0 memory slot0,,,) = poolManager.pools(key.toId());
-        assertEq(slot0.protocolFee, protocolFee);
+        (CLSlot0 slot0,,,) = poolManager.pools(key.toId());
+        assertEq(slot0.protocolFee(), protocolFee);
 
         ICLPoolManager.ModifyLiquidityParams memory params =
             ICLPoolManager.ModifyLiquidityParams(-120, 120, 10 ether, 0);

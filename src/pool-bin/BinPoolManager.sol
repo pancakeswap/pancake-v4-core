@@ -22,6 +22,7 @@ import {BinHooks} from "./libraries/BinHooks.sol";
 import {PriceHelper} from "./libraries/PriceHelper.sol";
 import {BeforeSwapDelta} from "../types/BeforeSwapDelta.sol";
 import "./interfaces/IBinHooks.sol";
+import {BinSlot0} from "./types/BinSlot0.sol";
 
 /// @notice Holds the state for all bin pools
 contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
@@ -59,9 +60,9 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
 
     /// @inheritdoc IBinPoolManager
     function getSlot0(PoolId id) external view override returns (uint24 activeId, uint24 protocolFee, uint24 lpFee) {
-        BinPool.Slot0 memory slot0 = pools[id].slot0;
+        BinSlot0 slot0 = pools[id].slot0;
 
-        return (slot0.activeId, slot0.protocolFee, slot0.lpFee);
+        return (slot0.activeId(), slot0.protocolFee(), slot0.lpFee());
     }
 
     /// @inheritdoc IBinPoolManager
@@ -282,7 +283,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         BinHooks.beforeDonate(key, amount0, amount1, hookData);
 
         /// @dev Share is 1:1 liquidity when liquidity is first added to bin
-        uint256 currentBinShare = pool.shareOfBin[pool.slot0.activeId];
+        uint256 currentBinShare = pool.shareOfBin[pool.slot0.activeId()];
         if (currentBinShare <= MIN_BIN_SHARE_FOR_DONATE) {
             revert InsufficientBinShareForDonate(currentBinShare);
         }
