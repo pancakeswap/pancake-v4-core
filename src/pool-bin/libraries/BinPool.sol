@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {BalanceDelta, toBalanceDelta} from "../../types/BalanceDelta.sol";
+import {BinSlot0} from "../types/BinSlot0.sol";
 import {LiquidityConfigurations} from "./math/LiquidityConfigurations.sol";
 import {PackedUint128Math} from "./math/PackedUint128Math.sol";
 import {Uint256x256Math} from "./math/Uint256x256Math.sol";
@@ -48,21 +49,9 @@ library BinPool {
     /// @dev if swap exactIn, x for y, unspecifiedToken = token y. if swap x for exact out y, unspecified token is x
     error BinPool__InsufficientAmountUnSpecified();
 
-    struct Slot0 {
-        // the current activeId
-        uint24 activeId;
-        // protocol fee, expressed in hundredths of a bip
-        // upper 12 bits are for 1->0, and the lower 12 are for 0->1
-        // the maximum is 1000 - meaning the maximum protocol fee is 0.1%
-        // the protocolFee is taken from the input first, then the lpFee is taken from the remaining input
-        uint24 protocolFee;
-        // lp fee, either static at initialize or dynamic via hook
-        uint24 lpFee;
-    }
-
     /// @dev The state of a pool
     struct State {
-        Slot0 slot0;
+        BinSlot0 slot0;
         /// @notice binId ==> (reserve of token x and y in the bin)
         mapping(uint256 binId => bytes32 reserve) reserveOfBin;
         /// @notice binId ==> (total share minted)
@@ -79,21 +68,21 @@ library BinPool {
 
     function initialize(State storage self, uint24 activeId, uint24 protocolFee, uint24 lpFee) internal {
         /// An initialized pool will not have activeId: 0
-        if (self.slot0.activeId != 0) revert PoolAlreadyInitialized();
+        if (self.slot0.activeId() != 0) revert PoolAlreadyInitialized();
 
-        self.slot0 = Slot0({activeId: activeId, protocolFee: protocolFee, lpFee: lpFee});
+        self.slot0 = BinSlot0.wrap(bytes32(0)).setActiveId(activeId).setProtocolFee(protocolFee).setLpFee(lpFee);
     }
 
     function setProtocolFee(State storage self, uint24 protocolFee) internal {
         self.checkPoolInitialized();
-        self.slot0.protocolFee = protocolFee;
+        self.slot0 = self.slot0.setProtocolFee(protocolFee);
     }
 
     /// @notice Only dynamic fee pools may update the swap fee.
     function setLPFee(State storage self, uint24 lpFee) internal {
         self.checkPoolInitialized();
 
-        self.slot0.lpFee = lpFee;
+        self.slot0 = self.slot0.setLpFee(lpFee);
     }
 
     struct SwapParams {
@@ -118,17 +107,17 @@ library BinPool {
         internal
         returns (BalanceDelta result, SwapState memory swapState)
     {
-        Slot0 memory slot0Cache = self.slot0;
-        swapState.activeId = slot0Cache.activeId;
+        BinSlot0 slot0Cache = self.slot0;
+        swapState.activeId = slot0Cache.activeId();
         bool swapForY = params.swapForY;
         swapState.protocolFee =
-            swapForY ? slot0Cache.protocolFee.getZeroForOneFee() : slot0Cache.protocolFee.getOneForZeroFee();
+            swapForY ? slot0Cache.protocolFee().getZeroForOneFee() : slot0Cache.protocolFee().getOneForZeroFee();
         bool exactInput = params.amountSpecified < 0;
 
         {
             uint24 lpFee = params.lpFeeOverride.isOverride()
                 ? params.lpFeeOverride.removeOverrideAndValidate(LPFeeLibrary.TEN_PERCENT_FEE)
-                : slot0Cache.lpFee;
+                : slot0Cache.lpFee();
 
             /// @dev swap fee includes protocolFee (charged first) and lpFee
             swapState.swapFee = swapState.protocolFee == 0 ? lpFee : swapState.protocolFee.calculateSwapFee(lpFee);
@@ -173,7 +162,7 @@ library BinPool {
 
                 if (amountsInWithFees > 0) {
                     /// @dev calc protocol fee for current bin, totalFee * protocolFee / (protocolFee + lpFee)
-                    bytes32 pFee = totalFee.getProtocolFeeAmt(slot0Cache.protocolFee, swapState.swapFee);
+                    bytes32 pFee = totalFee.getProtocolFeeAmt(slot0Cache.protocolFee(), swapState.swapFee);
                     if (pFee != 0) {
                         swapState.feeAmountToProtocol = swapState.feeAmountToProtocol.add(pFee);
                         amountsInWithFees = amountsInWithFees.sub(pFee);
@@ -200,7 +189,7 @@ library BinPool {
 
         if (amountsUnspecified == 0) revert BinPool__InsufficientAmountUnSpecified();
 
-        self.slot0.activeId = swapState.activeId;
+        self.slot0 = self.slot0.setActiveId(swapState.activeId);
         unchecked {
             // uncheckeck as negating positive int128 is safe
             if (exactInput) {
@@ -308,13 +297,14 @@ library BinPool {
         returns (BalanceDelta result, uint256[] memory ids, bytes32[] memory amounts)
     {
         ids = params.ids;
+        uint256 idsLength = ids.length;
         uint256[] memory amountsToBurn = params.amountsToBurn;
 
-        if (ids.length == 0 || ids.length != amountsToBurn.length) revert BinPool__InvalidBurnInput();
+        if (idsLength == 0 || idsLength != amountsToBurn.length) revert BinPool__InvalidBurnInput();
 
         bytes32 amountsOut;
-        amounts = new bytes32[](ids.length);
-        for (uint256 i; i < ids.length;) {
+        amounts = new bytes32[](idsLength);
+        for (uint256 i; i < idsLength;) {
             uint24 id = ids[i].safe24();
             uint256 amountToBurn = amountsToBurn[i];
 
@@ -349,7 +339,7 @@ library BinPool {
         internal
         returns (BalanceDelta result, uint24 activeId)
     {
-        activeId = self.slot0.activeId;
+        activeId = self.slot0.activeId();
         bytes32 amountIn = amount0.encode(amount1);
 
         bytes32 binReserves = self.reserveOfBin[activeId];
@@ -381,7 +371,8 @@ library BinPool {
         bytes32 amountsInToBin;
         bytes32 binFeeAmt;
         bytes32 binCompositionFee;
-        for (uint256 i; i < params.liquidityConfigs.length;) {
+        uint256 liquidityConfigsLength = params.liquidityConfigs.length;
+        for (uint256 i; i < liquidityConfigsLength;) {
             // fix stack too deep
             {
                 bytes32 maxAmountsInToBin;
@@ -426,8 +417,8 @@ library BinPool {
             bytes32 compositionFeeAmount
         )
     {
-        Slot0 memory slot0Cache = self.slot0;
-        uint24 activeId = slot0Cache.activeId;
+        BinSlot0 slot0Cache = self.slot0;
+        uint24 activeId = slot0Cache.activeId();
         bytes32 binReserves = self.reserveOfBin[id];
 
         uint256 price = id.getPriceFromId(params.binStep);
@@ -441,11 +432,11 @@ library BinPool {
             /// eg. current bin is 40/60 (a,b) but user tries to add liquidity with 50/50 ratio
             uint24 lpFee = params.lpFeeOverride.isOverride()
                 ? params.lpFeeOverride.removeOverrideAndValidate(LPFeeLibrary.TEN_PERCENT_FEE)
-                : slot0Cache.lpFee;
+                : slot0Cache.lpFee();
 
             bytes32 feesAmount;
             (feesAmount, feeAmountToProtocol) =
-                binReserves.getCompositionFeesAmount(slot0Cache.protocolFee, lpFee, amountsIn, supply, shares);
+                binReserves.getCompositionFeesAmount(slot0Cache.protocolFee(), lpFee, amountsIn, supply, shares);
             compositionFeeAmount = feesAmount;
             if (feesAmount != 0) {
                 {
@@ -492,7 +483,7 @@ library BinPool {
     }
 
     function checkPoolInitialized(State storage self) internal view {
-        if (self.slot0.activeId == 0) {
+        if (self.slot0.activeId() == 0) {
             // revert PoolNotInitialized();
             assembly ("memory-safe") {
                 mstore(0x00, 0x486aa307)

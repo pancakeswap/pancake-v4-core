@@ -19,6 +19,7 @@ import {ICLPoolManager} from "../../../src/pool-cl/interfaces/ICLPoolManager.sol
 import {LPFeeLibrary} from "../../../src/libraries/LPFeeLibrary.sol";
 import {ProtocolFeeLibrary} from "../../../src/libraries/ProtocolFeeLibrary.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "../../../src/types/BalanceDelta.sol";
+import {CLSlot0} from "../../../src/pool-cl/types/CLSlot0.sol";
 
 contract PoolTest is Test {
     using CLPool for CLPool.State;
@@ -36,12 +37,12 @@ contract PoolTest is Test {
             state.initialize(sqrtPriceX96, protocolFee, lpFee);
         } else {
             state.initialize(sqrtPriceX96, protocolFee, lpFee);
-            assertEq(state.slot0.sqrtPriceX96, sqrtPriceX96);
-            assertEq(state.slot0.protocolFee, protocolFee);
-            assertEq(state.slot0.tick, TickMath.getTickAtSqrtRatio(sqrtPriceX96));
-            assertLt(state.slot0.tick, TickMath.MAX_TICK);
-            assertGt(state.slot0.tick, TickMath.MIN_TICK - 1);
-            assertEq(state.slot0.lpFee, lpFee);
+            assertEq(state.slot0.sqrtPriceX96(), sqrtPriceX96);
+            assertEq(state.slot0.protocolFee(), protocolFee);
+            assertEq(state.slot0.tick(), TickMath.getTickAtSqrtRatio(sqrtPriceX96));
+            assertLt(state.slot0.tick(), TickMath.MAX_TICK);
+            assertGt(state.slot0.tick(), TickMath.MIN_TICK - 1);
+            assertEq(state.slot0.lpFee(), lpFee);
         }
     }
 
@@ -126,7 +127,7 @@ contract PoolTest is Test {
         testModifyPosition(sqrtPriceX96, modifyLiquidityParams, lpFee);
 
         swapParams.tickSpacing = modifyLiquidityParams.tickSpacing;
-        CLPool.Slot0 memory slot0 = state.slot0;
+        CLSlot0 slot0 = state.slot0;
 
         // avoid lpFee override valid
         if (
@@ -141,30 +142,30 @@ contract PoolTest is Test {
             : lpFee;
 
         if (swapParams.zeroForOne) {
-            if (swapParams.sqrtPriceLimitX96 >= slot0.sqrtPriceX96) {
+            if (swapParams.sqrtPriceLimitX96 >= slot0.sqrtPriceX96()) {
                 vm.expectRevert(
                     abi.encodeWithSelector(
-                        CLPool.InvalidSqrtPriceLimit.selector, slot0.sqrtPriceX96, swapParams.sqrtPriceLimitX96
+                        CLPool.InvalidSqrtPriceLimit.selector, slot0.sqrtPriceX96(), swapParams.sqrtPriceLimitX96
                     )
                 );
             } else if (swapParams.sqrtPriceLimitX96 <= TickMath.MIN_SQRT_RATIO) {
                 vm.expectRevert(
                     abi.encodeWithSelector(
-                        CLPool.InvalidSqrtPriceLimit.selector, slot0.sqrtPriceX96, swapParams.sqrtPriceLimitX96
+                        CLPool.InvalidSqrtPriceLimit.selector, slot0.sqrtPriceX96(), swapParams.sqrtPriceLimitX96
                     )
                 );
             }
         } else if (!swapParams.zeroForOne) {
-            if (swapParams.sqrtPriceLimitX96 <= slot0.sqrtPriceX96) {
+            if (swapParams.sqrtPriceLimitX96 <= slot0.sqrtPriceX96()) {
                 vm.expectRevert(
                     abi.encodeWithSelector(
-                        CLPool.InvalidSqrtPriceLimit.selector, slot0.sqrtPriceX96, swapParams.sqrtPriceLimitX96
+                        CLPool.InvalidSqrtPriceLimit.selector, slot0.sqrtPriceX96(), swapParams.sqrtPriceLimitX96
                     )
                 );
             } else if (swapParams.sqrtPriceLimitX96 >= TickMath.MAX_SQRT_RATIO) {
                 vm.expectRevert(
                     abi.encodeWithSelector(
-                        CLPool.InvalidSqrtPriceLimit.selector, slot0.sqrtPriceX96, swapParams.sqrtPriceLimitX96
+                        CLPool.InvalidSqrtPriceLimit.selector, slot0.sqrtPriceX96(), swapParams.sqrtPriceLimitX96
                     )
                 );
             }
@@ -182,20 +183,20 @@ contract PoolTest is Test {
 
         if (
             modifyLiquidityParams.liquidityDelta == 0
-                || (swapParams.zeroForOne && slot0.tick < modifyLiquidityParams.tickLower)
-                || (!swapParams.zeroForOne && slot0.tick >= modifyLiquidityParams.tickUpper)
+                || (swapParams.zeroForOne && slot0.tick() < modifyLiquidityParams.tickLower)
+                || (!swapParams.zeroForOne && slot0.tick() >= modifyLiquidityParams.tickUpper)
         ) {
             // no liquidity, hence all the way to the limit
             if (swapParams.zeroForOne) {
-                assertEq(state.slot0.sqrtPriceX96, swapParams.sqrtPriceLimitX96);
+                assertEq(state.slot0.sqrtPriceX96(), swapParams.sqrtPriceLimitX96);
             } else {
-                assertEq(state.slot0.sqrtPriceX96, swapParams.sqrtPriceLimitX96);
+                assertEq(state.slot0.sqrtPriceX96(), swapParams.sqrtPriceLimitX96);
             }
         } else {
             if (swapParams.zeroForOne) {
-                assertGe(state.slot0.sqrtPriceX96, swapParams.sqrtPriceLimitX96);
+                assertGe(state.slot0.sqrtPriceX96(), swapParams.sqrtPriceLimitX96);
             } else {
-                assertLe(state.slot0.sqrtPriceX96, swapParams.sqrtPriceLimitX96);
+                assertLe(state.slot0.sqrtPriceX96(), swapParams.sqrtPriceLimitX96);
             }
         }
     }
