@@ -20,6 +20,7 @@ library CurrencySettlement {
         if (burn) {
             vault.burn(payer, currency, amount);
         } else if (currency.isNative()) {
+            vault.sync(currency);
             vault.settle{value: amount}();
         } else {
             vault.sync(currency);
