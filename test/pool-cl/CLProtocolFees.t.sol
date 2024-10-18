@@ -133,13 +133,13 @@ contract CLProtocolFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
             ZERO_BYTES
         );
 
-        uint256 expectedProtocolAmount1 = 10000 * (protocolFee >> 12) / ProtocolFeeLibrary.PIPS_DENOMINATOR;
+        uint256 expectedProtocolAmount1 = 10000 * (uint256(protocolFee >> 12)) / ProtocolFeeLibrary.PIPS_DENOMINATOR;
         assertEq(manager.protocolFeesAccrued(currency0), 0);
         assertEq(manager.protocolFeesAccrued(currency1), expectedProtocolAmount1);
     }
 
     function testCollectFees() public {
-        uint24 protocolFee = ProtocolFeeLibrary.MAX_PROTOCOL_FEE | (uint24(ProtocolFeeLibrary.MAX_PROTOCOL_FEE) << 12); // 0.1% protocol fee
+        uint24 protocolFee = ProtocolFeeLibrary.MAX_PROTOCOL_FEE | (uint24(ProtocolFeeLibrary.MAX_PROTOCOL_FEE) << 12); // 0.4% protocol fee
         manager.setProtocolFeeController(IProtocolFeeController(protocolFeeController));
         vm.prank(address(protocolFeeController));
         manager.setProtocolFee(key, protocolFee);
@@ -158,7 +158,7 @@ contract CLProtocolFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
             ZERO_BYTES
         );
 
-        uint256 expectedProtocolFees = 1000000 * 0.001;
+        uint256 expectedProtocolFees = 1000000 * 0.004;
         vm.prank(address(protocolFeeController));
         manager.collectProtocolFees(address(protocolFeeController), currency1, 0);
         assertEq(currency1.balanceOf(address(protocolFeeController)), expectedProtocolFees);
