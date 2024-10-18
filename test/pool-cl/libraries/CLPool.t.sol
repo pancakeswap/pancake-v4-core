@@ -28,10 +28,7 @@ contract PoolTest is Test {
 
     CLPool.State state;
 
-    function testPoolInitialize(uint160 sqrtPriceX96, uint16 protocolFee, uint24 lpFee) public {
-        protocolFee = uint16(bound(protocolFee, 0, 2 ** 16 - 1));
-        lpFee = uint24(bound(lpFee, 0, 999999));
-
+    function testPoolInitialize(uint160 sqrtPriceX96, uint24 protocolFee, uint24 lpFee) public {
         if (sqrtPriceX96 < TickMath.MIN_SQRT_RATIO || sqrtPriceX96 >= TickMath.MAX_SQRT_RATIO) {
             vm.expectRevert(abi.encodeWithSelector(TickMath.InvalidSqrtRatio.selector, sqrtPriceX96));
             state.initialize(sqrtPriceX96, protocolFee, lpFee);
@@ -46,14 +43,16 @@ contract PoolTest is Test {
         }
     }
 
-    function testModifyPosition(uint160 sqrtPriceX96, CLPool.ModifyLiquidityParams memory params, uint24 lpFee)
-        public
-    {
+    function testModifyPosition(
+        uint160 sqrtPriceX96,
+        CLPool.ModifyLiquidityParams memory params,
+        uint24 lpFee,
+        uint24 protocolFee
+    ) public {
         // Assumptions tested in PoolManager.t.sol
-        params.tickSpacing = int24(bound(params.tickSpacing, 1, 32767));
-        lpFee = uint24(bound(lpFee, 0, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE - 1));
+        params.tickSpacing = int24(bound(params.tickSpacing, TickMath.MIN_TICK_SPACING, TickMath.MAX_TICK_SPACING));
 
-        testPoolInitialize(sqrtPriceX96, 0, lpFee);
+        testPoolInitialize(sqrtPriceX96, protocolFee, lpFee);
 
         if (params.tickLower >= params.tickUpper) {
             vm.expectRevert(abi.encodeWithSelector(Tick.TicksMisordered.selector, params.tickLower, params.tickUpper));
@@ -98,7 +97,9 @@ contract PoolTest is Test {
         uint160 sqrtPriceX96,
         CLPool.ModifyLiquidityParams memory modifyLiquidityParams,
         CLPool.SwapParams memory swapParams,
-        uint24 lpFee
+        uint24 lpFee,
+        uint16 protocolFee0,
+        uint16 protocolFee1
     ) public {
         // modifyLiquidityParams = CLPool.ModifyLiquidityParams({
         //     owner: 0x250Eb93F2C350590E52cdb977b8BcF502a1Db7e7,
@@ -120,11 +121,17 @@ contract PoolTest is Test {
         // 2. and the effect price is either too large or too small (due to larger price slippage or inproper liquidity range)
         // It will cause the amountUnspecified to be out of int128 range hence the tx reverts with SafeCastOverflow
         // try to comment following three limitations and uncomment above case and rerun the test to verify
+
+        lpFee = uint24(bound(lpFee, 0, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE));
+        protocolFee0 = uint16(bound(protocolFee0, 0, ProtocolFeeLibrary.MAX_PROTOCOL_FEE));
+        protocolFee1 = uint16(bound(protocolFee1, 0, ProtocolFeeLibrary.MAX_PROTOCOL_FEE));
+        uint24 protocolFee = protocolFee1 << 12 | protocolFee0;
+
         modifyLiquidityParams.tickLower = -100;
         modifyLiquidityParams.tickUpper = 100;
         swapParams.amountSpecified = int256(bound(swapParams.amountSpecified, 0, type(int128).max));
 
-        testModifyPosition(sqrtPriceX96, modifyLiquidityParams, lpFee);
+        testModifyPosition(sqrtPriceX96, modifyLiquidityParams, lpFee, protocolFee);
 
         swapParams.tickSpacing = modifyLiquidityParams.tickSpacing;
         CLSlot0 slot0 = state.slot0;
@@ -204,11 +211,18 @@ contract PoolTest is Test {
     function testDonate(
         uint160 sqrtPriceX96,
         CLPool.ModifyLiquidityParams memory params,
-        uint24 swapFee,
         uint256 amount0,
-        uint256 amount1
+        uint256 amount1,
+        uint24 lpFee,
+        uint16 protocolFee0,
+        uint16 protocolFee1
     ) public {
-        testModifyPosition(sqrtPriceX96, params, swapFee);
+        lpFee = uint24(bound(lpFee, 0, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE));
+        protocolFee0 = uint16(bound(protocolFee0, 0, ProtocolFeeLibrary.MAX_PROTOCOL_FEE));
+        protocolFee1 = uint16(bound(protocolFee1, 0, ProtocolFeeLibrary.MAX_PROTOCOL_FEE));
+        uint24 protocolFee = protocolFee1 << 12 | protocolFee0;
+
+        testModifyPosition(sqrtPriceX96, params, lpFee, protocolFee);
 
         int24 tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96);
 
