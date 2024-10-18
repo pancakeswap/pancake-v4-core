@@ -6,12 +6,12 @@ import "./math/UnsafeMath.sol";
 
 library ProtocolFeeLibrary {
     /// @dev Increasing these values could lead to overflow in Pool.swap
-    /// @notice Max protocol fee is 0.1% (1000 pips)
-    uint16 public constant MAX_PROTOCOL_FEE = 1000;
+    /// @notice Max protocol fee is 0.4% (4000 pips)
+    uint16 public constant MAX_PROTOCOL_FEE = 4000;
 
     /// @notice Thresholds used for optimized bounds checks on protocol fees
-    uint24 internal constant FEE_0_THRESHOLD = 1001;
-    uint24 internal constant FEE_1_THRESHOLD = 1001 << 12;
+    uint24 internal constant FEE_0_THRESHOLD = 4001;
+    uint24 internal constant FEE_1_THRESHOLD = 4001 << 12;
 
     /// @notice the protocol fee is represented in hundredths of a bip
     uint256 internal constant PIPS_DENOMINATOR = 1_000_000;

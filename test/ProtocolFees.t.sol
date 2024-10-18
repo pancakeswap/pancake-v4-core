@@ -173,15 +173,15 @@ contract ProtocolFeesTest is Test {
     }
 
     function testSwap_OnlyProtocolFee() public {
-        // set protocolFee as 0.1% of fee
+        // set protocolFee as 0.4% of fee
         uint24 protocolFee = _buildProtocolFee(ProtocolFeeLibrary.MAX_PROTOCOL_FEE, ProtocolFeeLibrary.MAX_PROTOCOL_FEE);
         feeController.setProtocolFeeForPool(key, protocolFee);
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
 
         poolManager.initialize(key);
         (uint256 protocolFee0, uint256 protocolFee1) = poolManager.swap(key, 1e18, 1e18);
-        assertEq(protocolFee0, 1e15);
-        assertEq(protocolFee1, 1e15);
+        assertEq(protocolFee0, 4e15);
+        assertEq(protocolFee1, 4e15);
     }
 
     function test_CollectProtocolFee_OnlyFeeController() public {
@@ -198,33 +198,33 @@ contract ProtocolFeesTest is Test {
     }
 
     function test_CollectProtocolFee() public {
-        // set protocolFee as 0.1% of fee
+        // set protocolFee as 0.4% of fee
         uint24 protocolFee = _buildProtocolFee(ProtocolFeeLibrary.MAX_PROTOCOL_FEE, ProtocolFeeLibrary.MAX_PROTOCOL_FEE);
         feeController.setProtocolFeeForPool(key, protocolFee);
         poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
         poolManager.initialize(key);
         (uint256 protocolFee0, uint256 protocolFee1) = poolManager.swap(key, 1e18, 1e18);
-        assertEq(protocolFee0, 1e15);
-        assertEq(protocolFee1, 1e15);
+        assertEq(protocolFee0, 4e15);
+        assertEq(protocolFee1, 4e15);
 
         // send some token to vault as poolManager.swap doesn't have tokens
-        token0.mint(address(vault), 1e15);
-        token1.mint(address(vault), 1e15);
+        token0.mint(address(vault), 4e15);
+        token1.mint(address(vault), 4e15);
 
         // before collect
         assertEq(token0.balanceOf(alice), 0);
         assertEq(token1.balanceOf(alice), 0);
-        assertEq(token0.balanceOf(address(vault)), 1e15);
-        assertEq(token1.balanceOf(address(vault)), 1e15);
+        assertEq(token0.balanceOf(address(vault)), 4e15);
+        assertEq(token1.balanceOf(address(vault)), 4e15);
 
         // collect
         vm.startPrank(address(feeController));
-        poolManager.collectProtocolFees(alice, Currency.wrap(address(token0)), 1e15);
-        poolManager.collectProtocolFees(alice, Currency.wrap(address(token1)), 1e15);
+        poolManager.collectProtocolFees(alice, Currency.wrap(address(token0)), 4e15);
+        poolManager.collectProtocolFees(alice, Currency.wrap(address(token1)), 4e15);
 
         // after collect
-        assertEq(token0.balanceOf(alice), 1e15);
-        assertEq(token1.balanceOf(alice), 1e15);
+        assertEq(token0.balanceOf(alice), 4e15);
+        assertEq(token1.balanceOf(alice), 4e15);
         assertEq(token0.balanceOf(address(vault)), 0);
         assertEq(token1.balanceOf(address(vault)), 0);
     }

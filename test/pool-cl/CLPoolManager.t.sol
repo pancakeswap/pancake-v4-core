@@ -1918,9 +1918,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         // 0.1%
         vm.prank(address(feeController));
-        poolManager.setProtocolFee(
-            key, ProtocolFeeLibrary.MAX_PROTOCOL_FEE | (uint24(ProtocolFeeLibrary.MAX_PROTOCOL_FEE) << 12)
-        );
+        poolManager.setProtocolFee(key, 1000 | (uint24(1000) << 12));
 
         ICLPoolManager.ModifyLiquidityParams memory modifyPositionParams =
             ICLPoolManager.ModifyLiquidityParams({tickLower: -60, tickUpper: 60, liquidityDelta: 1 ether, salt: 0});

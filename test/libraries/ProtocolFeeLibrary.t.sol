@@ -60,7 +60,9 @@ contract ProtocolFeeLibraryTest is Test, GasSnapshot {
             ),
             LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE
         );
-        assertEq(ProtocolFeeLibrary.calculateSwapFee(ProtocolFeeLibrary.MAX_PROTOCOL_FEE, 3000), 3997);
+        assertEq(ProtocolFeeLibrary.calculateSwapFee(1000, 3000), 3997);
+        // 0.4% + 0.3% * 0 + 3000 * (1000000 - 4000) / 1000000
+        assertEq(ProtocolFeeLibrary.calculateSwapFee(ProtocolFeeLibrary.MAX_PROTOCOL_FEE, 3000), 6988);
         assertEq(
             ProtocolFeeLibrary.calculateSwapFee(ProtocolFeeLibrary.MAX_PROTOCOL_FEE, 0),
             ProtocolFeeLibrary.MAX_PROTOCOL_FEE
