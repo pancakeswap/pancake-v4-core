@@ -149,8 +149,14 @@ contract PackedUint128MathTest is Test {
         assertEq(x.gt(y), x1 > y1 || x2 > y2, "testFuzz_GreaterThan::1");
     }
 
-    function testFuzz_getProtocolFeeAmt(bytes32 x, uint24 protocolFee, uint24 swapFee) external pure {
-        protocolFee = uint24(bound(protocolFee, 0, 1_000_000));
+    function testFuzz_getProtocolFeeAmt(bytes32 x, uint16 protocolFee0, uint16 protocolFee1, uint24 swapFee)
+        external
+        pure
+    {
+        protocolFee0 = uint16(bound(protocolFee0, 0, ProtocolFeeLibrary.MAX_PROTOCOL_FEE));
+        protocolFee1 = uint16(bound(protocolFee1, 0, ProtocolFeeLibrary.MAX_PROTOCOL_FEE));
+        uint24 protocolFee = protocolFee1 << 12 | protocolFee0;
+
         swapFee = uint24(bound(swapFee, protocolFee, 1_000_000));
 
         (uint128 x1, uint128 x2) = x.decode();
@@ -188,7 +194,7 @@ contract PackedUint128MathTest is Test {
 
         {
             bytes32 totalFee = uint128(10_000).encode(uint128(10_000));
-            uint24 protocolFee = (100 << 12) + 100;  // 0.01% fee
+            uint24 protocolFee = (100 << 12) + 100; // 0.01% fee
 
             // lpFee 0%
             assertEq(totalFee.getProtocolFeeAmt(protocolFee, 100), uint128(10_000).encode(uint128(10_000)));
@@ -205,9 +211,9 @@ contract PackedUint128MathTest is Test {
 
         {
             bytes32 totalFee = uint128(10_000).encode(uint128(10_000));
-            uint24 protocolFee = (4000 << 12) + 4000; // 0.4% fee 
+            uint24 protocolFee = (4000 << 12) + 4000; // 0.4% fee
 
-            uint24 swapFee = ProtocolFeeLibrary.calculateSwapFee(4000, 3000);  
+            uint24 swapFee = ProtocolFeeLibrary.calculateSwapFee(4000, 3000);
             // protocolFee is roughly more than 4/7 as protocolFee is taken out first
             assertEq(totalFee.getProtocolFeeAmt(protocolFee, swapFee), uint128(5724).encode(uint128(5724)));
         }
