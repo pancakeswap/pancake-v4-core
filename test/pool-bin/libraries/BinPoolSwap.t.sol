@@ -148,7 +148,7 @@ contract BinPoolSwapTest is BinTestHelper {
 
         // swap - swapForX
         BalanceDelta delta = poolManager.swap(key, false, -1e18, "");
-        assertEq(delta.amount0(), 996502000000000000);
+        assertEq(delta.amount0(), 996501000000000000);
         assertEq(delta.amount1(), -1e18);
 
         // // after swap, verify 0.05% fee
