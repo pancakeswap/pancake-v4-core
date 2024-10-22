@@ -179,7 +179,6 @@ contract Vault is IVault, VaultToken, Ownable {
         }
     }
 
-    // if settling native, integrators should still call `sync` first to avoid DoS attack vectors
     function _settle(address recipient) internal returns (uint256 paid) {
         (Currency currency, uint256 reservesBefore) = VaultReserve.getVaultReserve();
         if (!currency.isNative()) {
