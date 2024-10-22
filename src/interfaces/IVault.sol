@@ -72,7 +72,8 @@ interface IVault is IVaultToken {
     function accountAppBalanceDelta(Currency currency, int128 delta, address settler) external;
 
     /// @notice Called by the user to net out some value owed to the user
-    /// @dev Can also be used as a mechanism for _free_ flash loans
+    /// @dev Will revert if the requested amount is not available, consider using `mint` instead
+    /// @dev Can also be used as a mechanism for free flash loans
     function take(Currency currency, address to, uint256 amount) external;
 
     /// @notice Writes the current ERC20 balance of the specified currency to transient storage
