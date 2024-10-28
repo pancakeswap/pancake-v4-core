@@ -4,6 +4,8 @@ pragma solidity ^0.8.24;
 import "forge-std/Script.sol";
 import {BaseScript} from "./BaseScript.sol";
 import {Vault} from "../src/Vault.sol";
+import {Create3Factory} from "pancake-create3-factory/src/Create3Factory.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * forge script script/01_DeployVault.s.sol:DeployVaultScript -vvv \
@@ -13,12 +15,30 @@ import {Vault} from "../src/Vault.sol";
  *     --verify
  */
 contract DeployVaultScript is BaseScript {
+    function getDeploymentSalt() public pure override returns (bytes32) {
+        return keccak256("PANCAKE-V4-CORE/VAULT/1.0");
+    }
+
     function run() public {
+        Create3Factory factory = Create3Factory(getAddressFromConfig("create3Factory"));
+
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
 
-        Vault vault = new Vault();
-        console.log("Vault contract deployed at ", address(vault));
+        /// @dev prepare the payload to transfer ownership from deployer to real owner
+        bytes memory afterDeploymentExecutionPayload =
+            abi.encodeWithSelector(Ownable.transferOwnership.selector, getAddressFromConfig("owner"));
+
+        address vault = factory.deploy(
+            getDeploymentSalt(),
+            type(Vault).creationCode,
+            keccak256(type(Vault).creationCode),
+            0,
+            afterDeploymentExecutionPayload,
+            0
+        );
+
+        console.log("Vault contract deployed at ", vault);
 
         vm.stopBroadcast();
     }
