@@ -9,11 +9,14 @@ import {Create3Factory} from "pancake-create3-factory/src/Create3Factory.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
+ * Step1:
  * forge script script/03_DeployBinPoolManager.s.sol:DeployBinPoolManagerScript -vvv \
  *     --rpc-url $RPC_URL \
  *     --broadcast \
- *     --slow \
- *     --verify
+ *     --slow
+ *
+ * Step2:
+ * forge verify-contract <address> BinPoolManager --watch --chain <chain_id>
  */
 contract DeployBinPoolManagerScript is BaseScript {
     function getDeploymentSalt() public pure override returns (bytes32) {

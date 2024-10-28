@@ -9,11 +9,14 @@ import {Create3Factory} from "pancake-create3-factory/src/Create3Factory.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
+ * Step1:
  * forge script script/02_DeployCLPoolManager.s.sol:DeployCLPoolManagerScript -vvv \
  *     --rpc-url $RPC_URL \
  *     --broadcast \
- *     --slow \
- *     --verify
+ *     --slow
+ *
+ * Step2:
+ * forge verify-contract <address> CLPoolManager --watch --chain <chain_id>
  */
 contract DeployCLPoolManagerScript is BaseScript {
     function getDeploymentSalt() public pure override returns (bytes32) {
