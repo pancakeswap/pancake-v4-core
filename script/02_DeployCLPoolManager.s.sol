@@ -16,7 +16,12 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  *     --slow
  *
  * Step2:
- * forge verify-contract <address> CLPoolManager --watch --chain <chain_id>
+ * # Get the ABI-encoded form of the constructor arguments
+ * cast abi-encode "CLPoolManager(address)" <vault_addr>
+ *
+ * Step3:
+ * forge verify-contract <address> CLPoolManager --watch --chain <chain_id> \
+ *     --constructor-args <constructor_args_in_ABI-encoded_form>
  */
 contract DeployCLPoolManagerScript is BaseScript {
     function getDeploymentSalt() public pure override returns (bytes32) {
