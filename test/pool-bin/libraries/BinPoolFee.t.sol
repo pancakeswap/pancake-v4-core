@@ -28,6 +28,8 @@ import {BinFeeManagerHook} from "../helpers/BinFeeManagerHook.sol";
 import {HOOKS_AFTER_INITIALIZE_OFFSET, HOOKS_BEFORE_MINT_OFFSET} from "../../../src/pool-bin/interfaces/IBinHooks.sol";
 import {Hooks} from "../../../src/libraries/Hooks.sol";
 import {SortTokens} from "../../helpers/SortTokens.sol";
+import {CustomRevert} from "../../../src/libraries/CustomRevert.sol";
+import {IBinHooks} from "../../../src/pool-bin/interfaces/IBinHooks.sol";
 
 /**
  * @dev tests around fee for mint(), swap() and burn()
@@ -172,9 +174,11 @@ contract BinPoolFeeTest is BinTestHelper {
         bytes memory data = abi.encode(true, uint24(swapFee));
         vm.expectRevert(
             abi.encodeWithSelector(
-                Hooks.Wrap__FailedHookCall.selector,
+                CustomRevert.WrappedError.selector,
                 binFeeManagerHook,
-                abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, uint24(swapFee))
+                IBinHooks.beforeMint.selector,
+                abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, uint24(swapFee)),
+                abi.encodeWithSelector(Hooks.HookCallFailed.selector)
             )
         );
         addLiquidityToBin(key, poolManager, bob, activeId, 10_000 ether, 10_000 ether, 1e18, 1e18, data);
@@ -416,9 +420,11 @@ contract BinPoolFeeTest is BinTestHelper {
         bytes memory data = abi.encode(true, uint24(swapFee));
         vm.expectRevert(
             abi.encodeWithSelector(
-                Hooks.Wrap__FailedHookCall.selector,
+                CustomRevert.WrappedError.selector,
                 binFeeManagerHook,
-                abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, uint24(swapFee))
+                IBinHooks.beforeSwap.selector,
+                abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, uint24(swapFee)),
+                abi.encodeWithSelector(Hooks.HookCallFailed.selector)
             )
         );
         poolManager.swap(key, true, 1e18, data);

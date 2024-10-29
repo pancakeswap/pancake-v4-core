@@ -2,11 +2,12 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
+import {MockERC20, ERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {Currency, CurrencyLibrary} from "../../src/types/Currency.sol";
 import {TokenRejecter} from "../helpers/TokenRejecter.sol";
 import {TokenSender} from "../helpers/TokenSender.sol";
 import {stdError} from "forge-std/StdError.sol";
+import {CustomRevert} from "../../src/libraries/CustomRevert.sol";
 
 contract TestCurrency is Test {
     using CurrencyLibrary for uint256;
@@ -110,7 +111,13 @@ contract TestCurrency is Test {
         deal(address(sender), 10 ether);
 
         vm.expectRevert(
-            abi.encodeWithSelector(CurrencyLibrary.Wrap__NativeTransferFailed.selector, otherAddress, new bytes(0))
+            abi.encodeWithSelector(
+                CustomRevert.WrappedError.selector,
+                otherAddress,
+                bytes4(0),
+                new bytes(0),
+                abi.encodeWithSelector(CurrencyLibrary.NativeTransferFailed.selector)
+            )
         );
         sender.send(nativeCurrency, otherAddress, 10 ether + 1);
     }
@@ -121,7 +128,11 @@ contract TestCurrency is Test {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                CurrencyLibrary.Wrap__ERC20TransferFailed.selector, erc20Currency, stdError.arithmeticError
+                CustomRevert.WrappedError.selector,
+                erc20Currency,
+                ERC20.transfer.selector,
+                stdError.arithmeticError,
+                abi.encodeWithSelector(CurrencyLibrary.ERC20TransferFailed.selector)
             )
         );
         sender.send(erc20Currency, otherAddress, 101);
