@@ -467,7 +467,7 @@ contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
     function test_CollectFee() public noIsolate {
         vault.lock(abi.encodeCall(VaultTest._test_CollectFee, ()));
 
-        // collectFee must be called when vault is unlocked
+        // collectFee can be called no matter vault is locked or not
         vm.prank(address(poolManager1));
         vault.collectFee(currency0, 10 ether, address(poolManager1));
 
@@ -488,6 +488,30 @@ contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
         assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(poolManager1)), 0 ether);
     }
 
+    function test_CollectFee_WhenVaultLocked() public noIsolate {
+        vault.lock(abi.encodeCall(VaultTest._test_CollectFee_WhenVaultLocked, ()));
+    }
+
+    function _test_CollectFee_WhenVaultLocked() external {
+        currency0.settle(vault, address(this), 10 ether, false);
+        currency1.settle(vault, address(this), 10 ether, false);
+        poolManager1.mockAccounting(poolKey1, -10 ether, -10 ether);
+
+        // before collectFee assert
+        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 10 ether);
+        assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency0), 10 ether);
+        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(poolManager1)), 0 ether);
+
+        // collectFee can be called no matter vault is locked or not
+        vm.prank(address(poolManager1));
+        vault.collectFee(currency0, 10 ether, address(poolManager1));
+
+        // after collectFee assert
+        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 0 ether);
+        assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency0), 0 ether);
+        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(poolManager1)), 10 ether);
+    }
+
     function test_CollectFeeFromRandomUser() public {
         address bob = makeAddr("bob");
         vm.startPrank(bob);
@@ -496,12 +520,13 @@ contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
         vault.collectFee(currency0, 10 ether, bob);
     }
 
-    function test_CollectFeeWhenVaultIsLocked() public noIsolate {
-        vm.expectRevert(IVault.LockHeld.selector);
-        vault.lock(abi.encodeCall(VaultTest._test_CollectFeeWhenVaultIsLocked, ()));
+    function test_CollectFeeWhenCurrencyIsSynced() public noIsolate {
+        vm.expectRevert(IVault.FeeCurrencySynced.selector);
+        vault.lock(abi.encodeCall(VaultTest._test_CollectFeeWhenCurrencyIsSynced, ()));
     }
 
-    function _test_CollectFeeWhenVaultIsLocked() external {
+    function _test_CollectFeeWhenCurrencyIsSynced() external {
+        vault.sync(currency0);
         vm.prank(address(poolManager1));
         vault.collectFee(currency0, 10 ether, address(poolManager1));
     }

@@ -118,7 +118,7 @@ contract Vault is IVault, VaultToken, Ownable {
         }
     }
 
-    function sync(Currency currency) public override isLocked {
+    function sync(Currency currency) public override {
         if (currency.isNative()) {
             VaultReserve.setVaultReserve(CurrencyLibrary.NATIVE, 0);
         } else {
@@ -156,7 +156,9 @@ contract Vault is IVault, VaultToken, Ownable {
 
     /// @inheritdoc IVault
     function collectFee(Currency currency, uint256 amount, address recipient) external onlyRegisteredApp {
-        if (SettlementGuard.getLocker() != address(0)) revert LockHeld();
+        // prevent transfer between the sync and settle balanceOfs (native settle uses msg.value)
+        (Currency syncedCurrency,) = VaultReserve.getVaultReserve();
+        if (!currency.isNative() && syncedCurrency == currency) revert FeeCurrencySynced();
         reservesOfApp[msg.sender][currency] -= amount;
         currency.transfer(recipient, amount);
     }
