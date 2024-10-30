@@ -8,13 +8,13 @@ import {Create3Factory} from "pancake-create3-factory/src/Create3Factory.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
- * Step1:
+ * Step 1: Deploy
  * forge script script/01_DeployVault.s.sol:DeployVaultScript -vvv \
  *     --rpc-url $RPC_URL \
  *     --broadcast \
  *     --slow
  *
- * Step2:
+ * Step 2: Verify there is no need for --constructor-args as there are no constructor arguments for Vault
  * forge verify-contract <address> Vault --watch --chain <chain_id>
  */
 contract DeployVaultScript is BaseScript {
