@@ -19,7 +19,7 @@ See https://github.com/pancakeswap/pancake-v4-core/pull/35 on why `--isolate` fl
 The scripts are located in `/script` folder, deployed contract address can be found in `script/config`
 
 ### Pre-req: before deployment, the follow env variable needs to be set
-```
+```bash
 // set script config: /script/config/{SCRIPT_CONFIG}.json
 export SCRIPT_CONFIG=ethereum-sepolia
 
@@ -38,11 +38,19 @@ export ETHERSCAN_API_KEY=xx
 Refer to the script source code for the exact command
 
 Example. within `script/01_DeployVault.s.sol`
-```
-// remove --verify flag if etherscan_api_key is not set
+```bash
 forge script script/01_DeployVault.s.sol:DeployVaultScript -vvv \
     --rpc-url $RPC_URL \
     --broadcast \
-    --slow \
-    --verify
+    --slow
+```
+
+
+### Verifying
+Each script includes a verification command. Verification needs to be performed separately since the contract is deployed using the create3 method.
+
+
+Example. within `script/01_DeployVault.s.sol`
+```bash
+forge verify-contract <address> Vault --watch --chain <chain_id>
 ```
