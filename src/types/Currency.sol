@@ -29,17 +29,12 @@ function greaterThanOrEqualTo(Currency currency, Currency other) pure returns (b
 /// @dev This library allows for transferring and holding native tokens and ERC20 tokens
 library CurrencyLibrary {
     using CurrencyLibrary for Currency;
-    using CustomRevert for bytes4;
 
-    /// @notice Thrown when a native transfer fails
-    /// @param recipient address that the transfer failed to
-    /// @param revertReason bubbled up revert reason
-    error Wrap__NativeTransferFailed(address recipient, bytes revertReason);
+    /// @notice Additional context for ERC-7751 wrapped error when a native transfer fails
+    error NativeTransferFailed();
 
-    /// @notice Thrown when an ERC20 transfer fails
-    /// @param token address of the ERC20 token
-    /// @param revertReason bubbled up revert reason
-    error Wrap__ERC20TransferFailed(address token, bytes revertReason);
+    /// @notice Additional context for ERC-7751 wrapped error when an ERC20 transfer fails
+    error ERC20TransferFailed();
 
     /// @notice A constant to represent the native currency
     Currency public constant NATIVE = Currency.wrap(address(0));
@@ -55,7 +50,7 @@ library CurrencyLibrary {
                 success := call(gas(), to, amount, 0, 0, 0, 0)
             }
             // revert with NativeTransferFailed, containing the bubbled up error as an argument
-            if (!success) Wrap__NativeTransferFailed.selector.bubbleUpAndRevertWith(to);
+            if (!success) CustomRevert.bubbleUpAndRevertWith(to, bytes4(0), NativeTransferFailed.selector);
         } else {
             assembly ("memory-safe") {
                 // Get a pointer to some free memory.
@@ -84,7 +79,11 @@ library CurrencyLibrary {
                 mstore(add(fmp, 0x40), 0) // 4 bytes of `amount` were stored here
             }
             // revert with ERC20TransferFailed, containing the bubbled up error as an argument
-            if (!success) Wrap__ERC20TransferFailed.selector.bubbleUpAndRevertWith(Currency.unwrap(currency));
+            if (!success) {
+                CustomRevert.bubbleUpAndRevertWith(
+                    Currency.unwrap(currency), IERC20Minimal.transfer.selector, ERC20TransferFailed.selector
+                );
+            }
         }
     }
 

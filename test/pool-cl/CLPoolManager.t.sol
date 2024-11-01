@@ -39,6 +39,8 @@ import {NoIsolate} from "../helpers/NoIsolate.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {CLPoolGetter} from "./helpers/CLPoolGetter.sol";
 import {CLSlot0} from "../../src/pool-cl/types/CLSlot0.sol";
+import {CustomRevert} from "../../src/libraries/CustomRevert.sol";
+import {ICLHooks} from "../../src/pool-cl/interfaces/ICLHooks.sol";
 
 contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnapshot {
     using CLPoolParametersHelper for bytes32;
@@ -731,9 +733,11 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         clFeeManagerHook.setFee(dynamicSwapFee);
         vm.expectRevert(
             abi.encodeWithSelector(
-                Hooks.Wrap__FailedHookCall.selector,
+                CustomRevert.WrappedError.selector,
                 clFeeManagerHook,
-                abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, dynamicSwapFee)
+                ICLHooks.afterInitialize.selector,
+                abi.encodeWithSelector(LPFeeLibrary.LPFeeTooLarge.selector, dynamicSwapFee),
+                abi.encodeWithSelector(Hooks.HookCallFailed.selector)
             )
         );
         poolManager.initialize(key, SQRT_RATIO_1_1);

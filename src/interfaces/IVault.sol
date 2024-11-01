@@ -27,8 +27,8 @@ interface IVault is IVaultToken {
     /// @notice Thrown when there is no locker
     error NoLocker();
 
-    /// @notice Thrown when lock is held by someone
-    error LockHeld();
+    /// @notice Thrown when collectFee is attempted on a token that is synced.
+    error FeeCurrencySynced();
 
     function isAppRegistered(address app) external returns (bool);
 

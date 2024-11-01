@@ -11,6 +11,8 @@ import {BinPoolParametersHelper} from "../../src/pool-bin/libraries/BinPoolParam
 import {Hooks} from "../../src/libraries/Hooks.sol";
 import {BinRevertHook} from "./helpers/BinRevertHook.sol";
 import {BaseBinTestHook} from "./helpers/BaseBinTestHook.sol";
+import {IBinHooks} from "../../src/pool-bin/interfaces/IBinHooks.sol";
+import {CustomRevert} from "../../src/libraries/CustomRevert.sol";
 
 /// @dev make sure the revert reason is bubbled up
 contract BinHookRevertWithReasonTest is Test {
@@ -52,7 +54,15 @@ contract BinHookRevertWithReasonTest is Test {
     }
 
     function testRevertWithNoReason() public {
-        vm.expectRevert(abi.encodeWithSelector(Hooks.Wrap__FailedHookCall.selector, hook, new bytes(0)));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CustomRevert.WrappedError.selector,
+                hook,
+                IBinHooks.afterInitialize.selector,
+                new bytes(0),
+                abi.encodeWithSelector(Hooks.HookCallFailed.selector)
+            )
+        );
         poolManager.initialize(key, activeId);
     }
 
@@ -60,9 +70,11 @@ contract BinHookRevertWithReasonTest is Test {
         hook.setRevertWithHookNotImplemented(true);
         vm.expectRevert(
             abi.encodeWithSelector(
-                Hooks.Wrap__FailedHookCall.selector,
+                CustomRevert.WrappedError.selector,
                 hook,
-                abi.encodeWithSelector(BaseBinTestHook.HookNotImplemented.selector)
+                IBinHooks.afterInitialize.selector,
+                abi.encodeWithSelector(BaseBinTestHook.HookNotImplemented.selector),
+                abi.encodeWithSelector(Hooks.HookCallFailed.selector)
             )
         );
         poolManager.initialize(key, activeId);
