@@ -40,6 +40,10 @@ contract MockVault {
         _accountDeltaForApp(currency1, delta.amount1());
     }
 
+    function accountAppBalanceDelta(Currency currency, int128 delta, address settler) external {
+        _accountDeltaForApp(currency, delta);
+    }
+
     function _accountDeltaForApp(Currency currency, int128 delta) internal {
         if (delta == 0) return;
 

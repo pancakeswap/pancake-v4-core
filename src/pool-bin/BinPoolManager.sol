@@ -181,11 +181,31 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         BalanceDelta hookDelta;
         (delta, hookDelta) = BinHooks.afterSwap(key, swapForY, amountSpecified, delta, hookData, beforeSwapDelta);
 
-        if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
-            vault.accountAppBalanceDelta(key.currency0, key.currency1, hookDelta, address(key.hooks));
+        // if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
+        //     vault.accountAppBalanceDelta(key.currency0, key.currency1, hookDelta, address(key.hooks));
+        // }
+
+        // vault.accountAppBalanceDelta(key.currency0, key.currency1, delta, msg.sender);
+        int128 hookDelta0 = hookDelta.amount0();
+        int128 hookDelta1 = hookDelta.amount1();
+        int128 delta0 = delta.amount0();
+        int128 delta1 = delta.amount1();
+
+        if (delta0 < 0) {
+            vault.accountAppBalanceDelta(key.currency0, delta0, msg.sender);
+            vault.accountAppBalanceDelta(key.currency0, hookDelta0, address(key.hooks));
+        } else {
+            vault.accountAppBalanceDelta(key.currency0, hookDelta0, address(key.hooks));
+            vault.accountAppBalanceDelta(key.currency0, delta0, msg.sender);
         }
 
-        vault.accountAppBalanceDelta(key.currency0, key.currency1, delta, msg.sender);
+        if (delta1 < 0) {
+            vault.accountAppBalanceDelta(key.currency1, delta1, msg.sender);
+            vault.accountAppBalanceDelta(key.currency1, hookDelta1, address(key.hooks));
+        } else {
+            vault.accountAppBalanceDelta(key.currency1, hookDelta1, address(key.hooks));
+            vault.accountAppBalanceDelta(key.currency1, delta1, msg.sender);
+        }
     }
 
     /// @inheritdoc IBinPoolManager
