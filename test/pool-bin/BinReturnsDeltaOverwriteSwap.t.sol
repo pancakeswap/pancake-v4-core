@@ -25,6 +25,7 @@ import {BinLiquidityHelper} from "./helpers/BinLiquidityHelper.sol";
 import {BinTestHelper} from "./helpers/BinTestHelper.sol";
 import {Hooks} from "../../src/libraries/Hooks.sol";
 import {BinReturnsDeltaHookOverwriteSwap} from "./helpers/BinReturnsDeltaHookOverwriteSwap.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract BinReturnsDeltaOverwriteSwap is Test, GasSnapshot, BinTestHelper {
     using SafeCast for uint256;
@@ -86,19 +87,64 @@ contract BinReturnsDeltaOverwriteSwap is Test, GasSnapshot, BinTestHelper {
             parameters: bytes32(uint256(binReturnsDeltaHookOverwriteSwap.getHooksRegistrationBitmap())).setBinStep(10)
         });
 
+        binReturnsDeltaHookOverwriteSwap.setPoolKey(key);
+
         poolManager.initialize(key, activeId);
     }
 
     function testSwap_xx() external {
         // assume liquidity added via hook and sent to the vault
-        token0.mint(address(vault), 100 ether);
-        token1.mint(address(vault), 100 ether);
+        // token0.mint(address(vault), 100 ether);
+        // token1.mint(address(vault), 100 ether);
 
         // assume hook has some liqudiity from earlier add liqudiity
-        token0.mint(address(binReturnsDeltaHookOverwriteSwap), 100 ether);
-        token1.mint(address(binReturnsDeltaHookOverwriteSwap), 100 ether);
+        // token0.mint(address(binReturnsDeltaHookOverwriteSwap), 100 ether);
+        // token1.mint(address(binReturnsDeltaHookOverwriteSwap), 100 ether);
+
+        address hAddr = address(binReturnsDeltaHookOverwriteSwap);
+
+        token0.mint(address(this), 10 ether);
+        token1.mint(address(this), 10 ether);
+
+        console2.log("---------start of testSwap_xx add liquidity----------------------");
+        console2.log("  balanceof user t0: ", IERC20(Currency.unwrap(currency0)).balanceOf(address(this)) / 1 ether);
+        console2.log("  balanceof user t1: ", IERC20(Currency.unwrap(currency1)).balanceOf(address(this)) / 1 ether);
+        console2.log("  balanceof user hAddr: ", IERC20(Currency.unwrap(currency0)).balanceOf(address(hAddr)) / 1 ether);
+        console2.log("  balanceof user hAddr: ", IERC20(Currency.unwrap(currency1)).balanceOf(address(hAddr)) / 1 ether);
+        console2.log("  balanceof user vault: ", IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)) / 1 ether);
+        console2.log("  balanceof user vault: ", IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)) / 1 ether);
+        console2.log("-------------------------------");
+
+        binReturnsDeltaHookOverwriteSwap.addLiquidity(1 ether, 1 ether);
+
+        console2.log("---------end of testSwap_xx add liquidity ----------------------");
+        console2.log("  balanceof user t0: ", IERC20(Currency.unwrap(currency0)).balanceOf(address(this)) / 1 ether);
+        console2.log("  balanceof user t1: ", IERC20(Currency.unwrap(currency1)).balanceOf(address(this)) / 1 ether);
+        console2.log("  balanceof user hAddr: ", IERC20(Currency.unwrap(currency0)).balanceOf(address(hAddr)) / 1 ether);
+        console2.log("  balanceof user hAddr: ", IERC20(Currency.unwrap(currency1)).balanceOf(address(hAddr)) / 1 ether);
+        console2.log("  balanceof user vault: ", IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)) / 1 ether);
+        console2.log("  balanceof user vault: ", IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)) / 1 ether);
+        console2.log("-------------------------------");
+
+        console2.log("---------start of testSwap_xx swap----------------------");
+        console2.log("  reserveOfApp t0 (ethers)", vault.reservesOfApp(address(poolManager), key.currency0) / 1 ether);
+        console2.log("  reserveOfApp t1 (ethers)", vault.reservesOfApp(address(poolManager), key.currency1) / 1 ether);
+        console2.log("  balanceof user t0: ", IERC20(Currency.unwrap(currency0)).balanceOf(address(this)) / 1 ether);
+        console2.log("  balanceof user t1: ", IERC20(Currency.unwrap(currency1)).balanceOf(address(this)) / 1 ether);
+        console2.log("  balanceof user hAddr: ", IERC20(Currency.unwrap(currency0)).balanceOf(address(hAddr)) / 1 ether);
+        console2.log("  balanceof user hAddr: ", IERC20(Currency.unwrap(currency1)).balanceOf(address(hAddr)) / 1 ether);
+        console2.log("-------------------------------");
 
         BalanceDelta delta = binSwapHelper.swap(key, true, -int128(1 ether), BinSwapHelper.TestSettings(true, true), "");
+
+        console2.log("---------end of testSwap_xx swap----------------------");
+        console2.log("  reserveOfApp t0 (ethers)", vault.reservesOfApp(address(poolManager), key.currency0) / 1 ether);
+        console2.log("  reserveOfApp t1 (ethers)", vault.reservesOfApp(address(poolManager), key.currency1) / 1 ether);
+        console2.log("  balanceof user t0: ", IERC20(Currency.unwrap(currency0)).balanceOf(address(this)) / 1 ether);
+        console2.log("  balanceof user t1: ", IERC20(Currency.unwrap(currency1)).balanceOf(address(this)) / 1 ether);
+        console2.log("  balanceof user hAddr: ", IERC20(Currency.unwrap(currency0)).balanceOf(address(hAddr)) / 1 ether);
+        console2.log("  balanceof user hAddr: ", IERC20(Currency.unwrap(currency1)).balanceOf(address(hAddr)) / 1 ether);
+        console2.log("-------------------------------");
     }
 
     function testFuzz_Swap_xx(bool swapForY, uint256 swapAmount, bool exactInput) external {

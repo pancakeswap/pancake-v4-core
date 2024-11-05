@@ -11,6 +11,9 @@ import {toBalanceDelta, BalanceDelta, BalanceDeltaLibrary} from "../../../src/ty
 import {BeforeSwapDelta, toBeforeSwapDelta} from "../../../src/types/BeforeSwapDelta.sol";
 import {BaseBinTestHook} from "./BaseBinTestHook.sol";
 import {CurrencySettlement} from "../../helpers/CurrencySettlement.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+import {console2} from "forge-std/console2.sol";
 
 contract BinReturnsDeltaHookOverwriteSwap is BaseBinTestHook {
     error InvalidAction();
@@ -20,10 +23,15 @@ contract BinReturnsDeltaHookOverwriteSwap is BaseBinTestHook {
 
     IVault public immutable vault;
     IBinPoolManager public immutable poolManager;
+    PoolKey key;
 
     constructor(IVault _vault, IBinPoolManager _poolManager) {
         vault = _vault;
         poolManager = _poolManager;
+    }
+
+    function setPoolKey(PoolKey memory _poolKey) external {
+        key = _poolKey;
     }
 
     function getHooksRegistrationBitmap() external pure override returns (uint16) {
@@ -47,6 +55,27 @@ contract BinReturnsDeltaHookOverwriteSwap is BaseBinTestHook {
         );
     }
 
+    function addLiquidity(uint256 amt0, uint256 amt1) public {
+        // do any logic
+
+        // 1. Take input currency and amount from user
+        IERC20(Currency.unwrap(key.currency0)).transferFrom(msg.sender, address(this), amt0);
+        IERC20(Currency.unwrap(key.currency1)).transferFrom(msg.sender, address(this), amt1);
+
+        // 2. Mint -- so vault has token balance
+        vault.lock(abi.encode(amt0, amt1));
+    }
+
+    function lockAcquired(bytes calldata callbackData) external returns (bytes memory) {
+        (uint256 amt0, uint256 amt1) = abi.decode(callbackData, (uint256, uint256));
+
+        vault.mint(address(this), key.currency0, amt0);
+        key.currency0.settle(vault, address(this), amt0, false);
+
+        vault.mint(address(this), key.currency1, amt1);
+        key.currency1.settle(vault, address(this), amt1, false);
+    }
+
     function beforeSwap(address, PoolKey calldata key, bool swapForY, int128 amountSpecified, bytes calldata data)
         external
         override
@@ -56,10 +85,10 @@ contract BinReturnsDeltaHookOverwriteSwap is BaseBinTestHook {
             _getInputOutputAndAmount(key, swapForY, amountSpecified);
 
         // 1. Take input currency and amount
-        inputCurrency.take(vault, address(this), amount, false);
+        inputCurrency.take(vault, address(this), amount, true);
 
         // 2. Give output currency and amount achieving a 1:1 swap
-        outputCurrency.settle(vault, address(this), amount, false);
+        outputCurrency.settle(vault, address(this), amount, true);
 
         BeforeSwapDelta hookDelta = toBeforeSwapDelta(-amountSpecified, amountSpecified);
         return (this.beforeSwap.selector, hookDelta, 0);

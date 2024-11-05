@@ -175,9 +175,6 @@ contract Vault is IVault, VaultToken, Ownable {
 
         /// @dev optimization: msg.sender will always be app address, verification should be done on caller address
         if (delta >= 0) {
-            console2.log("before deduct from reservesOfApp");
-            console2.log("reservesOfApp[msg.sender][currency]", reservesOfApp[msg.sender][currency]);
-            console2.log("delta", uint128(delta));
             /// @dev arithmetic underflow make sure trader can't withdraw too much from app
             reservesOfApp[msg.sender][currency] -= uint128(delta);
         } else {

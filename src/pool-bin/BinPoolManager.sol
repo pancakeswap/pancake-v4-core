@@ -24,6 +24,8 @@ import {BeforeSwapDelta} from "../types/BeforeSwapDelta.sol";
 import "./interfaces/IBinHooks.sol";
 import {BinSlot0} from "./types/BinSlot0.sol";
 
+import {console2} from "forge-std/console2.sol";
+
 /// @notice Holds the state for all bin pools
 contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
     using BinPool for *;
@@ -193,10 +195,13 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
             int128 delta0 = delta.amount0();
             int128 delta1 = delta.amount1();
 
+            // positive deduct reservesOfApp
             if (delta0 < 0) {
+                /// @dev account for delta0 first so reserveOfApp will be positive, then deduct hookDelta if required
                 vault.accountAppBalanceDelta(key.currency0, delta0, msg.sender);
                 if (hookDelta0 != 0) vault.accountAppBalanceDelta(key.currency0, hookDelta0, address(key.hooks));
             } else {
+                /// @dev account for hookDelta0 first
                 if (hookDelta0 != 0) vault.accountAppBalanceDelta(key.currency0, hookDelta0, address(key.hooks));
                 if (delta0 != 0) vault.accountAppBalanceDelta(key.currency0, delta0, msg.sender);
             }
