@@ -71,6 +71,8 @@ interface IVault is IVaultToken {
     /// @param settler The address whose delta will be updated
     function accountAppBalanceDelta(Currency currency, int128 delta, address settler) external;
 
+    function updateReserveOfApp(address app, Currency currency, int128 amount) external payable;
+
     /// @notice Called by the user to net out some value owed to the user
     /// @dev Will revert if the requested amount is not available, consider using `mint` instead
     /// @dev Can also be used as a mechanism for free flash loans

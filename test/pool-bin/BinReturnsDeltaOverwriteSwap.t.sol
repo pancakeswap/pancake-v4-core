@@ -98,7 +98,12 @@ contract BinReturnsDeltaOverwriteSwap is Test, GasSnapshot, BinTestHelper {
         token0.mint(address(binReturnsDeltaHookOverwriteSwap), 100 ether);
         token1.mint(address(binReturnsDeltaHookOverwriteSwap), 100 ether);
 
+        // increae reserve of app
+        token0.approve(address(vault), 1000 ether);
+        vault.updateReserveOfApp(address(poolManager), currency0, 1 ether);
         BalanceDelta delta = binSwapHelper.swap(key, true, -int128(1 ether), BinSwapHelper.TestSettings(true, true), "");
+        // decrease reserve of app
+        vault.updateReserveOfApp(address(poolManager), currency0, -1 ether);
     }
 
     function testFuzz_Swap_xx(bool swapForY, uint256 swapAmount, bool exactInput) external {
@@ -116,8 +121,15 @@ contract BinReturnsDeltaOverwriteSwap is Test, GasSnapshot, BinTestHelper {
         token0.mint(address(binReturnsDeltaHookOverwriteSwap), 100 ether);
         token1.mint(address(binReturnsDeltaHookOverwriteSwap), 100 ether);
 
+        // increae reserve of app
+        token0.approve(address(vault), 1000 ether);
+        token1.approve(address(vault), 1000 ether);
+        vault.updateReserveOfApp(address(poolManager), swapForY ? currency0 : currency1, 100 ether);
         BalanceDelta delta =
             binSwapHelper.swap(key, swapForY, swapAmountInt, BinSwapHelper.TestSettings(true, true), "");
+
+        // decrease reserve of app
+        vault.updateReserveOfApp(address(poolManager), swapForY ? currency0 : currency1, -100 ether);
     }
 
     receive() external payable {}

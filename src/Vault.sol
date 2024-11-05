@@ -11,6 +11,7 @@ import {ILockCallback} from "./interfaces/ILockCallback.sol";
 import {SafeCast} from "./libraries/SafeCast.sol";
 import {VaultReserve} from "./libraries/VaultReserve.sol";
 import {VaultToken} from "./VaultToken.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {console2} from "forge-std/console2.sol";
 
@@ -24,6 +25,8 @@ contract Vault is IVault, VaultToken, Ownable {
 
     /// @dev keep track of each app's reserves
     mapping(address app => mapping(Currency currency => uint256 reserve)) public reservesOfApp;
+
+    mapping(address owner => mapping(address app => mapping(Currency currency => uint256 debt))) public debtOfApp;
 
     /// @notice only registered app is allowed to perform accounting
     modifier onlyRegisteredApp() {
@@ -102,6 +105,24 @@ contract Vault is IVault, VaultToken, Ownable {
     {
         _accountDeltaForApp(currency, delta);
         SettlementGuard.accountDelta(settler, currency, delta);
+    }
+
+    function updateReserveOfApp(address app, Currency currency, int128 amount) external payable override {
+        if (amount > 0) {
+            uint256 debtAmount = uint128(amount);
+            if (currency.isNative()) {
+                if (msg.value != debtAmount) revert();
+            } else {
+                IERC20(Currency.unwrap(currency)).transferFrom(msg.sender, address(this), debtAmount);
+            }
+            debtOfApp[msg.sender][app][currency] += debtAmount;
+            reservesOfApp[app][currency] += debtAmount;
+        } else {
+            uint256 debtAmount = uint128(-amount);
+            currency.transfer(msg.sender, debtAmount);
+            debtOfApp[msg.sender][app][currency] -= debtAmount;
+            reservesOfApp[app][currency] -= debtAmount;
+        }
     }
 
     /// @inheritdoc IVault
