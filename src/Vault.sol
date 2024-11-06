@@ -84,22 +84,10 @@ contract Vault is IVault, VaultToken, Ownable {
         (int128 hookDelta0, int128 hookDelta1) = (hookDelta.amount0(), hookDelta.amount1());
         (int128 delta0, int128 delta1) = (delta.amount0(), delta.amount1());
 
-        /// @dev apply the delta thats < 0 first so reservesOfApp do not underflow
-        if (hookDelta0 < 0) {
-            _accountDeltaForApp(currency0, hookDelta0);
-            _accountDeltaForApp(currency0, delta0);
-        } else {
-            _accountDeltaForApp(currency0, delta0);
-            _accountDeltaForApp(currency0, hookDelta0);
-        }
-
-        if (hookDelta1 < 0) {
-            _accountDeltaForApp(currency1, hookDelta1);
-            _accountDeltaForApp(currency1, delta1);
-        } else {
-            _accountDeltaForApp(currency1, delta1);
-            _accountDeltaForApp(currency1, hookDelta1);
-        }
+        /// @dev call _accountDeltaForApp once with both delta/hookDelta to save gas and prevent
+        /// reservesOfApp from underflow when it deduct before addition
+        _accountDeltaForApp(currency0, delta0 + hookDelta0);
+        _accountDeltaForApp(currency1, delta1 + hookDelta1);
 
         // keep track of the balance on vault level
         SettlementGuard.accountDelta(settler, currency0, delta0);
