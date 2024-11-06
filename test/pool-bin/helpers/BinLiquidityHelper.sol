@@ -9,6 +9,7 @@ import {Currency} from "../../../src/types/Currency.sol";
 import {PoolKey} from "../../../src/types/PoolKey.sol";
 import {Hooks} from "../../../src/libraries/Hooks.sol";
 import {CurrencySettlement} from "../../helpers/CurrencySettlement.sol";
+import {BinPool} from "../../../src/pool-bin/libraries/BinPool.sol";
 
 contract BinLiquidityHelper {
     using CurrencySettlement for Currency;
@@ -58,15 +59,15 @@ contract BinLiquidityHelper {
     function mint(PoolKey memory key, IBinPoolManager.MintParams memory params, bytes memory hookData)
         external
         payable
-        returns (BalanceDelta delta)
+        returns (BalanceDelta delta, BinPool.MintArrays memory mintArray)
     {
         MintCallbackData memory data = MintCallbackData(msg.sender, key, params, hookData);
         actionType = ActionType.Mint;
 
-        delta = abi.decode(vault.lock(abi.encode(data)), (BalanceDelta));
+        (delta, mintArray) = abi.decode(vault.lock(abi.encode(data)), (BalanceDelta, BinPool.MintArrays));
     }
 
-    function lockAcquired(bytes calldata callbackData) external returns (bytes memory) {
+    function lockAcquired(bytes calldata callbackData) external returns (bytes memory result) {
         require(msg.sender == address(vault));
         BalanceDelta delta;
         PoolKey memory key;
@@ -78,19 +79,22 @@ contract BinLiquidityHelper {
             key = data.key;
             sender = data.sender;
             delta = binManager.burn(data.key, data.params, data.hookData);
+
+            result = abi.encode(delta);
         } else if (actionType == ActionType.Mint) {
             MintCallbackData memory data = abi.decode(callbackData, (MintCallbackData));
 
             key = data.key;
             sender = data.sender;
-            (delta,) = binManager.mint(data.key, data.params, data.hookData);
+            BinPool.MintArrays memory mintArray;
+            (delta, mintArray) = binManager.mint(data.key, data.params, data.hookData);
+
+            result = abi.encode(delta, mintArray);
         }
 
         if (delta.amount0() < 0) key.currency0.settle(vault, sender, uint128(-delta.amount0()), false);
         if (delta.amount0() > 0) key.currency0.take(vault, sender, uint128(delta.amount0()), false);
         if (delta.amount1() < 0) key.currency1.settle(vault, sender, uint128(-delta.amount1()), false);
         if (delta.amount1() > 0) key.currency1.take(vault, sender, uint128(delta.amount1()), false);
-
-        return abi.encode(delta);
     }
 }

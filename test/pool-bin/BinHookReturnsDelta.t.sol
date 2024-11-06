@@ -97,10 +97,10 @@ contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
 
     function testMint_MintMore() external {
         IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
-        BalanceDelta delta = binLiquidityHelper.mint(key, mintParams, abi.encode(0));
+        (BalanceDelta delta,) = binLiquidityHelper.mint(key, mintParams, abi.encode(0));
         (uint128 reserveXBefore, uint128 reserveYBefore,,) = poolManager.getBin(key.toId(), activeId);
 
-        BalanceDelta delta2 = binLiquidityHelper.mint(key, mintParams, abi.encode(mintParams.amountIn));
+        (BalanceDelta delta2,) = binLiquidityHelper.mint(key, mintParams, abi.encode(mintParams.amountIn));
         (uint128 reserveXAfter, uint128 reserveYAfter,,) = poolManager.getBin(key.toId(), activeId);
 
         assertEq(reserveXAfter - reserveXBefore, 2 * reserveXBefore);

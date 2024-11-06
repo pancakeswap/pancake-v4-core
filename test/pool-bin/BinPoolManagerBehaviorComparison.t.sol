@@ -119,7 +119,7 @@ abstract contract LBFuzzer is LBHelper, BinTestHelper {
         }
 
         // v4#bin mint
-        BalanceDelta delta = liquidityHelper.mint(key, mintParams, "");
+        (BalanceDelta delta,) = liquidityHelper.mint(key, mintParams, "");
 
         // check
         assertEq(
