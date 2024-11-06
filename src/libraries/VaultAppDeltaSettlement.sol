@@ -11,16 +11,12 @@ library VaultAppDeltaSettlement {
     /// @notice helper method to call `vault.accountAppBalanceDelta`
     /// @dev Vault maintains a `reserveOfApp` to protect against exploits in one app from accessing funds in another.
     /// To prevent underflow in `reserveOfApp`, it is essential to handle `appDelta` and `hookDelta` in a specific order.
-    function accountAppDeltaWithHookDelta(
-        IVault vault,
-        PoolKey memory key,
-        BalanceDelta delta,
-        BalanceDelta hookDelta,
-        address settler
-    ) internal {
+    function accountAppDeltaWithHookDelta(IVault vault, PoolKey memory key, BalanceDelta delta, BalanceDelta hookDelta)
+        internal
+    {
         if (hookDelta == BalanceDeltaLibrary.ZERO_DELTA) {
             /// @dev default case when no hook return delta is set
-            vault.accountAppBalanceDelta(key.currency0, key.currency1, delta, settler);
+            vault.accountAppBalanceDelta(key.currency0, key.currency1, delta, msg.sender);
         } else {
             /// @dev if hookDelta is not 0, call vault.accountAppBalanceDelta with negative delta first
             /// negative delta means user/hook owes vault money, so reservesOfApp in vault will not underflow
@@ -29,17 +25,17 @@ library VaultAppDeltaSettlement {
 
             if (hookDelta0 < 0) {
                 vault.accountAppBalanceDelta(key.currency0, hookDelta0, address(key.hooks));
-                if (delta0 != 0) vault.accountAppBalanceDelta(key.currency0, delta0, settler);
+                if (delta0 != 0) vault.accountAppBalanceDelta(key.currency0, delta0, msg.sender);
             } else {
-                if (delta0 != 0) vault.accountAppBalanceDelta(key.currency0, delta0, settler);
+                if (delta0 != 0) vault.accountAppBalanceDelta(key.currency0, delta0, msg.sender);
                 if (hookDelta0 != 0) vault.accountAppBalanceDelta(key.currency0, hookDelta0, address(key.hooks));
             }
 
             if (hookDelta1 < 0) {
                 vault.accountAppBalanceDelta(key.currency1, hookDelta1, address(key.hooks));
-                if (delta1 != 0) vault.accountAppBalanceDelta(key.currency1, delta1, settler);
+                if (delta1 != 0) vault.accountAppBalanceDelta(key.currency1, delta1, msg.sender);
             } else {
-                if (delta1 != 0) vault.accountAppBalanceDelta(key.currency1, delta1, settler);
+                if (delta1 != 0) vault.accountAppBalanceDelta(key.currency1, delta1, msg.sender);
                 if (hookDelta1 != 0) vault.accountAppBalanceDelta(key.currency1, hookDelta1, address(key.hooks));
             }
         }

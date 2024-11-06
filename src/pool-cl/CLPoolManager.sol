@@ -156,7 +156,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         // notice that both generated delta and feeDelta (from lpFee) will both be counted on the user
         (delta, hookDelta) = CLHooks.afterModifyLiquidity(key, params, delta + feeDelta, feeDelta, hookData);
 
-        vault.accountAppDeltaWithHookDelta(key, delta, hookDelta, msg.sender);
+        vault.accountAppDeltaWithHookDelta(key, delta, hookDelta);
     }
 
     /// @inheritdoc ICLPoolManager
@@ -209,7 +209,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         /// @dev delta already includes protocol fee
         (delta, hookDelta) = CLHooks.afterSwap(key, params, delta, hookData, beforeSwapDelta);
 
-        vault.accountAppDeltaWithHookDelta(key, delta, hookDelta, msg.sender);
+        vault.accountAppDeltaWithHookDelta(key, delta, hookDelta);
     }
 
     /// @inheritdoc ICLPoolManager
