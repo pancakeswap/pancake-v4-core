@@ -113,7 +113,10 @@ contract BinCustomCurveHookTest is Test, GasSnapshot, BinTestHelper {
 
         // swap exactIn token0 for token1
         uint128 amtIn = uint128(bound(_amtIn, 0.1 ether, 6 ether)); // 6 as token0.balanceOf(address(this) == 6 ethers
+
+        snapStart("BinCustomCurveHookTest#test_Swap_CustomCurve");
         BalanceDelta delta = binSwapHelper.swap(key, true, -int128(amtIn), BinSwapHelper.TestSettings(true, true), "");
+        snapEnd();
 
         // verify 1:1 swap
         assertEq(delta.amount0(), -int128(amtIn));

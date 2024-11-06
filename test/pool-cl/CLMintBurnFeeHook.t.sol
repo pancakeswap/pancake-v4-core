@@ -64,7 +64,7 @@ contract CLMintBurnFeeHookTest is Test, Deployers, TokenFixture, GasSnapshot {
     }
 
     /// @dev only meant for sanity test for the hook example
-    function test_MintXX() external {
+    function test_Mint() external {
         token0.mint(address(this), 10 ether);
         token1.mint(address(this), 10 ether);
 
@@ -77,11 +77,13 @@ contract CLMintBurnFeeHookTest is Test, Deployers, TokenFixture, GasSnapshot {
         assertEq(token1.balanceOf(address(clMintBurnFeeHook)), 0 ether);
 
         // around 0.5 eth token0 / 0.5 eth token1 liquidity added
+        snapStart("CLMintBurnFeeHookTest#test_Mint");
         (BalanceDelta delta,) = router.modifyPosition(
             key,
             ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 1000 ether, salt: 0}),
             ""
         );
+        snapEnd();
 
         assertEq(token0.balanceOf(address(this)), 8500449895020996220); // ~8.5 ether
         assertEq(token1.balanceOf(address(this)), 8500449895020996220); // ~8.4 ether
@@ -112,11 +114,13 @@ contract CLMintBurnFeeHookTest is Test, Deployers, TokenFixture, GasSnapshot {
         assertEq(vault.balanceOf(address(clMintBurnFeeHook), key.currency1), 999700069986002520); // ~1 eth
 
         // remove liquidity
+        snapStart("CLMintBurnFeeHookTest#test_Burn");
         router.modifyPosition(
             key,
             ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: -1000 ether, salt: 0}),
             ""
         );
+        snapEnd();
 
         // 8.5 to 7 eth = 1.5 eth diff :: -2 eth was taken by hook for fee and +0.5 was from remove liquidity
         assertEq(token0.balanceOf(address(this)), 7000899790041992443); // ~7 eth

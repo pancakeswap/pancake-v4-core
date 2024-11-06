@@ -85,7 +85,9 @@ contract BinMintBurnFeeHookTest is Test, GasSnapshot, BinTestHelper {
         assertEq(token1.balanceOf(address(binMintBurnFeeHook)), 0 ether);
 
         IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
+        snapStart("BinMintBurnFeeHookTest#test_Mint");
         BalanceDelta delta = binLiquidityHelper.mint(key, mintParams, abi.encode(0));
+        snapEnd();
 
         assertEq(token0.balanceOf(address(this)), 7 ether);
         assertEq(token1.balanceOf(address(this)), 7 ether);
@@ -113,8 +115,9 @@ contract BinMintBurnFeeHookTest is Test, GasSnapshot, BinTestHelper {
 
         IBinPoolManager.BurnParams memory burnParams =
             _getSingleBinBurnLiquidityParams(key, poolManager, activeId, address(binLiquidityHelper), 100);
-
+        snapStart("BinMintBurnFeeHookTest#test_Burn");
         binLiquidityHelper.burn(key, burnParams, "");
+        snapEnd();
 
         // +1 from remove liqudiity, -4 from hook fee
         assertEq(token0.balanceOf(address(this)), 7 ether + 1 ether - 4 ether);

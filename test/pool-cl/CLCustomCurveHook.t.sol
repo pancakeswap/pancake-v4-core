@@ -107,6 +107,8 @@ contract CLCustomCurveHookTest is Test, Deployers, TokenFixture, GasSnapshot {
 
         // swap exactIn token0 for token1
         uint128 amtIn = uint128(bound(_amtIn, 0.1 ether, 6 ether)); // 6 as token0.balanceOf(address(this) == 6 ethers
+
+        snapStart("CLCustomCurveHookTest#test_Swap_CustomCurve");
         BalanceDelta delta = router.swap(
             key,
             ICLPoolManager.SwapParams({
@@ -117,6 +119,7 @@ contract CLCustomCurveHookTest is Test, Deployers, TokenFixture, GasSnapshot {
             CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true}),
             ""
         );
+        snapEnd();
 
         // verify 1:1 swap
         assertEq(delta.amount0(), -int128(amtIn));
