@@ -101,10 +101,11 @@ contract Vault is IVault, VaultToken, Ownable {
             _accountDeltaForApp(currency1, hookDelta1);
         }
 
-        if (delta0 != 0) SettlementGuard.accountDelta(settler, currency0, delta0);
-        if (delta1 != 0) SettlementGuard.accountDelta(settler, currency1, delta1);
-        if (hookDelta0 != 0) SettlementGuard.accountDelta(hook, currency0, hookDelta0);
-        if (hookDelta1 != 0) SettlementGuard.accountDelta(hook, currency1, hookDelta1);
+        // keep track of the balance on vault level
+        SettlementGuard.accountDelta(settler, currency0, delta0);
+        SettlementGuard.accountDelta(settler, currency1, delta1);
+        SettlementGuard.accountDelta(hook, currency0, hookDelta0);
+        SettlementGuard.accountDelta(hook, currency1, hookDelta1);
     }
 
     /// @inheritdoc IVault
