@@ -18,26 +18,7 @@ library VaultAppDeltaSettlement {
             /// @dev default case when no hook return delta is set
             vault.accountAppBalanceDelta(key.currency0, key.currency1, delta, msg.sender);
         } else {
-            /// @dev if hookDelta is not 0, call vault.accountAppBalanceDelta with negative delta first
-            /// negative delta means user/hook owes vault money, so reservesOfApp in vault will not underflow
-            (int128 hookDelta0, int128 hookDelta1) = (hookDelta.amount0(), hookDelta.amount1());
-            (int128 delta0, int128 delta1) = (delta.amount0(), delta.amount1());
-
-            if (hookDelta0 < 0) {
-                vault.accountAppBalanceDelta(key.currency0, hookDelta0, address(key.hooks));
-                if (delta0 != 0) vault.accountAppBalanceDelta(key.currency0, delta0, msg.sender);
-            } else {
-                if (delta0 != 0) vault.accountAppBalanceDelta(key.currency0, delta0, msg.sender);
-                if (hookDelta0 != 0) vault.accountAppBalanceDelta(key.currency0, hookDelta0, address(key.hooks));
-            }
-
-            if (hookDelta1 < 0) {
-                vault.accountAppBalanceDelta(key.currency1, hookDelta1, address(key.hooks));
-                if (delta1 != 0) vault.accountAppBalanceDelta(key.currency1, delta1, msg.sender);
-            } else {
-                if (delta1 != 0) vault.accountAppBalanceDelta(key.currency1, delta1, msg.sender);
-                if (hookDelta1 != 0) vault.accountAppBalanceDelta(key.currency1, hookDelta1, address(key.hooks));
-            }
+            vault.accountAppBalanceDelta(key.currency0, key.currency1, delta, msg.sender, hookDelta, address(key.hooks));
         }
     }
 }

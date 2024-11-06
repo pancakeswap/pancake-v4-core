@@ -73,6 +73,41 @@ contract Vault is IVault, VaultToken, Ownable {
     }
 
     /// @inheritdoc IVault
+    function accountAppBalanceDelta(
+        Currency currency0,
+        Currency currency1,
+        BalanceDelta delta,
+        address settler,
+        BalanceDelta hookDelta,
+        address hook
+    ) external override isLocked onlyRegisteredApp {
+        (int128 hookDelta0, int128 hookDelta1) = (hookDelta.amount0(), hookDelta.amount1());
+        (int128 delta0, int128 delta1) = (delta.amount0(), delta.amount1());
+
+        /// @dev apply the delta thats < 0 first so reservesOfApp do not underflow
+        if (hookDelta0 < 0) {
+            _accountDeltaForApp(currency0, hookDelta0);
+            _accountDeltaForApp(currency0, delta0);
+        } else {
+            _accountDeltaForApp(currency0, delta0);
+            _accountDeltaForApp(currency0, hookDelta0);
+        }
+
+        if (hookDelta1 < 0) {
+            _accountDeltaForApp(currency1, hookDelta1);
+            _accountDeltaForApp(currency1, delta1);
+        } else {
+            _accountDeltaForApp(currency1, delta1);
+            _accountDeltaForApp(currency1, hookDelta1);
+        }
+
+        if (delta0 != 0) SettlementGuard.accountDelta(settler, currency0, delta0);
+        if (delta1 != 0) SettlementGuard.accountDelta(settler, currency1, delta1);
+        if (hookDelta0 != 0) SettlementGuard.accountDelta(hook, currency0, hookDelta0);
+        if (hookDelta1 != 0) SettlementGuard.accountDelta(hook, currency1, hookDelta1);
+    }
+
+    /// @inheritdoc IVault
     function accountAppBalanceDelta(Currency currency0, Currency currency1, BalanceDelta delta, address settler)
         external
         override
