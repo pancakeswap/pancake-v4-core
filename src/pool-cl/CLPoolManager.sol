@@ -209,12 +209,29 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         (delta, hookDelta) = CLHooks.afterSwap(key, params, delta, hookData, beforeSwapDelta);
 
         if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
-            vault.accountAppBalanceDelta(key.currency0, key.currency1, hookDelta, address(key.hooks));
-        }
+            int128 hookDelta0 = hookDelta.amount0();
+            int128 hookDelta1 = hookDelta.amount1();
+            int128 delta0 = delta.amount0();
+            int128 delta1 = delta.amount1();
 
-        /// @dev delta already includes protocol fee
-        /// all tokens go into the vault
-        vault.accountAppBalanceDelta(key.currency0, key.currency1, delta, msg.sender);
+            if (delta0 < 0) {
+                vault.accountAppBalanceDelta(key.currency0, delta0, msg.sender);
+                if (hookDelta0 != 0) vault.accountAppBalanceDelta(key.currency0, hookDelta0, address(key.hooks));
+            } else {
+                if (hookDelta0 != 0) vault.accountAppBalanceDelta(key.currency0, hookDelta0, address(key.hooks));
+                if (delta0 != 0) vault.accountAppBalanceDelta(key.currency0, delta0, msg.sender);
+            }
+
+            if (delta1 < 0) {
+                vault.accountAppBalanceDelta(key.currency1, delta1, msg.sender);
+                if (hookDelta1 != 0) vault.accountAppBalanceDelta(key.currency1, hookDelta1, address(key.hooks));
+            } else {
+                if (hookDelta1 != 0) vault.accountAppBalanceDelta(key.currency1, hookDelta1, address(key.hooks));
+                if (delta1 != 0) vault.accountAppBalanceDelta(key.currency1, delta1, msg.sender);
+            }
+        } else {
+            vault.accountAppBalanceDelta(key.currency0, key.currency1, delta, msg.sender);
+        }
     }
 
     /// @inheritdoc ICLPoolManager
