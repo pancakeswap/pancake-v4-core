@@ -19,7 +19,7 @@ import {BinTestHelper} from "./helpers/BinTestHelper.sol";
 import {Hooks} from "../../src/libraries/Hooks.sol";
 import {BinMintBurnFeeHook} from "./helpers/BinMintBurnFeeHook.sol";
 
-contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
+contract BinMintBurnFeeHookTest is Test, GasSnapshot, BinTestHelper {
     using BinPoolParametersHelper for bytes32;
 
     Vault public vault;
