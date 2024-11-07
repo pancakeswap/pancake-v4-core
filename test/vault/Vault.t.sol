@@ -18,6 +18,7 @@ import {IHooks} from "../../src/interfaces/IHooks.sol";
 import {NoIsolate} from "../helpers/NoIsolate.sol";
 import {CurrencySettlement} from "../helpers/CurrencySettlement.sol";
 import {TokenFixture} from "../helpers/TokenFixture.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @notice Basic functionality test for Vault
@@ -938,6 +939,33 @@ contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
         // reserveOfApp should be 0 as delta/hookDelta balnce out each other
         assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency0), reserve0Before - amt0 - fee0);
         assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency1), reserve1Before - amt1 - fee1);
+    }
+
+    function testVaultOwner_get() public noIsolate {
+        assertEq(vault.owner(), address(this));
+    }
+
+    function testVaultOwner_registerApp() public noIsolate {
+        vault.registerApp(makeAddr("app1"));
+        assertEq(vault.isAppRegistered(makeAddr("app1")), true);
+
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, makeAddr("someone")));
+        vm.prank(makeAddr("someone"));
+        vault.registerApp(makeAddr("app2"));
+    }
+
+    function testVaultOwner_2StepsTransferOwnership() public noIsolate {
+        assertEq(vault.owner(), address(this));
+        vault.transferOwnership(makeAddr("newOwner"));
+
+        // ownership is not transferred yet, it's still this contract
+        assertEq(vault.owner(), address(this));
+        assertEq(vault.pendingOwner(), makeAddr("newOwner"));
+
+        // new owner must accept the ownership manually
+        vm.prank(makeAddr("newOwner"));
+        vault.acceptOwnership();
+        assertEq(vault.owner(), makeAddr("newOwner"));
     }
 
     function lockAcquired(bytes calldata data) external returns (bytes memory result) {
