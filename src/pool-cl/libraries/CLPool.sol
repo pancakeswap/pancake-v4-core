@@ -232,8 +232,7 @@ library CLPool {
             });
         }
 
-        /// @dev If amountSpecified is the output, also given amountSpecified cant be 0,
-        /// then the tx will always revert if the swap fee is 100%
+        /// @dev a swap fee totaling 100% makes exact output swaps impossible since the input is entirely consumed by the fee
         if (state.swapFee >= LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE) {
             if (!exactInput) {
                 revert InvalidFeeForExactOut();
