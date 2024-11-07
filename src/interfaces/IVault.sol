@@ -57,6 +57,24 @@ interface IVault is IVaultToken {
     function lock(bytes calldata data) external returns (bytes memory);
 
     /// @notice Called by registered app to account for a change in the pool balance,
+    /// convenient for AMM pool manager, typically after modifyLiquidity, swap, donate,
+    /// include the case where hookDelta is involved
+    /// @param currency0 The PoolKey currency0 to update
+    /// @param currency1 The PoolKey currency1 to update
+    /// @param delta The change in the pool's balance
+    /// @param settler The address whose delta will be updated
+    /// @param hookDelta The change in the pool's balance from hook
+    /// @param hook The address whose hookDelta will be updated
+    function accountAppBalanceDelta(
+        Currency currency0,
+        Currency currency1,
+        BalanceDelta delta,
+        address settler,
+        BalanceDelta hookDelta,
+        address hook
+    ) external;
+
+    /// @notice Called by registered app to account for a change in the pool balance,
     /// convenient for AMM pool manager, typically after modifyLiquidity, swap, donate
     /// @param currency0 The PoolKey currency0 to update
     /// @param currency1 The PoolKey currency1 to update

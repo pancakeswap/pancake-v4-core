@@ -13,6 +13,7 @@ import {Currency, CurrencyLibrary} from "../../src/types/Currency.sol";
 import {PoolKey} from "../../src/types/PoolKey.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
 import {FakePoolManager} from "./FakePoolManager.sol";
+import {FakeHook} from "./FakeHook.sol";
 import {IHooks} from "../../src/interfaces/IHooks.sol";
 import {NoIsolate} from "../helpers/NoIsolate.sol";
 import {CurrencySettlement} from "../helpers/CurrencySettlement.sol";
@@ -34,6 +35,10 @@ contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
 
     PoolKey public poolKey1;
     PoolKey public poolKey2;
+    FakeHook public fakeHook1;
+
+    MockERC20 token0;
+    MockERC20 token1;
 
     function setUp() public {
         vault = new Vault();
@@ -46,11 +51,17 @@ contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
         vault.registerApp(address(poolManager2));
 
         initializeTokens();
+        token0 = MockERC20(Currency.unwrap(currency0));
+        token1 = MockERC20(Currency.unwrap(currency1));
+
+        fakeHook1 = new FakeHook(vault);
+        token0.mint(address(fakeHook1), 1000 ether);
+        token1.mint(address(fakeHook1), 1000 ether);
 
         poolKey1 = PoolKey({
             currency0: currency0,
             currency1: currency1,
-            hooks: IHooks(address(0)),
+            hooks: IHooks(address(fakeHook1)),
             poolManager: poolManager1,
             fee: 0,
             parameters: 0x00
@@ -100,6 +111,16 @@ contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
         unRegPoolManager.mockAccounting(key, -10 ether, -10 ether);
     }
 
+    function testAccountPoolBalanceDeltaWithHookDeltaFromUnregistedPoolManager() public {
+        vault.lock(abi.encodeCall(VaultTest._testAccountPoolBalanceDeltaWithHookDeltaFromUnregistedPoolManager, ()));
+    }
+
+    function _testAccountPoolBalanceDeltaWithHookDeltaFromUnregistedPoolManager() external {
+        PoolKey memory key = PoolKey(currency0, currency1, IHooks(makeAddr("hook")), unRegPoolManager, 0x0, 0x0);
+        vm.expectRevert(IVault.AppUnregistered.selector);
+        unRegPoolManager.mockAccountingWithHookDelta(key, -10 ether, -10 ether, 10 ether, 10 ether);
+    }
+
     function testAccountPoolBalanceDeltaFromArbitraryAddr() public {
         vault.lock(abi.encodeCall(VaultTest._testAccountPoolBalanceDeltaFromArbitraryAddr, ()));
     }
@@ -125,6 +146,10 @@ contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
         vm.expectRevert(abi.encodeWithSelector(IVault.NoLocker.selector));
         vm.prank(address(poolManager1));
         vault.accountAppBalanceDelta(key.currency0, key.currency1, delta, address(this));
+
+        vm.expectRevert(abi.encodeWithSelector(IVault.NoLocker.selector));
+        vm.prank(address(poolManager1));
+        vault.accountAppBalanceDelta(key.currency0, key.currency1, delta, address(this), delta, makeAddr("hook"));
     }
 
     function testLockNotSettledWithoutPayment() public {
@@ -134,6 +159,15 @@ contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
 
     function _testLockNotSettledWithoutPayment() external {
         poolManager1.mockAccounting(poolKey1, -10 ether, -10 ether);
+    }
+
+    function testLockNotSettledWithoutPayment_HookDelta() public {
+        vm.expectRevert(IVault.CurrencyNotSettled.selector);
+        vault.lock(abi.encodeCall(VaultTest._testLockNotSettledWithoutPayment_HookDelta, ()));
+    }
+
+    function _testLockNotSettledWithoutPayment_HookDelta() external {
+        poolManager1.mockAccountingWithHookDelta(poolKey1, -10 ether, -10 ether, 0 ether, 0 ether);
     }
 
     function testLockNotSettledWithoutFullyPayment() public noIsolate {
@@ -151,6 +185,22 @@ contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
         vault.settle();
     }
 
+    function testLockNotSettledWithoutFullyPayment_HookDelta() public noIsolate {
+        vm.expectRevert(IVault.CurrencyNotSettled.selector);
+        vault.lock(abi.encodeCall(VaultTest._testLockNotSettledWithoutFullyPayment, ()));
+    }
+
+    function _testLockNotSettledWithoutFullyPayment_HookDelta() external {
+        poolManager1.mockAccountingWithHookDelta(poolKey1, -10 ether, -10 ether, -1 ether, 0 ether);
+
+        currency0.settle(vault, address(this), 10 ether, false);
+        currency1.settle(vault, address(this), 10 ether, false);
+
+        // didnt actually transfer the currency for hook's 1 ether
+        vault.sync(currency1);
+        vault.settle();
+    }
+
     function testLockNotSettledAsPayTooMuch() public noIsolate {
         vm.expectRevert(IVault.CurrencyNotSettled.selector);
         vault.lock(abi.encodeCall(VaultTest._testLockNotSettledAsPayTooMuch, ()));
@@ -160,6 +210,20 @@ contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
         poolManager1.mockAccounting(poolKey1, -10 ether, -10 ether);
         currency0.settle(vault, address(this), 10 ether, false);
         currency1.settle(vault, address(this), 12 ether, false);
+    }
+
+    function testLockNotSettledAsPayTooMuch_HookDelta() public noIsolate {
+        vm.expectRevert(IVault.CurrencyNotSettled.selector);
+        vault.lock(abi.encodeCall(VaultTest._testLockNotSettledAsPayTooMuch_HookDelta, ()));
+    }
+
+    function _testLockNotSettledAsPayTooMuch_HookDelta() external {
+        poolManager1.mockAccountingWithHookDelta(poolKey1, -10 ether, -10 ether, -1 ether, 0 ether);
+        currency0.settle(vault, address(this), 10 ether, false);
+        currency1.settle(vault, address(this), 10 ether, false);
+
+        // hook overpay
+        fakeHook1.settle(currency0, 2 ether, false);
     }
 
     function testNotCorrectPoolManager() public {
@@ -729,6 +793,151 @@ contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
         snapStart("VaultTest#testVault_clear_successWithZeroExistingDelta");
         vault.clear(currency0, 0);
         snapEnd();
+    }
+
+    function testLockSettledWhenAddLiquidity_HookDelta() public noIsolate {
+        vault.lock(abi.encodeCall(VaultTest._testLockSettledWhenAddLiquidity_HookDelta, ()));
+    }
+
+    function _testLockSettledWhenAddLiquidity_HookDelta() external {
+        // adding enough liquidity before swap
+        currency0.settle(vault, address(this), 10 ether, false);
+        currency1.settle(vault, address(this), 10 ether, false);
+
+        // hook provide some incentive by giving 2 eth worth of token0
+        fakeHook1.settle(currency0, 2 ether, false);
+
+        poolManager1.mockAccountingWithHookDelta(poolKey1, -10 ether, -10 ether, -2 ether, 0 ether);
+
+        uint256 token0Before = currency0.balanceOfSelf();
+        uint256 token1Before = currency1.balanceOfSelf();
+        uint256 token0BeforeHook = token0.balanceOf(address(poolKey1.hooks));
+        uint256 token1BeforeHook = token1.balanceOf(address(poolKey1.hooks));
+
+        // swap
+        poolManager1.mockAccountingWithHookDelta(poolKey1, -3 ether, 3 ether, 1 ether, -1 ether);
+        currency0.settle(vault, address(this), 3 ether, false);
+        currency1.take(vault, address(this), 3 ether, false);
+
+        // hook take 1 eth of token0 and give 1 eth of token1
+        fakeHook1.take(currency0, 1 ether, false);
+        fakeHook1.settle(currency1, 1 ether, false);
+
+        // user paid 3 token0 and received 3 token1
+        assertEq(token0Before - currency0.balanceOfSelf(), 3 ether);
+        assertEq(currency1.balanceOfSelf() - token1Before, 3 ether);
+
+        // hook take 1 ether of token0 and given 1 ether of token1 incentives
+        assertEq(token0.balanceOf(address(poolKey1.hooks)) - token0BeforeHook, 1 ether);
+        assertEq(token1BeforeHook - token1.balanceOf(address(poolKey1.hooks)), 1 ether);
+
+        // token0: add 10 ether, + 3 ether in swap + hook give 2 eth in liquidity - hook take 1 eth in swap
+        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)), 14 ether);
+        // token1: add 10 ether, - 3 ether in swap + hook give 1 eth
+        assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 8 ether);
+        assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency0), 14 ether);
+        assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency1), 8 ether);
+    }
+
+    function testFuzzAccountBalanceDeltaWithHookDelta_OverwriteCurve(uint256 amt0, uint256 amt1) public noIsolate {
+        amt0 = bound(amt0, 0, 10 ether);
+        amt1 = bound(amt1, 0, 10 ether);
+        vault.lock(abi.encodeCall(VaultTest._testFuzzAccountBalanceDeltaWithHookDelta_OverwriteCurve, (amt0, amt1)));
+    }
+
+    /// @dev assume stableSwap curve 1:1 wihere hookDelta + delta = 0
+    function _testFuzzAccountBalanceDeltaWithHookDelta_OverwriteCurve(uint256 amt0, uint256 amt1) external {
+        int128 amt0Int128 = int128(uint128(amt0));
+        int128 amt1Int128 = int128(uint128(amt1));
+
+        poolManager1.mockAccountingWithHookDelta(poolKey1, -amt0Int128, amt1Int128, amt0Int128, -amt1Int128);
+        currency0.settle(vault, address(this), amt0, false);
+        currency1.take(vault, address(this), amt1, true); // mint VaultToken
+
+        fakeHook1.take(currency0, amt0, true); // mint VaultToken
+        fakeHook1.settle(currency1, amt1, false);
+
+        // reserveOfApp should be 0 as delta/hookDelta balnce out each other
+        assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency0), 0);
+        assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency1), 0);
+    }
+
+    /// @dev assume add liqudiity where user add liquidity and hook also take a fee (half of liquidity)
+    function testFuzzAccountBalanceDeltaWithHookDelta_AddLiquidityHookFee(uint256 amt0, uint256 amt1)
+        public
+        noIsolate
+    {
+        amt0 = bound(amt0, 0, 10 ether);
+        amt1 = bound(amt1, 0, 10 ether);
+        vault.lock(
+            abi.encodeCall(VaultTest._testFuzzAccountBalanceDeltaWithHookDelta_AddLiquidityHookFee, (amt0, amt1))
+        );
+    }
+
+    function _testFuzzAccountBalanceDeltaWithHookDelta_AddLiquidityHookFee(uint256 amt0, uint256 amt1) external {
+        int128 amt0Int128 = int128(uint128(amt0));
+        int128 amt1Int128 = int128(uint128(amt1));
+
+        poolManager1.mockAccountingWithHookDelta(poolKey1, -amt0Int128, -amt1Int128, amt0Int128 / 2, amt1Int128 / 2);
+        assertEq(vault.currencyDelta(msg.sender, currency0), -amt0Int128);
+        assertEq(vault.currencyDelta(msg.sender, currency1), -amt1Int128);
+        assertEq(vault.currencyDelta(address(poolKey1.hooks), currency0), amt0Int128 / 2);
+        assertEq(vault.currencyDelta(address(poolKey1.hooks), currency1), amt1Int128 / 2);
+
+        // user add liquidity and settle with vault
+        currency0.settle(vault, address(this), amt0, false);
+        currency1.settle(vault, address(this), amt1, false);
+
+        // hook take a fee
+        uint256 fee0 = amt0 / 2;
+        uint256 fee1 = amt1 / 2;
+        fakeHook1.take(currency0, fee0, false);
+        fakeHook1.take(currency1, fee1, false);
+
+        assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency0), amt0 - fee0);
+        assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency1), amt1 - fee1);
+    }
+
+    /// @dev assume add liqudiity where user remove liquidity and hook also take a fee (half of liquidity)
+    function testFuzzAccountBalanceDeltaWithHookDelta_RemoveLiquidityHookFee(uint256 amt0, uint256 amt1)
+        public
+        noIsolate
+    {
+        amt0 = bound(amt0, 0, 10 ether);
+        amt1 = bound(amt1, 0, 10 ether);
+        vault.lock(
+            abi.encodeCall(VaultTest._testFuzzAccountBalanceDeltaWithHookDelta_RemoveLiquidityHookFee, (amt0, amt1))
+        );
+    }
+
+    function _testFuzzAccountBalanceDeltaWithHookDelta_RemoveLiquidityHookFee(uint256 amt0, uint256 amt1) external {
+        int128 amt0Int128 = int128(uint128(amt0));
+        int128 amt1Int128 = int128(uint128(amt1));
+
+        /// Assume some liquidity added before.
+        poolManager1.mockAccountingWithHookDelta(poolKey1, -(amt0Int128 * 2), -(amt1Int128 * 2), 0, 0);
+        currency0.settle(vault, address(this), amt0 * 2, false);
+        currency1.settle(vault, address(this), amt1 * 2, false);
+        uint256 reserve0Before = vault.reservesOfApp(address(poolKey1.poolManager), currency0);
+        uint256 reserve1Before = vault.reservesOfApp(address(poolKey1.poolManager), currency1);
+
+        // if no liqudiity added above, reserveOfApp will underflow here, as taking more out of app
+        // in the real world, this will not happen as user will need to pay the hook fee
+        poolManager1.mockAccountingWithHookDelta(poolKey1, amt0Int128, amt1Int128, amt0Int128 / 2, amt1Int128 / 2);
+
+        // user remove liquidity
+        currency0.take(vault, address(this), amt0, false);
+        currency1.take(vault, address(this), amt1, false);
+
+        // hook take a fee
+        uint256 fee0 = amt0 / 2;
+        uint256 fee1 = amt1 / 2;
+        fakeHook1.take(currency0, fee0, false);
+        fakeHook1.take(currency1, fee1, false);
+
+        // reserveOfApp should be 0 as delta/hookDelta balnce out each other
+        assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency0), reserve0Before - amt0 - fee0);
+        assertEq(vault.reservesOfApp(address(poolKey1.poolManager), currency1), reserve1Before - amt1 - fee1);
     }
 
     function lockAcquired(bytes calldata data) external returns (bytes memory result) {

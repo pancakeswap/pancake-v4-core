@@ -22,6 +22,7 @@ import {BinHooks} from "./libraries/BinHooks.sol";
 import {PriceHelper} from "./libraries/PriceHelper.sol";
 import {BeforeSwapDelta} from "../types/BeforeSwapDelta.sol";
 import {BinSlot0} from "./types/BinSlot0.sol";
+import {VaultAppDeltaSettlement} from "../libraries/VaultAppDeltaSettlement.sol";
 
 /// @notice Holds the state for all bin pools
 contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
@@ -31,6 +32,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
     using LPFeeLibrary for uint24;
     using PackedUint128Math for bytes32;
     using Hooks for bytes32;
+    using VaultAppDeltaSettlement for IVault;
 
     /// @inheritdoc IBinPoolManager
     uint16 public constant override MIN_BIN_STEP = 1;
@@ -180,11 +182,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         BalanceDelta hookDelta;
         (delta, hookDelta) = BinHooks.afterSwap(key, swapForY, amountSpecified, delta, hookData, beforeSwapDelta);
 
-        if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
-            vault.accountAppBalanceDelta(key.currency0, key.currency1, hookDelta, address(key.hooks));
-        }
-
-        vault.accountAppBalanceDelta(key.currency0, key.currency1, delta, msg.sender);
+        vault.accountAppDeltaWithHookDelta(key, delta, hookDelta);
     }
 
     /// @inheritdoc IBinPoolManager
@@ -228,10 +226,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         BalanceDelta hookDelta;
         (delta, hookDelta) = BinHooks.afterMint(key, params, delta, hookData);
 
-        if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
-            vault.accountAppBalanceDelta(key.currency0, key.currency1, hookDelta, address(key.hooks));
-        }
-        vault.accountAppBalanceDelta(key.currency0, key.currency1, delta, msg.sender);
+        vault.accountAppDeltaWithHookDelta(key, delta, hookDelta);
     }
 
     /// @inheritdoc IBinPoolManager
@@ -263,10 +258,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         BalanceDelta hookDelta;
         (delta, hookDelta) = BinHooks.afterBurn(key, params, delta, hookData);
 
-        if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
-            vault.accountAppBalanceDelta(key.currency0, key.currency1, hookDelta, address(key.hooks));
-        }
-        vault.accountAppBalanceDelta(key.currency0, key.currency1, delta, msg.sender);
+        vault.accountAppDeltaWithHookDelta(key, delta, hookDelta);
     }
 
     function donate(PoolKey memory key, uint128 amount0, uint128 amount1, bytes calldata hookData)

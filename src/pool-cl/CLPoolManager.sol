@@ -24,6 +24,7 @@ import {BeforeSwapDelta} from "../types/BeforeSwapDelta.sol";
 import {Currency} from "../types/Currency.sol";
 import {TickMath} from "./libraries/TickMath.sol";
 import {CLSlot0} from "./types/CLSlot0.sol";
+import {VaultAppDeltaSettlement} from "../libraries/VaultAppDeltaSettlement.sol";
 
 contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     using SafeCast for int256;
@@ -33,6 +34,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
     using CLPool for *;
     using CLPosition for mapping(bytes32 => CLPosition.Info);
     using CLPoolGetters for CLPool.State;
+    using VaultAppDeltaSettlement for IVault;
 
     mapping(PoolId id => CLPool.State poolState) private pools;
 
@@ -153,10 +155,7 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         // notice that both generated delta and feeDelta (from lpFee) will both be counted on the user
         (delta, hookDelta) = CLHooks.afterModifyLiquidity(key, params, delta + feeDelta, feeDelta, hookData);
 
-        if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
-            vault.accountAppBalanceDelta(key.currency0, key.currency1, hookDelta, address(key.hooks));
-        }
-        vault.accountAppBalanceDelta(key.currency0, key.currency1, delta, msg.sender);
+        vault.accountAppDeltaWithHookDelta(key, delta, hookDelta);
     }
 
     /// @inheritdoc ICLPoolManager
@@ -205,15 +204,11 @@ contract CLPoolManager is ICLPoolManager, ProtocolFees, Extsload {
         );
 
         BalanceDelta hookDelta;
-        (delta, hookDelta) = CLHooks.afterSwap(key, params, delta, hookData, beforeSwapDelta);
-
-        if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
-            vault.accountAppBalanceDelta(key.currency0, key.currency1, hookDelta, address(key.hooks));
-        }
 
         /// @dev delta already includes protocol fee
-        /// all tokens go into the vault
-        vault.accountAppBalanceDelta(key.currency0, key.currency1, delta, msg.sender);
+        (delta, hookDelta) = CLHooks.afterSwap(key, params, delta, hookData, beforeSwapDelta);
+
+        vault.accountAppDeltaWithHookDelta(key, delta, hookDelta);
     }
 
     /// @inheritdoc ICLPoolManager
