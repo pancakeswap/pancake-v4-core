@@ -124,11 +124,11 @@ contract BinPoolManagerOwnerTest is Test {
 
     function test_SetMaxBinStep_OnlyOwner() public {
         // before
-        assertEq(poolManager.MAX_BIN_STEP(), 100);
+        assertEq(poolManager.maxBinStep(), 100);
 
         // after
         binPoolManagerOwner.setMaxBinStep(200);
-        assertEq(poolManager.MAX_BIN_STEP(), 200);
+        assertEq(poolManager.maxBinStep(), 200);
     }
 
     function test_SetMaxBinStep_NotOwner() public {
@@ -140,11 +140,11 @@ contract BinPoolManagerOwnerTest is Test {
 
     function test_SetMinBinSharesForDonate_OnlyOwner() public {
         // before
-        assertEq(poolManager.MIN_BIN_SHARE_FOR_DONATE(), 2 ** 128);
+        assertEq(poolManager.minBinShareForDonate(), 2 ** 128);
 
         // after
         binPoolManagerOwner.setMinBinSharesForDonate(1e18);
-        assertEq(poolManager.MIN_BIN_SHARE_FOR_DONATE(), 1e18);
+        assertEq(poolManager.minBinShareForDonate(), 1e18);
 
         // if set beow
         vm.expectRevert(abi.encodeWithSelector(BinPoolManagerOwner.MinShareTooSmall.selector, 1));
