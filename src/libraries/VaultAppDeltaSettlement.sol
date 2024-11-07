@@ -9,8 +9,6 @@ import {IVault} from "../interfaces/IVault.sol";
 /// @notice Library for handling AppDeltaSettlement for the apps (eg. CL, Bin etc..)
 library VaultAppDeltaSettlement {
     /// @notice helper method to call `vault.accountAppBalanceDelta`
-    /// @dev Vault maintains a `reserveOfApp` to protect against exploits in one app from accessing funds in another.
-    /// To prevent underflow in `reserveOfApp`, it is essential to handle `appDelta` and `hookDelta` in a specific order.
     function accountAppDeltaWithHookDelta(IVault vault, PoolKey memory key, BalanceDelta delta, BalanceDelta hookDelta)
         internal
     {
