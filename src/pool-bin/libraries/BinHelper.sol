@@ -86,7 +86,9 @@ library BinHelper {
                 uint256 deltaY = deltaLiquidity >> Constants.SCALE_OFFSET;
                 deltaY = deltaY > y ? y : deltaY;
 
-                y -= deltaY;
+                unchecked {
+                    y -= deltaY;
+                }
                 deltaLiquidity -= deltaY << Constants.SCALE_OFFSET;
             }
 
@@ -94,7 +96,9 @@ library BinHelper {
                 uint256 deltaX = deltaLiquidity / price;
                 deltaX = deltaX > x ? x : deltaX;
 
-                x -= deltaX;
+                unchecked {
+                    x -= deltaX;
+                }
             }
 
             amountsIn = uint128(x).encode(uint128(y));
