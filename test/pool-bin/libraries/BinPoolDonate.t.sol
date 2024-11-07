@@ -62,7 +62,7 @@ contract BinPoolDonateTest is BinTestHelper {
         addLiquidityToBin(key, poolManager, alice, activeId, 1e18, 1e18, 1e18, 1e18, "");
 
         // Remove all share leaving less than MIN_LIQUIDITY_BEFORE_DONATE shares
-        remainingShare = bound(remainingShare, 1, poolManager.MIN_BIN_SHARE_FOR_DONATE() - 1);
+        remainingShare = bound(remainingShare, 1, poolManager.minBinShareForDonate() - 1);
         uint256 aliceShare = poolManager.getPosition(poolId, alice, activeId, 0).share;
         removeLiquidityFromBin(key, poolManager, alice, activeId, aliceShare - remainingShare, "");
 
