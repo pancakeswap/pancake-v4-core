@@ -81,8 +81,8 @@ contract Vault is IVault, VaultToken, Ownable {
         BalanceDelta hookDelta,
         address hook
     ) external override isLocked onlyRegisteredApp {
-        (int128 hookDelta0, int128 hookDelta1) = (hookDelta.amount0(), hookDelta.amount1());
         (int128 delta0, int128 delta1) = (delta.amount0(), delta.amount1());
+        (int128 hookDelta0, int128 hookDelta1) = (hookDelta.amount0(), hookDelta.amount1());
 
         /// @dev call _accountDeltaForApp once with both delta/hookDelta to save gas and prevent
         /// reservesOfApp from underflow when it deduct before addition

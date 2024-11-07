@@ -90,7 +90,7 @@ contract CLMintBurnFeeHookTest is Test, Deployers, TokenFixture, GasSnapshot {
         assertEq(token0.balanceOf(address(vault)), 1499550104979003780); // ~1.5 ether
         assertEq(token1.balanceOf(address(vault)), 1499550104979003780); // ~1.5 ether
 
-        // // hook mint VaultToken instead of taking token from vault as vault does not have token in this case
+        // hook mint VaultToken instead of taking token from vault as vault does not have token in this case
         assertEq(vault.balanceOf(address(clMintBurnFeeHook), key.currency0), 999700069986002520); // ~1 eth
         assertEq(vault.balanceOf(address(clMintBurnFeeHook), key.currency1), 999700069986002520); // ~1 eth
     }

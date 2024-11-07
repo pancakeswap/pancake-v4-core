@@ -20,5 +20,22 @@ contract FakePoolManager is IPoolManager {
         vault.accountAppBalanceDelta(poolKey.currency0, poolKey.currency1, toBalanceDelta(delta0, delta1), msg.sender);
     }
 
+    function mockAccountingWithHookDelta(
+        PoolKey calldata poolKey,
+        int128 delta0,
+        int128 delta1,
+        int128 hookDelta0,
+        int128 hookDelta1
+    ) external {
+        vault.accountAppBalanceDelta(
+            poolKey.currency0,
+            poolKey.currency1,
+            toBalanceDelta(delta0, delta1),
+            msg.sender,
+            toBalanceDelta(hookDelta0, hookDelta1),
+            address(poolKey.hooks)
+        );
+    }
+
     function updateDynamicLPFee(PoolKey memory key, uint24 newDynamicSwapFee) external override {}
 }
