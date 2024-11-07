@@ -73,7 +73,7 @@ abstract contract LBFuzzer is LBHelper, BinTestHelper {
         public
         returns (ILBPair lbPair, PoolKey memory key_, uint16 boundBinStep, uint24 boundActiveId)
     {
-        boundBinStep = uint16(bound(binStep, manager.MIN_BIN_STEP(), manager.MAX_BIN_STEP()));
+        boundBinStep = uint16(bound(binStep, manager.MIN_BIN_STEP(), manager.maxBinStep()));
         boundActiveId = _getBoundId(boundBinStep, activeId);
 
         // lb init

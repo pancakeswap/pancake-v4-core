@@ -18,7 +18,7 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @notice Pool binStep cannot be lesser than 1. Otherwise there will be no price jump between bin
     error BinStepTooSmall(uint16 binStep);
 
-    /// @notice Pool binstep cannot be greater than the limit set at MAX_BIN_STEP
+    /// @notice Pool binstep cannot be greater than the limit set at maxBinStep
     error BinStepTooLarge(uint16 binStep);
 
     /// @notice Error thrown when owner set max bin step too small
@@ -32,14 +32,14 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
 
     /// @notice Returns the constant representing the max bin step
     /// @return maxBinStep a value of 100 would represent a 1% price jump between bin (limit can be raised by owner)
-    function MAX_BIN_STEP() external view returns (uint16);
+    function maxBinStep() external view returns (uint16);
 
     /// @notice Returns the constant representing the min bin step
     /// @dev 1 would represent a 0.01% price jump between bin
     function MIN_BIN_STEP() external view returns (uint16);
 
     /// @notice min share in bin before donate is allowed in current bin
-    function MIN_BIN_SHARE_FOR_DONATE() external view returns (uint256);
+    function minBinShareForDonate() external view returns (uint256);
 
     /// @notice Emitted when a new pool is initialized
     /// @param id The abi encoded hash of the pool key struct for the new pool

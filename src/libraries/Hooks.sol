@@ -10,6 +10,10 @@ import {ParametersHelper} from "./math/ParametersHelper.sol";
 import {ParseBytes} from "./ParseBytes.sol";
 import {CustomRevert} from "./CustomRevert.sol";
 
+/**
+ * @title Hooks library
+ * @notice It provides some general helper functions that are used by the poolManager when verifying hook permissions, interacting with hooks, etc.
+ */
 library Hooks {
     using Encoded for bytes32;
     using ParametersHelper for bytes32;

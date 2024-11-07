@@ -127,7 +127,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     }
 
     function test_FuzzInitializePool(uint16 binStep) public {
-        binStep = uint16(bound(binStep, poolManager.MIN_BIN_STEP(), poolManager.MAX_BIN_STEP()));
+        binStep = uint16(bound(binStep, poolManager.MIN_BIN_STEP(), poolManager.maxBinStep()));
 
         uint16 bitMap = 0x0008; // after mint call
         MockBinHooks mockHooks = new MockBinHooks();
@@ -337,12 +337,10 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             hooks: IHooks(address(0)),
             poolManager: IPoolManager(address(poolManager)),
             fee: uint24(3000), // 3000 = 0.3%
-            parameters: poolParam.setBinStep(poolManager.MAX_BIN_STEP() + 1) // binStep
+            parameters: poolParam.setBinStep(poolManager.maxBinStep() + 1) // binStep
         });
 
-        vm.expectRevert(
-            abi.encodeWithSelector(IBinPoolManager.BinStepTooLarge.selector, poolManager.MAX_BIN_STEP() + 1)
-        );
+        vm.expectRevert(abi.encodeWithSelector(IBinPoolManager.BinStepTooLarge.selector, poolManager.maxBinStep() + 1));
         poolManager.initialize(key, activeId);
     }
 
@@ -939,7 +937,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         emit SetMaxBinStep(binStep);
         poolManager.setMaxBinStep(binStep);
 
-        assertEq(poolManager.MAX_BIN_STEP(), binStep);
+        assertEq(poolManager.maxBinStep(), binStep);
     }
 
     function testGas_SetMaxBinStep() public {
@@ -951,7 +949,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         poolManager.setMaxBinStep(binStep);
         snapEnd();
 
-        assertEq(poolManager.MAX_BIN_STEP(), binStep);
+        assertEq(poolManager.maxBinStep(), binStep);
     }
 
     function testSetMaxBinStep() public {
@@ -971,7 +969,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         emit IBinPoolManager.SetMinBinSharesForDonate(minShare);
         poolManager.setMinBinSharesForDonate(minShare);
 
-        assertEq(poolManager.MIN_BIN_SHARE_FOR_DONATE(), minShare);
+        assertEq(poolManager.minBinShareForDonate(), minShare);
     }
 
     function testMinBinSharesForDonate_OnlyOwner() public {
