@@ -284,7 +284,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
 
         /// @dev Share is 1:1 liquidity when liquidity is first added to bin
         uint256 currentBinShare = pool.shareOfBin[pool.slot0.activeId()];
-        if (currentBinShare <= MIN_BIN_SHARE_FOR_DONATE) {
+        if (currentBinShare < MIN_BIN_SHARE_FOR_DONATE) {
             revert InsufficientBinShareForDonate(currentBinShare);
         }
 
