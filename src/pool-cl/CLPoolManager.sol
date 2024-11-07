@@ -2,7 +2,6 @@
 // Copyright (C) 2024 PancakeSwap
 pragma solidity 0.8.26;
 
-import "./interfaces/ICLHooks.sol";
 import {ProtocolFees} from "../ProtocolFees.sol";
 import {ICLPoolManager} from "./interfaces/ICLPoolManager.sol";
 import {IVault} from "../interfaces/IVault.sol";

@@ -21,7 +21,6 @@ import {Extsload} from "../Extsload.sol";
 import {BinHooks} from "./libraries/BinHooks.sol";
 import {PriceHelper} from "./libraries/PriceHelper.sol";
 import {BeforeSwapDelta} from "../types/BeforeSwapDelta.sol";
-import "./interfaces/IBinHooks.sol";
 import {BinSlot0} from "./types/BinSlot0.sol";
 
 /// @notice Holds the state for all bin pools
