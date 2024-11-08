@@ -55,10 +55,6 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         _;
     }
 
-    function _getPool(PoolKey memory key) private view returns (BinPool.State storage) {
-        return pools[key.toId()];
-    }
-
     /// @inheritdoc IBinPoolManager
     function getSlot0(PoolId id) external view override returns (uint24 activeId, uint24 protocolFee, uint24 lpFee) {
         BinSlot0 slot0 = pools[id].slot0;
