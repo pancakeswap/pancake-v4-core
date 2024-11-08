@@ -4,6 +4,7 @@ pragma solidity 0.8.26;
 
 import {IProtocolFeeController} from "../interfaces/IProtocolFeeController.sol";
 import {PausableRole} from "../base/PausableRole.sol";
+import {PoolManagerOwnable2Step} from "../base/PoolManagerOwnable2Step.sol";
 import {ICLPoolManager} from "./interfaces/ICLPoolManager.sol";
 import {IPoolManagerOwner} from "../interfaces/IPoolManagerOwner.sol";
 
@@ -20,7 +21,7 @@ interface ICLPoolManagerWithPauseOwnable is ICLPoolManager {
  * A seperate owner contract is used to handle some functionality so as to reduce the contract size
  * of PoolManager. This allow a higher optimizer run, reducing the gas cost for other poolManager functions.
  */
-contract CLPoolManagerOwner is IPoolManagerOwner, PausableRole {
+contract CLPoolManagerOwner is IPoolManagerOwner, PoolManagerOwnable2Step, PausableRole {
     ICLPoolManagerWithPauseOwnable public immutable poolManager;
 
     constructor(ICLPoolManagerWithPauseOwnable _poolManager) {
@@ -43,7 +44,16 @@ contract CLPoolManagerOwner is IPoolManagerOwner, PausableRole {
     }
 
     /// @inheritdoc IPoolManagerOwner
-    function transferPoolManagerOwnership(address newOwner) external override onlyOwner {
-        poolManager.transferOwnership(newOwner);
+    function transferPoolManagerOwnership(address newPoolManagerOwner) external override onlyOwner {
+        _setPendingPoolManagerOwner(newPoolManagerOwner);
+        emit PoolManagerOwnershipTransferStarted(address(this), newPoolManagerOwner);
+    }
+
+    /// @inheritdoc IPoolManagerOwner
+    function acceptPoolManagerOwnership() external override onlyPendingPoolManagerOwner {
+        _setPendingPoolManagerOwner(address(0));
+        poolManager.transferOwnership(msg.sender);
+
+        emit PoolManagerOwnershipTransferred(address(this), msg.sender);
     }
 }

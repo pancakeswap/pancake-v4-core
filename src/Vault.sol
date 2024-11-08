@@ -2,7 +2,7 @@
 // Copyright (C) 2024 PancakeSwap
 pragma solidity 0.8.26;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable, Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {IVault, IVaultToken} from "./interfaces/IVault.sol";
 import {SettlementGuard} from "./libraries/SettlementGuard.sol";
 import {Currency, CurrencyLibrary} from "./types/Currency.sol";
@@ -12,7 +12,7 @@ import {SafeCast} from "./libraries/SafeCast.sol";
 import {VaultReserve} from "./libraries/VaultReserve.sol";
 import {VaultToken} from "./VaultToken.sol";
 
-contract Vault is IVault, VaultToken, Ownable {
+contract Vault is IVault, VaultToken, Ownable2Step {
     using SafeCast for *;
     using CurrencyLibrary for Currency;
 

@@ -7,6 +7,7 @@ import {IVault} from "../../src/interfaces/IVault.sol";
 import {Vault} from "../../src/Vault.sol";
 import {BinPoolManager} from "../../src/pool-bin/BinPoolManager.sol";
 import {BinPoolManagerOwner, IBinPoolManagerWithPauseOwnable} from "../../src/pool-bin/BinPoolManagerOwner.sol";
+import {PoolManagerOwnable2Step} from "../../src/base/PoolManagerOwnable2Step.sol";
 import {Pausable} from "../../src/base/Pausable.sol";
 import {PausableRole} from "../../src/base/PausableRole.sol";
 
@@ -110,8 +111,19 @@ contract BinPoolManagerOwnerTest is Test {
         // before:
         assertEq(poolManager.owner(), address(binPoolManagerOwner));
 
-        // after:
+        // pending:
+        // it's still the original owner if new owner not accept yet
+        vm.expectEmit(true, true, true, true);
+        emit PoolManagerOwnable2Step.PoolManagerOwnershipTransferStarted(address(binPoolManagerOwner), alice);
         binPoolManagerOwner.transferPoolManagerOwnership(alice);
+        assertEq(poolManager.owner(), address(binPoolManagerOwner));
+        assertEq(binPoolManagerOwner.pendingPoolManagerOwner(), alice);
+
+        // after:
+        vm.expectEmit(true, true, true, true);
+        emit PoolManagerOwnable2Step.PoolManagerOwnershipTransferred(address(binPoolManagerOwner), alice);
+        vm.prank(alice);
+        binPoolManagerOwner.acceptPoolManagerOwnership();
         assertEq(poolManager.owner(), alice);
     }
 
@@ -120,6 +132,40 @@ contract BinPoolManagerOwnerTest is Test {
 
         vm.prank(alice);
         binPoolManagerOwner.transferPoolManagerOwnership(alice);
+    }
+
+    function test_TransferPoolManagerOwnership_NotPendingPoolManagerOwner() public {
+        binPoolManagerOwner.transferPoolManagerOwnership(alice);
+
+        // if it's not from alice then revert
+        vm.expectRevert(PoolManagerOwnable2Step.NotPendingPoolManagerOwner.selector);
+        binPoolManagerOwner.acceptPoolManagerOwnership();
+    }
+
+    function test_TransferPoolManagerOwnership_OverridePendingOwner() public {
+        // before:
+        assertEq(poolManager.owner(), address(binPoolManagerOwner));
+
+        // pending:
+        // it's still the original owner if new owner not accept yet
+        binPoolManagerOwner.transferPoolManagerOwnership(alice);
+        assertEq(poolManager.owner(), address(binPoolManagerOwner));
+        assertEq(binPoolManagerOwner.pendingPoolManagerOwner(), alice);
+
+        // override pending owner
+        binPoolManagerOwner.transferPoolManagerOwnership(makeAddr("bob"));
+        assertEq(poolManager.owner(), address(binPoolManagerOwner));
+        assertEq(binPoolManagerOwner.pendingPoolManagerOwner(), makeAddr("bob"));
+
+        // alice no longer the valid pending owner
+        vm.expectRevert(PoolManagerOwnable2Step.NotPendingPoolManagerOwner.selector);
+        vm.prank(alice);
+        binPoolManagerOwner.acceptPoolManagerOwnership();
+
+        // bob is the new owner
+        vm.prank(makeAddr("bob"));
+        binPoolManagerOwner.acceptPoolManagerOwnership();
+        assertEq(poolManager.owner(), makeAddr("bob"));
     }
 
     function test_SetMaxBinStep_OnlyOwner() public {
