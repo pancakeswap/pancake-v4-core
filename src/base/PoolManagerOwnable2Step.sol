@@ -12,9 +12,12 @@ import {IPoolManagerOwner} from "../interfaces/IPoolManagerOwner.sol";
 abstract contract PoolManagerOwnable2Step is IPoolManagerOwner {
     error NotPendingPoolManagerOwner();
 
+    event PoolManagerOwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
+    event PoolManagerOwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
     address private _pendingPoolManagerOwner;
 
-    modifier isFromPendingPoolManagerOwner() {
+    modifier onlyPendingPoolManagerOwner() {
         if (_pendingPoolManagerOwner != msg.sender) {
             revert NotPendingPoolManagerOwner();
         }

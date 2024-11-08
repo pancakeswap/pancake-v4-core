@@ -113,11 +113,15 @@ contract BinPoolManagerOwnerTest is Test {
 
         // pending:
         // it's still the original owner if new owner not accept yet
+        vm.expectEmit(true, true, true, true);
+        emit PoolManagerOwnable2Step.PoolManagerOwnershipTransferStarted(address(binPoolManagerOwner), alice);
         binPoolManagerOwner.transferPoolManagerOwnership(alice);
         assertEq(poolManager.owner(), address(binPoolManagerOwner));
         assertEq(binPoolManagerOwner.pendingPoolManagerOwner(), alice);
 
         // after:
+        vm.expectEmit(true, true, true, true);
+        emit PoolManagerOwnable2Step.PoolManagerOwnershipTransferred(address(binPoolManagerOwner), alice);
         vm.prank(alice);
         binPoolManagerOwner.acceptPoolManagerOwnership();
         assertEq(poolManager.owner(), alice);

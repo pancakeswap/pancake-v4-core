@@ -49,12 +49,14 @@ contract BinPoolManagerOwner is IPoolManagerOwner, PoolManagerOwnable2Step, Paus
     /// @inheritdoc IPoolManagerOwner
     function transferPoolManagerOwnership(address newPoolManagerOwner) external override onlyOwner {
         _setPendingPoolManagerOwner(newPoolManagerOwner);
+        emit PoolManagerOwnershipTransferStarted(address(this), newPoolManagerOwner);
     }
 
     /// @inheritdoc IPoolManagerOwner
-    function acceptPoolManagerOwnership() external override isFromPendingPoolManagerOwner {
+    function acceptPoolManagerOwnership() external override onlyPendingPoolManagerOwner {
         _setPendingPoolManagerOwner(address(0));
         poolManager.transferOwnership(msg.sender);
+        emit PoolManagerOwnershipTransferred(address(this), msg.sender);
     }
 
     /// @notice Set max bin steps for binPoolManager, see IBinPoolManager for more documentation about this function

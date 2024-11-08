@@ -111,11 +111,15 @@ contract CLPoolManagerOwnerTest is Test, Deployers {
 
         // pending:
         // it's still the original owner if new owner not accept yet
+        vm.expectEmit(true, true, true, true);
+        emit PoolManagerOwnable2Step.PoolManagerOwnershipTransferStarted(address(clPoolManagerOwner), alice);
         clPoolManagerOwner.transferPoolManagerOwnership(alice);
         assertEq(poolManager.owner(), address(clPoolManagerOwner));
         assertEq(clPoolManagerOwner.pendingPoolManagerOwner(), alice);
 
         // after:
+        vm.expectEmit(true, true, true, true);
+        emit PoolManagerOwnable2Step.PoolManagerOwnershipTransferred(address(clPoolManagerOwner), alice);
         vm.prank(alice);
         clPoolManagerOwner.acceptPoolManagerOwnership();
         assertEq(poolManager.owner(), alice);
