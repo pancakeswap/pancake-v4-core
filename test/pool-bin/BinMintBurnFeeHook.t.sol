@@ -113,21 +113,23 @@ contract BinMintBurnFeeHookTest is Test, GasSnapshot, BinTestHelper {
         assertEq(vault.balanceOf(address(binMintBurnFeeHook), key.currency0), 2 ether);
         assertEq(vault.balanceOf(address(binMintBurnFeeHook), key.currency1), 2 ether);
 
+        // take 4x the burn amount as fee
         IBinPoolManager.BurnParams memory burnParams =
             _getSingleBinBurnLiquidityParams(key, poolManager, activeId, address(binLiquidityHelper), 100);
         snapStart("BinMintBurnFeeHookTest#test_Burn");
         binLiquidityHelper.burn(key, burnParams, "");
         snapEnd();
 
+        // the +3/-4 is just from min_liquidity amount
         // +1 from remove liqudiity, -4 from hook fee
-        assertEq(token0.balanceOf(address(this)), 7 ether + 1 ether - 4 ether);
-        assertEq(token1.balanceOf(address(this)), 7 ether + 1 ether - 4 ether);
+        assertEq(token0.balanceOf(address(this)), 7 ether + 1 ether - 4 ether + 3);
+        assertEq(token1.balanceOf(address(this)), 7 ether + 1 ether - 4 ether + 3);
 
         // -1 from remove liquidity, +4 from hook calling vault.mint
-        assertEq(token0.balanceOf(address(vault)), 3 ether - 1 ether + 4 ether);
-        assertEq(token1.balanceOf(address(vault)), 3 ether - 1 ether + 4 ether);
-        assertEq(vault.balanceOf(address(binMintBurnFeeHook), key.currency0), 2 ether + 4 ether);
-        assertEq(vault.balanceOf(address(binMintBurnFeeHook), key.currency1), 2 ether + 4 ether);
+        assertEq(token0.balanceOf(address(vault)), 3 ether - 1 ether + 4 ether - 3);
+        assertEq(token1.balanceOf(address(vault)), 3 ether - 1 ether + 4 ether - 3);
+        assertEq(vault.balanceOf(address(binMintBurnFeeHook), key.currency0), 2 ether + 4 ether - 4);
+        assertEq(vault.balanceOf(address(binMintBurnFeeHook), key.currency1), 2 ether + 4 ether - 4);
     }
 
     receive() external payable {}

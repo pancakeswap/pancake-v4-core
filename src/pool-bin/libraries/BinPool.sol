@@ -66,6 +66,10 @@ library BinPool {
         mapping(bytes32 => bytes32) level2;
     }
 
+    /// @dev when a bin has supply for the first time, 1e3 share will be locked up
+    /// this is to prevent share inflation attack on BinPool type
+    uint256 constant MINIMUM_SHARE = 1e3;
+
     function initialize(State storage self, uint24 activeId, uint24 protocolFee, uint24 lpFee) internal {
         /// An initialized pool will not have activeId: 0
         if (self.slot0.activeId() != 0) revert PoolAlreadyInitialized();
@@ -385,11 +389,11 @@ library BinPool {
             amountsLeft = amountsLeft.sub(amountsIn);
             feeAmountToProtocol = feeAmountToProtocol.add(binFeeAmt);
 
+            shares = _addShare(self, params.to, id, params.salt, shares);
+
             arrays.ids[i] = id;
             arrays.amounts[i] = amountsInToBin;
             arrays.liquidityMinted[i] = shares;
-
-            _addShare(self, params.to, id, params.salt, shares);
 
             compositionFeeAmount = compositionFeeAmount.add(binCompositionFee);
 
@@ -467,8 +471,18 @@ library BinPool {
     }
 
     /// @notice Add share to user's position and update total share supply of bin
-    function _addShare(State storage self, address owner, uint24 binId, bytes32 salt, uint256 shares) internal {
-        self.positions.get(owner, binId, salt).addShare(shares);
+    function _addShare(State storage self, address owner, uint24 binId, bytes32 salt, uint256 shares)
+        internal
+        returns (uint256 userShareAdded)
+    {
+        userShareAdded = shares;
+        if (self.shareOfBin[binId] == 0) {
+            /// @dev Only for first liquidity provider for the bin, deduct MINIMUM_SHARE, expected to underflow
+            /// if shares < MINIMUM_SHARE for first mint
+            userShareAdded = shares - MINIMUM_SHARE;
+        }
+
+        self.positions.get(owner, binId, salt).addShare(userShareAdded);
         self.shareOfBin[binId] += shares;
     }
 
