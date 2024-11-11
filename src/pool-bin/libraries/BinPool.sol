@@ -470,6 +470,7 @@ library BinPool {
         self.shareOfBin[binId] -= shares;
 
         uint256 balanceShare = self.shareOfBin[binId];
+        /// @dev Ensure bin total share is either 0 or greater than minimum share
         if (balanceShare > 0 && balanceShare < MINIMUM_SHARE) {
             revert BinPool__BelowMinimumShareInBurn(balanceShare);
         }
