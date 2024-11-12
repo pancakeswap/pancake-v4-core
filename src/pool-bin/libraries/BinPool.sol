@@ -48,7 +48,7 @@ library BinPool {
     error BinPool__NoLiquidityToReceiveFees();
     /// @dev if swap exactIn, x for y, unspecifiedToken = token y. if swap x for exact out y, unspecified token is x
     error BinPool__InsufficientAmountUnSpecified();
-    error UserPosition__BelowMinimumShare(uint256 balanceShare);
+    error BinPool__UserPositionBelowMinimumShare(uint256 balanceShare);
 
     /// @dev The state of a pool
     struct State {
@@ -317,6 +317,12 @@ library BinPool {
             bytes32 binReserves = self.reserveOfBin[id];
             uint256 supply = self.shareOfBin[id];
 
+            uint256 userTotalShare = self.positions.get(params.from, id, params.salt).share;
+            /// @dev Remove all shares if the remaining shares fall below the minimum threshold
+            if (amountToBurn > userTotalShare - MINIMUM_SHARE) {
+                amountToBurn = userTotalShare;
+            }
+
             _subShare(self, params.from, id, params.salt, amountToBurn);
 
             bytes32 amountsOutFromBin = binReserves.getAmountOutOfBin(amountToBurn, supply);
@@ -472,7 +478,7 @@ library BinPool {
         /// @dev Ensure bin user's position share is either 0 or greater than minimum share
         uint256 userPositionShare = self.positions.get(owner, binId, salt).share;
         if (userPositionShare > 0 && userPositionShare < MINIMUM_SHARE) {
-            revert UserPosition__BelowMinimumShare(userPositionShare);
+            revert BinPool__UserPositionBelowMinimumShare(userPositionShare);
         }
     }
 
@@ -484,7 +490,7 @@ library BinPool {
         /// @dev Ensure bin user's position share is either 0 or greater than minimum share
         uint256 userPositionShare = self.positions.get(owner, binId, salt).share;
         if (userPositionShare < MINIMUM_SHARE) {
-            revert UserPosition__BelowMinimumShare(userPositionShare);
+            revert BinPool__UserPositionBelowMinimumShare(userPositionShare);
         }
     }
 
