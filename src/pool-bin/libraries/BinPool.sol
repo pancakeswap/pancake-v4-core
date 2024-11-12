@@ -169,15 +169,15 @@ library BinPool {
                         amountsInWithFees = amountsInWithFees.sub(pFee);
                     }
 
+                    self.reserveOfBin[swapState.activeId] = binReserves.add(amountsInWithFees).sub(amountsOutOfBin);
+
                     if (
-                        (binReserves.add(amountsInWithFees).sub(amountsOutOfBin)).getLiquidity(
+                        self.reserveOfBin[swapState.activeId].getLiquidity(
                             swapState.activeId.getPriceFromId(params.binStep)
                         ) > Constants.MAX_LIQUIDITY_PER_BIN
                     ) {
                         revert BinPool__MaxLiquidityPerBinExceeded();
                     }
-
-                    self.reserveOfBin[swapState.activeId] = binReserves.add(amountsInWithFees).sub(amountsOutOfBin);
                 }
             }
 
