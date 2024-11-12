@@ -48,7 +48,7 @@ library BinPool {
     error BinPool__NoLiquidityToReceiveFees();
     /// @dev if swap exactIn, x for y, unspecifiedToken = token y. if swap x for exact out y, unspecified token is x
     error BinPool__InsufficientAmountUnSpecified();
-    error BinPool__BelowMinimumShare(uint256 balanceShare);
+    error UserPosition__BelowMinimumShare(uint256 balanceShare);
 
     /// @dev The state of a pool
     struct State {
@@ -469,10 +469,10 @@ library BinPool {
         self.positions.get(owner, binId, salt).subShare(shares);
         self.shareOfBin[binId] -= shares;
 
-        /// @dev Ensure bin total share is either 0 or greater than minimum share
-        uint256 balanceShare = self.shareOfBin[binId];
-        if (balanceShare > 0 && balanceShare < MINIMUM_SHARE) {
-            revert BinPool__BelowMinimumShare(balanceShare);
+        /// @dev Ensure bin user's position share is either 0 or greater than minimum share
+        uint256 userPositionShare = self.positions.get(owner, binId, salt).share;
+        if (userPositionShare > 0 && userPositionShare < MINIMUM_SHARE) {
+            revert UserPosition__BelowMinimumShare(userPositionShare);
         }
     }
 
@@ -481,12 +481,10 @@ library BinPool {
         self.positions.get(owner, binId, salt).addShare(shares);
         self.shareOfBin[binId] += shares;
 
-        /// @dev Ensure bin total share is either 0 or greater than minimum share
-        /// <WIP> to discuss if we want to enforce this -- otherwise user can potentially add below 1e9 liquidity
-        /// but can't withdraw if there's no other lp to help push the min share up
-        uint256 balanceShare = self.shareOfBin[binId];
-        if (balanceShare < MINIMUM_SHARE) {
-            revert BinPool__BelowMinimumShare(balanceShare);
+        /// @dev Ensure bin user's position share is either 0 or greater than minimum share
+        uint256 userPositionShare = self.positions.get(owner, binId, salt).share;
+        if (userPositionShare < MINIMUM_SHARE) {
+            revert UserPosition__BelowMinimumShare(userPositionShare);
         }
     }
 
