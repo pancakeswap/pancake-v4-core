@@ -485,7 +485,7 @@ library BinPool {
         /// <WIP> to discuss if we want to enforce this -- otherwise user can potentially add below 1e9 liquidity
         /// but can't withdraw if there's no other lp to help push the min share up
         uint256 balanceShare = self.shareOfBin[binId];
-        if (balanceShare > 0 && balanceShare < MINIMUM_SHARE) {
+        if (balanceShare < MINIMUM_SHARE) {
             revert BinPool__BelowMinimumShare(balanceShare);
         }
     }
