@@ -41,8 +41,6 @@ import {BinHelper} from "../../src/pool-bin/libraries/BinHelper.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-import {console2} from "forge-std/console2.sol";
-
 contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     using SafeCast for uint256;
     using PackedUint128Math for bytes32;
@@ -643,7 +641,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         uint256[] memory ids = new uint256[](1);
         bytes32[] memory amounts = new bytes32[](1);
         ids[0] = activeId;
-        amounts[0] = 0x00000000000000000de0b6b3a763ffff00000000000000000de0b6b3a763ffff; // <wip> uint128(1e18).encode(uint128(1e18));
+        amounts[0] = uint128(1e18 - 1).encode(uint128(1e18 - 1)); // -1 due to minshare locked up
         vm.expectEmit();
         emit IBinPoolManager.Burn(key.toId(), address(binLiquidityHelper), ids, 0, amounts);
 
@@ -712,7 +710,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         uint256[] memory ids = new uint256[](1);
         bytes32[] memory amounts = new bytes32[](1);
         ids[0] = activeId;
-        amounts[0] = 0x00000000000000000de0b6b3a763ffff00000000000000000de0b6b3a763ffff; // <wip> to fill in numbers uint128(1e18).encode(uint128(1e18));
+        amounts[0] = uint128(1e18 - 1).encode(uint128(1e18 - 1)); // -1 due to minshare locked up
         vm.expectEmit();
         emit IBinPoolManager.Burn(key.toId(), address(binLiquidityHelper), ids, 0, amounts);
 

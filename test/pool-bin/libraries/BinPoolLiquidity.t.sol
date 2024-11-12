@@ -128,110 +128,113 @@ contract BinPoolLiquidityTest is BinTestHelper {
         }
     }
 
-    // function test_MintTwice() external {
-    //     poolManager.initialize(key, activeId);
+    function test_MintTwice() external {
+        poolManager.initialize(key, activeId);
 
-    //     uint256 amountX = 100 * 10 ** 18;
-    //     uint256 amountY = 2_000 * 10 ** 6;
-    //     uint8 nbBinX = 6;
-    //     uint8 nbBinY = 6;
+        uint256 amountX = 100 * 10 ** 18;
+        uint256 amountY = 2_000 * 10 ** 6;
+        uint8 nbBinX = 6;
+        uint8 nbBinY = 6;
 
-    //     addLiquidity(key, poolManager, bob, activeId, amountX, amountY, nbBinX, nbBinY);
+        addLiquidity(key, poolManager, bob, activeId, amountX, amountY, nbBinX, nbBinY);
 
-    //     uint256 total = getTotalBins(nbBinX, nbBinY);
-    //     uint256[] memory balances = new uint256[](total);
+        uint256 total = getTotalBins(nbBinX, nbBinY);
+        uint256[] memory balances = new uint256[](total);
 
-    //     for (uint256 i; i < total; ++i) {
-    //         uint24 id = getId(activeId, i, nbBinY);
-    //         balances[i] = poolManager.getPosition(poolId, bob, id, 0).share;
-    //     }
+        for (uint256 i; i < total; ++i) {
+            uint24 id = getId(activeId, i, nbBinY);
+            balances[i] = poolManager.getPosition(poolId, bob, id, 0).share;
+        }
 
-    //     addLiquidity(key, poolManager, bob, activeId, amountX, amountY, nbBinX, nbBinY);
+        addLiquidity(key, poolManager, bob, activeId, amountX, amountY, nbBinX, nbBinY);
 
-    //     for (uint256 i; i < total; ++i) {
-    //         uint24 id = getId(activeId, i, nbBinY);
-    //         (uint128 binReserveX, uint128 binReserveY,, uint256 totalShares) = poolManager.getBin(poolId, id);
+        for (uint256 i; i < total; ++i) {
+            uint24 id = getId(activeId, i, nbBinY);
+            (uint128 binReserveX, uint128 binReserveY,, uint256 totalShares) = poolManager.getBin(poolId, id);
 
-    //         if (id < activeId) {
-    //             assertEq(binReserveX, 0, "test_SimpleMint::1");
-    //             assertEq(binReserveY, 2 * ((amountY * (Constants.PRECISION / nbBinY)) / 1e18), "test_SimpleMint::2");
-    //         } else if (id == activeId) {
-    //             assertApproxEqRel(
-    //                 binReserveX, 2 * ((amountX * (Constants.PRECISION / nbBinX)) / 1e18), 1e15, "test_SimpleMint::3"
-    //             );
-    //             assertApproxEqRel(
-    //                 binReserveY, 2 * ((amountY * (Constants.PRECISION / nbBinY)) / 1e18), 1e15, "test_SimpleMint::4"
-    //             );
-    //         } else {
-    //             assertEq(binReserveX, 2 * ((amountX * (Constants.PRECISION / nbBinX)) / 1e18), "test_SimpleMint::5");
-    //             assertEq(binReserveY, 0, "test_SimpleMint::6");
-    //         }
+            if (id < activeId) {
+                assertEq(binReserveX, 0, "test_SimpleMint::1");
+                assertEq(binReserveY, 2 * ((amountY * (Constants.PRECISION / nbBinY)) / 1e18), "test_SimpleMint::2");
+            } else if (id == activeId) {
+                assertApproxEqRel(
+                    binReserveX, 2 * ((amountX * (Constants.PRECISION / nbBinX)) / 1e18), 1e15, "test_SimpleMint::3"
+                );
+                assertApproxEqRel(
+                    binReserveY, 2 * ((amountY * (Constants.PRECISION / nbBinY)) / 1e18), 1e15, "test_SimpleMint::4"
+                );
+            } else {
+                assertEq(binReserveX, 2 * ((amountX * (Constants.PRECISION / nbBinX)) / 1e18), "test_SimpleMint::5");
+                assertEq(binReserveY, 0, "test_SimpleMint::6");
+            }
 
-    //         assertEq(poolManager.getPosition(poolId, bob, id, 0).share, 2 * balances[i], "test_DoubleMint:7");
+            // balances[i] was from first mint, so add 1e3 (min share) as second mint does not burn min share
+            assertEq(poolManager.getPosition(poolId, bob, id, 0).share, 2 * balances[i] + 1e3, "test_DoubleMint:7");
 
-    //         // Only bob minted, all the shares in the bin should be bob's
-    //         assertEq(poolManager.getPosition(poolId, bob, id, 0).share, totalShares);
-    //     }
-    // }
+            // // Only bob minted, all the shares in the bin should be bob's
+            assertEq(poolManager.getPosition(poolId, bob, id, 0).share, totalShares - 1e3, "test_DoubleMint:8");
+        }
+    }
 
     /// @dev Ensure composition fee all goes to LP
-    // function test_Mint_CompositionFeeGoesToLp() external {
-    //     poolManager.initialize(key, activeId);
+    function test_Mint_CompositionFeeGoesToLp() external {
+        poolManager.initialize(key, activeId);
 
-    //     uint256 amountX = 100 ether;
-    //     uint256 amountY = 1 ether;
+        uint256 amountX = 100 ether;
+        uint256 amountY = 1 ether;
 
-    //     // add 100 tokenX and 1 tokenY into active bin
-    //     addLiquidityToBin(key, poolManager, bob, activeId, amountX, amountY, 1e18, 1e18, "");
-    //     // add 100 tokenX and 0 tokenY into active bin (trigger compositionFee)
-    //     addLiquidityToBin(key, poolManager, alice, activeId, amountX, amountY, 1e18, 0, "");
+        // add 100 tokenX and 1 tokenY into active bin
+        addLiquidityToBin(key, poolManager, bob, activeId, amountX, amountY, 1e18, 1e18, "");
+        // add 100 tokenX and 0 tokenY into active bin (trigger compositionFee)
+        addLiquidityToBin(key, poolManager, alice, activeId, amountX, amountY, 1e18, 0, "");
 
-    //     uint256 bobBal = poolManager.getPosition(key.toId(), bob, activeId, 0).share;
-    //     BalanceDelta bobDelta = removeLiquidityFromBin(key, poolManager, bob, activeId, bobBal, "");
-    //     uint256 aliceBal = poolManager.getPosition(key.toId(), alice, activeId, 0).share;
-    //     BalanceDelta aliceDelta = removeLiquidityFromBin(key, poolManager, alice, activeId, aliceBal, "");
-    //     assertEq(aliceDelta.amount0() + bobDelta.amount0(), 200 ether);
-    //     assertEq(aliceDelta.amount1() + bobDelta.amount1(), 1 ether);
-    // }
+        uint256 bobBal = poolManager.getPosition(key.toId(), bob, activeId, 0).share;
+        BalanceDelta bobDelta = removeLiquidityFromBin(key, poolManager, bob, activeId, bobBal, "");
+        uint256 aliceBal = poolManager.getPosition(key.toId(), alice, activeId, 0).share;
+        BalanceDelta aliceDelta = removeLiquidityFromBin(key, poolManager, alice, activeId, aliceBal, "");
+        // -1 tokenX and -1 tokenY as they are locked as min liquidity
+        assertEq(aliceDelta.amount0() + bobDelta.amount0(), 200 ether -1);
+        assertEq(aliceDelta.amount1() + bobDelta.amount1(), 1 ether - 1);
+    }
 
-    // function test_MintWithDifferentBins() external {
-    //     poolManager.initialize(key, activeId);
+    function test_MintWithDifferentBins() external {
+        poolManager.initialize(key, activeId);
 
-    //     uint256 amountX = 100 * 10 ** 18;
-    //     uint256 amountY = 2_000 * 10 ** 6;
-    //     uint8 nbBinX = 6;
-    //     uint8 nbBinY = 6;
+        uint256 amountX = 100 * 10 ** 18;
+        uint256 amountY = 2_000 * 10 ** 6;
+        uint8 nbBinX = 6;
+        uint8 nbBinY = 6;
 
-    //     addLiquidity(key, poolManager, bob, activeId, amountX, amountY, nbBinX, nbBinY);
+        addLiquidity(key, poolManager, bob, activeId, amountX, amountY, nbBinX, nbBinY);
 
-    //     uint256 total = getTotalBins(nbBinX, nbBinY);
-    //     uint256[] memory balances = new uint256[](total);
+        uint256 total = getTotalBins(nbBinX, nbBinY);
+        uint256[] memory balances = new uint256[](total);
 
-    //     for (uint256 i; i < total; ++i) {
-    //         uint24 id = getId(activeId, i, nbBinY);
-    //         balances[i] = poolManager.getPosition(poolId, bob, id, 0).share;
-    //     }
+        for (uint256 i; i < total; ++i) {
+            uint24 id = getId(activeId, i, nbBinY);
+            balances[i] = poolManager.getPosition(poolId, bob, id, 0).share;
+        }
 
-    //     addLiquidity(key, poolManager, bob, activeId, amountX, amountY, nbBinX, 0);
-    //     addLiquidity(key, poolManager, bob, activeId, amountX, amountY, 0, nbBinY);
+        addLiquidity(key, poolManager, bob, activeId, amountX, amountY, nbBinX, 0);
+        addLiquidity(key, poolManager, bob, activeId, amountX, amountY, 0, nbBinY);
 
-    //     for (uint256 i; i < total; ++i) {
-    //         uint24 id = getId(activeId, i, nbBinY);
+        for (uint256 i; i < total; ++i) {
+            uint24 id = getId(activeId, i, nbBinY);
 
-    //         if (id == activeId) {
-    //             assertApproxEqRel(
-    //                 poolManager.getPosition(poolId, bob, id, 0).share,
-    //                 2 * balances[i],
-    //                 2e15, // 0.2%
-    //                 "test_MintWithDifferentBins::1"
-    //             ); // composition fee, so share will be lesser than 2 * balances[i]
-    //         } else {
-    //             assertEq(
-    //                 poolManager.getPosition(poolId, bob, id, 0).share, 2 * balances[i], "test_MintWithDifferentBins::2"
-    //             );
-    //         }
-    //     }
-    // }
+            if (id == activeId) {
+                assertApproxEqRel(
+                    poolManager.getPosition(poolId, bob, id, 0).share,
+                    2 * balances[i],
+                    2e15, // 0.2%
+                    "test_MintWithDifferentBins::1"
+                ); // composition fee, so share will be lesser than 2 * balances[i]
+            } else {
+                // 1e3 as balance[i] was from first mint, so add 1e3 (min share) as second mint does not burn min share
+                assertEq(
+                    poolManager.getPosition(poolId, bob, id, 0).share, 2 * balances[i] + 1e3, "test_MintWithDifferentBins::2"
+                );
+            }
+        }
+    }
 
     function test_revert_MintEmptyConfig() public {
         poolManager.initialize(key, activeId);
