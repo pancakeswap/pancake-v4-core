@@ -76,7 +76,7 @@ contract BinPoolDonateTest is BinTestHelper {
         poolManager.donate(key, 1e18, 1e18, "");
     }
 
-    function testDonateX() public {
+    function testDonate() public {
         // Initialize. Alice/Bob both add 1e18 token0, token1 to the active bin
         poolManager.initialize(key, activeId);
         addLiquidityToBin(key, poolManager, alice, activeId, 1e18, 1e18, 1e18, 1e18, "");

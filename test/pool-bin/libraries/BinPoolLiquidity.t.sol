@@ -192,7 +192,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
         uint256 aliceBal = poolManager.getPosition(key.toId(), alice, activeId, 0).share;
         BalanceDelta aliceDelta = removeLiquidityFromBin(key, poolManager, alice, activeId, aliceBal, "");
         // -1 tokenX and -1 tokenY as they are locked as min liquidity
-        assertEq(aliceDelta.amount0() + bobDelta.amount0(), 200 ether -1);
+        assertEq(aliceDelta.amount0() + bobDelta.amount0(), 200 ether - 1);
         assertEq(aliceDelta.amount1() + bobDelta.amount1(), 1 ether - 1);
     }
 
@@ -230,7 +230,9 @@ contract BinPoolLiquidityTest is BinTestHelper {
             } else {
                 // 1e3 as balance[i] was from first mint, so add 1e3 (min share) as second mint does not burn min share
                 assertEq(
-                    poolManager.getPosition(poolId, bob, id, 0).share, 2 * balances[i] + 1e3, "test_MintWithDifferentBins::2"
+                    poolManager.getPosition(poolId, bob, id, 0).share,
+                    2 * balances[i] + 1e3,
+                    "test_MintWithDifferentBins::2"
                 );
             }
         }
@@ -288,94 +290,98 @@ contract BinPoolLiquidityTest is BinTestHelper {
         poolManager.mint(key, params, "0x00");
     }
 
-    // function test_SimpleBurn() external {
-    //     poolManager.initialize(key, activeId);
+    function test_SimpleBurn() external {
+        poolManager.initialize(key, activeId);
 
-    //     uint256 amountX = 100 * 10 ** 18;
-    //     uint256 amountY = 100 * 10 ** 18;
-    //     uint8 nbBinX = 6;
-    //     uint8 nbBinY = 6;
-    //     vault.updateCurrentPoolKey(key);
-    //     addLiquidity(key, poolManager, bob, activeId, amountX, amountY, nbBinX, nbBinY);
-    //     uint256 total = getTotalBins(nbBinX, nbBinY);
+        uint256 amountX = 100 ether;
+        uint256 amountY = 100 ether;
+        uint8 nbBinX = 6;
+        uint8 nbBinY = 6;
+        vault.updateCurrentPoolKey(key);
+        addLiquidity(key, poolManager, bob, activeId, amountX, amountY, nbBinX, nbBinY);
+        uint256 total = getTotalBins(nbBinX, nbBinY);
 
-    //     uint256[] memory balances = new uint256[](total);
-    //     uint256[] memory ids = new uint256[](total);
+        uint256[] memory balances = new uint256[](total);
+        uint256[] memory ids = new uint256[](total);
 
-    //     for (uint256 i; i < total; ++i) {
-    //         uint24 id = getId(activeId, i, nbBinY);
-    //         ids[i] = id;
-    //         balances[i] = poolManager.getPosition(poolId, bob, id, 0).share;
-    //     }
+        for (uint256 i; i < total; ++i) {
+            uint24 id = getId(activeId, i, nbBinY);
+            ids[i] = id;
+            balances[i] = poolManager.getPosition(poolId, bob, id, 0).share;
+        }
 
-    //     uint256 reserveX = vault.reservesOfApp(address(key.poolManager), key.currency0);
-    //     uint256 reserveY = vault.reservesOfApp(address(key.poolManager), key.currency1);
+        uint256 reserveX = vault.reservesOfApp(address(key.poolManager), key.currency0);
+        uint256 reserveY = vault.reservesOfApp(address(key.poolManager), key.currency1);
 
-    //     vault.updateCurrentPoolKey(key);
-    //     removeLiquidity(key, poolManager, bob, ids, balances);
+        vault.updateCurrentPoolKey(key);
+        removeLiquidity(key, poolManager, bob, ids, balances);
 
-    //     {
-    //         // balanceDelta positive (so user need to call take/mint)
-    //         uint256 balanceDelta0 = uint128(vault.balanceDeltaOfPool(poolId).amount0());
-    //         assertEq(uint256(balanceDelta0), reserveX, "test_SimpleBurn::1");
-    //         uint256 balanceDelta1 = uint128(vault.balanceDeltaOfPool(poolId).amount1());
-    //         assertEq(uint256(balanceDelta1), reserveY, "test_SimpleBurn::1");
-    //     }
+        // 6 as liquidity was added to 6 bins, each bin lock 1 token due to min share
+        uint256 lockedTokenDueToMinShare = 6;
+        {
+            // balanceDelta positive (so user need to call take/mint)
+            uint256 balanceDelta0 = uint128(vault.balanceDeltaOfPool(poolId).amount0());
+            assertEq(uint256(balanceDelta0), reserveX - lockedTokenDueToMinShare, "test_SimpleBurn::1");
+            uint256 balanceDelta1 = uint128(vault.balanceDeltaOfPool(poolId).amount1());
+            assertEq(uint256(balanceDelta1), reserveY - lockedTokenDueToMinShare, "test_SimpleBurn::2");
+        }
 
-    //     reserveX = vault.reservesOfApp(address(key.poolManager), key.currency0);
-    //     reserveY = vault.reservesOfApp(address(key.poolManager), key.currency1);
-    //     assertEq(reserveX, 0, "test_BurnPartial::3");
-    //     assertEq(reserveY, 0, "test_BurnPartial::4");
-    // }
+        reserveX = vault.reservesOfApp(address(key.poolManager), key.currency0);
+        reserveY = vault.reservesOfApp(address(key.poolManager), key.currency1);
+        assertEq(reserveX, lockedTokenDueToMinShare, "test_BurnPartial::3");
+        assertEq(reserveY, lockedTokenDueToMinShare, "test_BurnPartial::4");
+    }
 
-    // function test_BurnHalfTwice() external {
-    //     poolManager.initialize(key, activeId);
+    function test_BurnHalfTwice() external {
+        poolManager.initialize(key, activeId);
 
-    //     uint256 amountX = 100 * 10 ** 18;
-    //     uint256 amountY = 100 * 10 ** 18;
-    //     uint8 nbBinX = 6;
-    //     uint8 nbBinY = 6;
+        uint256 amountX = 100 ether;
+        uint256 amountY = 100 ether;
+        uint8 nbBinX = 6;
+        uint8 nbBinY = 6;
 
-    //     vault.updateCurrentPoolKey(key);
-    //     addLiquidity(key, poolManager, bob, activeId, amountX, amountY, nbBinX, nbBinY);
+        vault.updateCurrentPoolKey(key);
+        addLiquidity(key, poolManager, bob, activeId, amountX, amountY, nbBinX, nbBinY);
 
-    //     uint256 total = getTotalBins(nbBinX, nbBinY);
+        uint256 total = getTotalBins(nbBinX, nbBinY);
 
-    //     uint256[] memory halfbalances = new uint256[](total);
-    //     uint256[] memory balances = new uint256[](total);
-    //     uint256[] memory ids = new uint256[](total);
+        uint256[] memory halfbalances = new uint256[](total);
+        uint256[] memory balances = new uint256[](total);
+        uint256[] memory ids = new uint256[](total);
 
-    //     for (uint256 i; i < total; ++i) {
-    //         uint24 id = getId(activeId, i, nbBinY);
+        for (uint256 i; i < total; ++i) {
+            uint24 id = getId(activeId, i, nbBinY);
 
-    //         ids[i] = id;
-    //         uint256 balance = poolManager.getPosition(poolId, bob, id, 0).share;
+            ids[i] = id;
+            uint256 balance = poolManager.getPosition(poolId, bob, id, 0).share;
 
-    //         halfbalances[i] = balance / 2;
-    //         balances[i] = balance - balance / 2;
-    //     }
+            halfbalances[i] = balance / 2;
+            balances[i] = balance - balance / 2;
+        }
 
-    //     uint256 reserveX = vault.reservesOfApp(address(key.poolManager), key.currency0); // vault.reservesOfPool(poolId, 0);
-    //     uint256 reserveY = vault.reservesOfApp(address(key.poolManager), key.currency1); // vault.reservesOfPool(poolId, 1);
+        uint256 reserveX = vault.reservesOfApp(address(key.poolManager), key.currency0); // vault.reservesOfPool(poolId, 0);
+        uint256 reserveY = vault.reservesOfApp(address(key.poolManager), key.currency1); // vault.reservesOfPool(poolId, 1);
 
-    //     vault.updateCurrentPoolKey(key);
-    //     removeLiquidity(key, poolManager, bob, ids, halfbalances);
+        vault.updateCurrentPoolKey(key);
+        removeLiquidity(key, poolManager, bob, ids, halfbalances);
 
-    //     {
-    //         // balanceDelta positive (so user need to call take/mint)
-    //         uint256 balanceDelta0 = uint128(vault.balanceDeltaOfPool(poolId).amount0());
-    //         assertApproxEqRel(uint256(balanceDelta0), reserveX / 2, 1e10, "test_BurnPartial::1");
-    //         uint256 balanceDelta1 = uint128(vault.balanceDeltaOfPool(poolId).amount1());
-    //         assertApproxEqRel(uint256(balanceDelta1), reserveY / 2, 1e10, "test_BurnPartial::2");
-    //     }
+        {
+            // balanceDelta positive (so user need to call take/mint)
+            uint256 balanceDelta0 = uint128(vault.balanceDeltaOfPool(poolId).amount0());
+            assertApproxEqRel(uint256(balanceDelta0), reserveX / 2, 1e10, "test_BurnPartial::1");
+            uint256 balanceDelta1 = uint128(vault.balanceDeltaOfPool(poolId).amount1());
+            assertApproxEqRel(uint256(balanceDelta1), reserveY / 2, 1e10, "test_BurnPartial::2");
+        }
 
-    //     removeLiquidity(key, poolManager, bob, ids, halfbalances);
+        removeLiquidity(key, poolManager, bob, ids, halfbalances);
 
-    //     reserveX = vault.reservesOfApp(address(key.poolManager), key.currency0); // vault.reservesOfPool(poolId, 0);
-    //     reserveY = vault.reservesOfApp(address(key.poolManager), key.currency1); // vault.reservesOfPool(poolId, 1);
-    //     assertEq(reserveX, 0, "test_BurnPartial::5");
-    //     assertEq(reserveY, 0, "test_BurnPartial::6");
-    // }
+        // 6 as liquidity was added to 6 bins, each bin lock 1 token due to min share
+        uint256 lockedTokenDueToMinShare = 6;
+        reserveX = vault.reservesOfApp(address(key.poolManager), key.currency0); // vault.reservesOfPool(poolId, 0);
+        reserveY = vault.reservesOfApp(address(key.poolManager), key.currency1); // vault.reservesOfPool(poolId, 1);
+        assertEq(reserveX, lockedTokenDueToMinShare, "test_BurnPartial::5");
+        assertEq(reserveY, lockedTokenDueToMinShare, "test_BurnPartial::6");
+    }
 
     function test_revert_BurnEmptyArraysOrDifferent() external {
         poolManager.initialize(key, activeId);

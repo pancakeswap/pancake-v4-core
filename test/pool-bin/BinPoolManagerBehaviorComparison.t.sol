@@ -193,7 +193,7 @@ abstract contract LBFuzzer is LBHelper, BinTestHelper {
 }
 
 contract BinPoolManagerBehaviorComparisonTest is LBFuzzer {
-    function testMintFuzzX(uint16 binStep, uint24 activeId, uint256 amountX, uint256 amountY, uint8 binNum) public {
+    function testMintFuzz(uint16 binStep, uint24 activeId, uint256 amountX, uint256 amountY, uint8 binNum) public {
         (ILBPair lbPair, PoolKey memory key_,, uint24 boundActiveId) = initPools(binStep, activeId);
         mint(lbPair, key_, boundActiveId, amountX, amountY, binNum);
     }
