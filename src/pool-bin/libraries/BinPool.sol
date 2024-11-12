@@ -319,7 +319,7 @@ library BinPool {
 
             uint256 userTotalShare = self.positions.get(params.from, id, params.salt).share;
             /// @dev Remove all shares if the remaining shares fall below the minimum threshold
-            if (amountToBurn > userTotalShare - MINIMUM_SHARE) {
+            if (amountToBurn + MINIMUM_SHARE > userTotalShare) {
                 amountToBurn = userTotalShare;
             }
 
