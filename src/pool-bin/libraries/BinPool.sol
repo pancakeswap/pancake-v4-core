@@ -48,7 +48,7 @@ library BinPool {
     error BinPool__NoLiquidityToReceiveFees();
     /// @dev if swap exactIn, x for y, unspecifiedToken = token y. if swap x for exact out y, unspecified token is x
     error BinPool__InsufficientAmountUnSpecified();
-    error BinPool__BelowMinimumShareInBurn(uint256 balanceShare);
+    error BinPool__BelowMinimumShare(uint256 balanceShare);
 
     /// @dev The state of a pool
     struct State {
@@ -68,7 +68,7 @@ library BinPool {
     }
 
     /// @dev when liquidity is removed, ensure there is either greater than min_share or 0 liquidity left
-    uint256 constant MINIMUM_SHARE = 1e3;
+    uint256 constant MINIMUM_SHARE = 1e9;
 
     function initialize(State storage self, uint24 activeId, uint24 protocolFee, uint24 lpFee) internal {
         /// An initialized pool will not have activeId: 0
@@ -469,10 +469,10 @@ library BinPool {
         self.positions.get(owner, binId, salt).subShare(shares);
         self.shareOfBin[binId] -= shares;
 
-        uint256 balanceShare = self.shareOfBin[binId];
         /// @dev Ensure bin total share is either 0 or greater than minimum share
+        uint256 balanceShare = self.shareOfBin[binId];
         if (balanceShare > 0 && balanceShare < MINIMUM_SHARE) {
-            revert BinPool__BelowMinimumShareInBurn(balanceShare);
+            revert BinPool__BelowMinimumShare(balanceShare);
         }
     }
 
@@ -480,6 +480,14 @@ library BinPool {
     function _addShare(State storage self, address owner, uint24 binId, bytes32 salt, uint256 shares) internal {
         self.positions.get(owner, binId, salt).addShare(shares);
         self.shareOfBin[binId] += shares;
+
+        /// @dev Ensure bin total share is either 0 or greater than minimum share
+        /// <WIP> to discuss if we want to enforce this -- otherwise user can potentially add below 1e9 liquidity
+        /// but can't withdraw if there's no other lp to help push the min share up
+        uint256 balanceShare = self.shareOfBin[binId];
+        if (balanceShare > 0 && balanceShare < MINIMUM_SHARE) {
+            revert BinPool__BelowMinimumShare(balanceShare);
+        }
     }
 
     /// @notice Enable bin id for a pool
