@@ -56,19 +56,25 @@ contract BinPoolDonateTest is BinTestHelper {
         poolManager.donate(key, 1e18, 1e18, "");
     }
 
-    // function testDonate_InsufficientBinShareForDonate(uint256 remainingShare) public {
-    //     // Initialize pool and add liqudiity
-    //     poolManager.initialize(key, activeId);
-    //     addLiquidityToBin(key, poolManager, alice, activeId, 1e18, 1e18, 1e18, 1e18, "");
+    function testDonate_InsufficientBinShareForDonate(uint256 remainingShare) public {
+        uint256 MINIMUM_SHARE = 1e3;
 
-    //     // Remove all share leaving less than MIN_LIQUIDITY_BEFORE_DONATE shares
-    //     remainingShare = bound(remainingShare, 1, poolManager.minBinShareForDonate() - 1);
-    //     uint256 aliceShare = poolManager.getPosition(poolId, alice, activeId, 0).share;
-    //     removeLiquidityFromBin(key, poolManager, alice, activeId, aliceShare - remainingShare, "");
+        // Initialize pool and add liqudiity
+        poolManager.initialize(key, activeId);
+        addLiquidityToBin(key, poolManager, alice, activeId, 1e18, 1e18, 1e18, 1e18, "");
 
-    //     vm.expectRevert(abi.encodeWithSelector(IBinPoolManager.InsufficientBinShareForDonate.selector, remainingShare));
-    //     poolManager.donate(key, 1e18, 1e18, "");
-    // }
+        // Remove all share leaving less than MIN_LIQUIDITY_BEFORE_DONATE shares
+        remainingShare = bound(remainingShare, 1, poolManager.minBinShareForDonate() - 1 - MINIMUM_SHARE);
+        uint256 aliceShare = poolManager.getPosition(poolId, alice, activeId, 0).share;
+        removeLiquidityFromBin(key, poolManager, alice, activeId, aliceShare - remainingShare, "");
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBinPoolManager.InsufficientBinShareForDonate.selector, remainingShare + MINIMUM_SHARE
+            )
+        );
+        poolManager.donate(key, 1e18, 1e18, "");
+    }
 
     function testDonateX() public {
         // Initialize. Alice/Bob both add 1e18 token0, token1 to the active bin

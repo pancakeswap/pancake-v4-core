@@ -471,6 +471,8 @@ library BinPool {
     }
 
     /// @notice Add share to user's position and update total share supply of bin
+    /// @dev if bin is empty, deduct MINIMUM_SHARE from shares
+    /// @return userShareAdded The amount of share added to user's position
     function _addShare(State storage self, address owner, uint24 binId, bytes32 salt, uint256 shares)
         internal
         returns (uint256 userShareAdded)

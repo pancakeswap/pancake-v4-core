@@ -41,6 +41,8 @@ import {BinHelper} from "../../src/pool-bin/libraries/BinHelper.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
+import {console2} from "forge-std/console2.sol";
+
 contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     using SafeCast for uint256;
     using PackedUint128Math for bytes32;
@@ -415,201 +417,214 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         snapEnd();
     }
 
-    // function testMintAndBurnWithSalt() public {
-    //     bytes32 salt = bytes32(uint256(0x1234));
-    //     poolManager.initialize(key, activeId);
+    function testMintAndBurnWithSalt() public {
+        bytes32 salt = bytes32(uint256(0x1234));
+        poolManager.initialize(key, activeId);
 
-    //     token0.mint(address(this), 10 ether);
-    //     token1.mint(address(this), 10 ether);
-    //     (IBinPoolManager.MintParams memory mintParams, uint24[] memory binIds) =
-    //         _getMultipleBinMintParams(activeId, 2 ether, 2 ether, 5, 5, salt);
-    //     binLiquidityHelper.mint(key, mintParams, "");
+        token0.mint(address(this), 10 ether);
+        token1.mint(address(this), 10 ether);
+        (IBinPoolManager.MintParams memory mintParams, uint24[] memory binIds) =
+            _getMultipleBinMintParams(activeId, 2 ether, 2 ether, 5, 5, salt);
+        binLiquidityHelper.mint(key, mintParams, "");
 
-    //     // liquidity added with salt 0x1234  not salt 0
-    //     for (uint256 i = 0; i < binIds.length; i++) {
-    //         (uint128 binReserveX, uint128 binReserveY,,) = poolManager.getBin(key.toId(), binIds[i]);
+        // liquidity added with salt 0x1234  not salt 0
+        for (uint256 i = 0; i < binIds.length; i++) {
+            (uint128 binReserveX, uint128 binReserveY,,) = poolManager.getBin(key.toId(), binIds[i]);
 
-    //         // make sure the liquidity is added to the correct bin
-    //         if (binIds[i] < activeId) {
-    //             assertEq(binReserveX, 0 ether);
-    //             assertEq(binReserveY, 0.4 ether);
-    //         } else if (binIds[i] > activeId) {
-    //             assertEq(binReserveX, 0.4 ether);
-    //             assertEq(binReserveY, 0 ether);
-    //         } else {
-    //             assertEq(binReserveX, 0.4 ether);
-    //             assertEq(binReserveY, 0.4 ether);
-    //         }
+            // make sure the liquidity is added to the correct bin
+            if (binIds[i] < activeId) {
+                assertEq(binReserveX, 0 ether);
+                assertEq(binReserveY, 0.4 ether);
+            } else if (binIds[i] > activeId) {
+                assertEq(binReserveX, 0.4 ether);
+                assertEq(binReserveY, 0 ether);
+            } else {
+                assertEq(binReserveX, 0.4 ether);
+                assertEq(binReserveY, 0.4 ether);
+            }
 
-    //         BinPosition.Info memory position =
-    //             poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt);
-    //         BinPosition.Info memory position0 =
-    //             poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], 0);
-    //         assertTrue(position.share != 0);
-    //         // position with salt = 0
-    //         assertTrue(position0.share == 0);
-    //     }
+            BinPosition.Info memory position =
+                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt);
+            BinPosition.Info memory position0 =
+                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], 0);
+            assertTrue(position.share != 0);
+            // position with salt = 0
+            assertTrue(position0.share == 0);
+        }
 
-    //     // burn liquidity with salt 0x1234
-    //     IBinPoolManager.BurnParams memory burnParams =
-    //         _getMultipleBinBurnLiquidityParams(key, poolManager, binIds, address(binLiquidityHelper), 100, salt);
-    //     binLiquidityHelper.burn(key, burnParams, "");
+        // burn liquidity with salt 0x1234
+        IBinPoolManager.BurnParams memory burnParams =
+            _getMultipleBinBurnLiquidityParams(key, poolManager, binIds, address(binLiquidityHelper), 100, salt);
+        binLiquidityHelper.burn(key, burnParams, "");
 
-    //     for (uint256 i = 0; i < binIds.length; i++) {
-    //         (uint128 binReserveX, uint128 binReserveY,,) = poolManager.getBin(key.toId(), binIds[i]);
+        for (uint256 i = 0; i < binIds.length; i++) {
+            (uint128 binReserveX, uint128 binReserveY,,) = poolManager.getBin(key.toId(), binIds[i]);
 
-    //         // make sure the liquidity is added to the correct bin
-    //         assertEq(binReserveX, 0 ether);
-    //         assertEq(binReserveY, 0 ether);
+            // should have 1 token left due to min liquidity
+            if (binIds[i] < activeId) {
+                assertEq(binReserveX, 0);
+                assertEq(binReserveY, 1);
+            } else if (binIds[i] > activeId) {
+                assertEq(binReserveX, 1);
+                assertEq(binReserveY, 0);
+            } else {
+                assertEq(binReserveX, 1);
+                assertEq(binReserveY, 1);
+            }
 
-    //         BinPosition.Info memory position =
-    //             poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt);
-    //         BinPosition.Info memory position0 =
-    //             poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], 0);
-    //         assertTrue(position.share == 0);
-    //         assertTrue(position0.share == 0);
-    //     }
-    // }
+            BinPosition.Info memory position =
+                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt);
+            BinPosition.Info memory position0 =
+                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], 0);
+            assertTrue(position.share == 0);
+            assertTrue(position0.share == 0);
+        }
+    }
 
-    // function testMintMixWithAndWithoutSalt() public {
-    //     bytes32 salt0 = bytes32(0);
-    //     bytes32 salt1 = bytes32(uint256(0x1234));
-    //     bytes32 salt2 = bytes32(uint256(0x5678));
-    //     poolManager.initialize(key, activeId);
+    function testMintMixWithAndWithoutSalt() public {
+        bytes32 salt0 = bytes32(0);
+        bytes32 salt1 = bytes32(uint256(0x1234));
+        bytes32 salt2 = bytes32(uint256(0x5678));
+        poolManager.initialize(key, activeId);
 
-    //     token0.mint(address(this), 30 ether);
-    //     token1.mint(address(this), 30 ether);
+        token0.mint(address(this), 30 ether);
+        token1.mint(address(this), 30 ether);
 
-    //     (IBinPoolManager.MintParams memory mintParams, uint24[] memory binIds) =
-    //         _getMultipleBinMintParams(activeId, 2 ether, 2 ether, 5, 5, salt1);
-    //     binLiquidityHelper.mint(key, mintParams, "");
+        // mint for salt1
+        (IBinPoolManager.MintParams memory mintParams, uint24[] memory binIds) =
+            _getMultipleBinMintParams(activeId, 2 ether, 2 ether, 5, 5, salt1);
+        binLiquidityHelper.mint(key, mintParams, "");
 
-    //     // liquidity added with salt 0x1234  not salt 0
-    //     for (uint256 i = 0; i < binIds.length; i++) {
-    //         (uint128 binReserveX, uint128 binReserveY,,) = poolManager.getBin(key.toId(), binIds[i]);
+        // liquidity added with salt 0x1234  not salt 0
+        for (uint256 i = 0; i < binIds.length; i++) {
+            (uint128 binReserveX, uint128 binReserveY,,) = poolManager.getBin(key.toId(), binIds[i]);
 
-    //         // make sure the liquidity is added to the correct bin
-    //         if (binIds[i] < activeId) {
-    //             assertEq(binReserveX, 0 ether);
-    //             assertEq(binReserveY, 0.4 ether);
-    //         } else if (binIds[i] > activeId) {
-    //             assertEq(binReserveX, 0.4 ether);
-    //             assertEq(binReserveY, 0 ether);
-    //         } else {
-    //             assertEq(binReserveX, 0.4 ether);
-    //             assertEq(binReserveY, 0.4 ether);
-    //         }
+            // make sure the liquidity is added to the correct bin
+            if (binIds[i] < activeId) {
+                assertEq(binReserveX, 0 ether);
+                assertEq(binReserveY, 0.4 ether);
+            } else if (binIds[i] > activeId) {
+                assertEq(binReserveX, 0.4 ether);
+                assertEq(binReserveY, 0 ether);
+            } else {
+                assertEq(binReserveX, 0.4 ether);
+                assertEq(binReserveY, 0.4 ether);
+            }
 
-    //         BinPosition.Info memory position0 =
-    //             poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt0);
-    //         BinPosition.Info memory position1 =
-    //             poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt1);
-    //         BinPosition.Info memory position2 =
-    //             poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt2);
+            BinPosition.Info memory position0 =
+                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt0);
+            BinPosition.Info memory position1 =
+                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt1);
+            BinPosition.Info memory position2 =
+                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt2);
 
-    //         // only position with salt 0x1234 should have share
-    //         assertTrue(position0.share == 0);
-    //         assertTrue(position1.share != 0);
-    //         assertTrue(position2.share == 0);
-    //     }
+            // only position with salt 0x1234 should have share
+            assertTrue(position0.share == 0);
+            assertTrue(position1.share != 0);
+            assertTrue(position2.share == 0);
+        }
 
-    //     {
-    //         (mintParams, binIds) = _getMultipleBinMintParams(activeId, 2 ether, 2 ether, 5, 5, salt2);
-    //         binLiquidityHelper.mint(key, mintParams, "");
+        {
+            // now mint for salt2
+            (mintParams, binIds) = _getMultipleBinMintParams(activeId, 2 ether, 2 ether, 5, 5, salt2);
+            binLiquidityHelper.mint(key, mintParams, "");
 
-    //         for (uint256 i = 0; i < binIds.length; i++) {
-    //             (uint128 binReserveX, uint128 binReserveY,,) = poolManager.getBin(key.toId(), binIds[i]);
+            for (uint256 i = 0; i < binIds.length; i++) {
+                (uint128 binReserveX, uint128 binReserveY,,) = poolManager.getBin(key.toId(), binIds[i]);
 
-    //             // make sure the liquidity is added to the correct bin
-    //             if (binIds[i] < activeId) {
-    //                 assertEq(binReserveX, 0 ether);
-    //                 assertEq(binReserveY, 0.4 ether * 2);
-    //             } else if (binIds[i] > activeId) {
-    //                 assertEq(binReserveX, 0.4 ether * 2);
-    //                 assertEq(binReserveY, 0 ether);
-    //             } else {
-    //                 assertEq(binReserveX, 0.4 ether * 2);
-    //                 assertEq(binReserveY, 0.4 ether * 2);
-    //             }
+                // make sure the liquidity is added to the correct bin
+                if (binIds[i] < activeId) {
+                    assertEq(binReserveX, 0 ether);
+                    assertEq(binReserveY, 0.4 ether * 2);
+                } else if (binIds[i] > activeId) {
+                    assertEq(binReserveX, 0.4 ether * 2);
+                    assertEq(binReserveY, 0 ether);
+                } else {
+                    assertEq(binReserveX, 0.4 ether * 2);
+                    assertEq(binReserveY, 0.4 ether * 2);
+                }
 
-    //             BinPosition.Info memory position0 =
-    //                 poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt0);
-    //             BinPosition.Info memory position1 =
-    //                 poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt1);
-    //             BinPosition.Info memory position2 =
-    //                 poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt2);
+                BinPosition.Info memory position0 =
+                    poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt0);
+                BinPosition.Info memory position1 =
+                    poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt1);
+                BinPosition.Info memory position2 =
+                    poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt2);
 
-    //             // only position with salt 0 should be empty
-    //             assertTrue(position0.share == 0);
-    //             assertTrue(position1.share != 0);
-    //             assertTrue(position1.share == position2.share);
-    //         }
-    //     }
+                // only position with salt 0 should be empty
+                assertTrue(position0.share == 0);
+                assertTrue(position1.share != 0);
+                // // 1e3 is MINIMUM_SHARE locked when added liquidity first
+                assertTrue(position1.share + 1e3 == position2.share);
+            }
+        }
 
-    //     {
-    //         (mintParams, binIds) = _getMultipleBinMintParams(activeId, 2 ether, 2 ether, 5, 5, salt0);
-    //         binLiquidityHelper.mint(key, mintParams, "");
+        {
+            // now mint for salt0
+            (mintParams, binIds) = _getMultipleBinMintParams(activeId, 2 ether, 2 ether, 5, 5, salt0);
+            binLiquidityHelper.mint(key, mintParams, "");
 
-    //         for (uint256 i = 0; i < binIds.length; i++) {
-    //             (uint128 binReserveX, uint128 binReserveY,,) = poolManager.getBin(key.toId(), binIds[i]);
+            for (uint256 i = 0; i < binIds.length; i++) {
+                (uint128 binReserveX, uint128 binReserveY,,) = poolManager.getBin(key.toId(), binIds[i]);
 
-    //             // make sure the liquidity is added to the correct bin
-    //             if (binIds[i] < activeId) {
-    //                 assertEq(binReserveX, 0 ether);
-    //                 assertEq(binReserveY, 0.4 ether * 3);
-    //             } else if (binIds[i] > activeId) {
-    //                 assertEq(binReserveX, 0.4 ether * 3);
-    //                 assertEq(binReserveY, 0 ether);
-    //             } else {
-    //                 assertEq(binReserveX, 0.4 ether * 3);
-    //                 assertEq(binReserveY, 0.4 ether * 3);
-    //             }
+                // make sure the liquidity is added to the correct bin
+                if (binIds[i] < activeId) {
+                    assertEq(binReserveX, 0 ether);
+                    assertEq(binReserveY, 0.4 ether * 3);
+                } else if (binIds[i] > activeId) {
+                    assertEq(binReserveX, 0.4 ether * 3);
+                    assertEq(binReserveY, 0 ether);
+                } else {
+                    assertEq(binReserveX, 0.4 ether * 3);
+                    assertEq(binReserveY, 0.4 ether * 3);
+                }
 
-    //             BinPosition.Info memory position0 =
-    //                 poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt0);
-    //             BinPosition.Info memory position1 =
-    //                 poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt1);
-    //             BinPosition.Info memory position2 =
-    //                 poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt2);
+                BinPosition.Info memory position0 =
+                    poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt0);
+                BinPosition.Info memory position1 =
+                    poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt1);
+                BinPosition.Info memory position2 =
+                    poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt2);
 
-    //             assertTrue(position0.share != 0);
-    //             assertTrue(position1.share == position0.share);
-    //             assertTrue(position1.share == position2.share);
-    //         }
-    //     }
+                // 1e3 is MINIMUM_SHARE locked when added liquidity first
+                assertTrue(position0.share != 0);
+                assertTrue(position1.share + 1e3 == position0.share);
+                assertTrue(position1.share + 1e3 == position2.share);
+            }
+        }
 
-    //     // burning liquidity with salt 0x1234 should not impact position0 & position2
-    //     IBinPoolManager.BurnParams memory burnParams =
-    //         _getMultipleBinBurnLiquidityParams(key, poolManager, binIds, address(binLiquidityHelper), 100, salt1);
-    //     binLiquidityHelper.burn(key, burnParams, "");
+        // burning liquidity with salt 0x1234 should not impact position0 & position2
+        IBinPoolManager.BurnParams memory burnParams =
+            _getMultipleBinBurnLiquidityParams(key, poolManager, binIds, address(binLiquidityHelper), 100, salt1);
+        binLiquidityHelper.burn(key, burnParams, "");
 
-    //     for (uint256 i = 0; i < binIds.length; i++) {
-    //         (uint128 binReserveX, uint128 binReserveY,,) = poolManager.getBin(key.toId(), binIds[i]);
+        for (uint256 i = 0; i < binIds.length; i++) {
+            (uint128 binReserveX, uint128 binReserveY,,) = poolManager.getBin(key.toId(), binIds[i]);
 
-    //         // make sure the liquidity is added to the correct bin
-    //         if (binIds[i] < activeId) {
-    //             assertEq(binReserveX, 0 ether);
-    //             assertEq(binReserveY, 0.4 ether * 2);
-    //         } else if (binIds[i] > activeId) {
-    //             assertEq(binReserveX, 0.4 ether * 2);
-    //             assertEq(binReserveY, 0 ether);
-    //         } else {
-    //             assertEq(binReserveX, 0.4 ether * 2);
-    //             assertEq(binReserveY, 0.4 ether * 2);
-    //         }
+            // make sure the liquidity is added to the correct bin
+            if (binIds[i] < activeId) {
+                assertEq(binReserveX, 0 ether);
+                assertEq(binReserveY, 0.4 ether * 2 + 1);
+            } else if (binIds[i] > activeId) {
+                assertEq(binReserveX, 0.4 ether * 2 + 1);
+                assertEq(binReserveY, 0 ether);
+            } else {
+                assertEq(binReserveX, 0.4 ether * 2 + 1);
+                assertEq(binReserveY, 0.4 ether * 2 + 1);
+            }
 
-    //         BinPosition.Info memory position0 =
-    //             poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt0);
-    //         BinPosition.Info memory position1 =
-    //             poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt1);
-    //         BinPosition.Info memory position2 =
-    //             poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt2);
+            BinPosition.Info memory position0 =
+                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt0);
+            BinPosition.Info memory position1 =
+                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt1);
+            BinPosition.Info memory position2 =
+                poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt2);
 
-    //         assertTrue(position0.share != 0);
-    //         assertTrue(position1.share == 0);
-    //         assertTrue(position0.share == position2.share);
-    //     }
-    // }
+            assertTrue(position0.share != 0);
+            assertTrue(position1.share == 0);
+            assertTrue(position0.share == position2.share);
+        }
+    }
 
     function testGasBurnOneBin() public {
         // initialize
