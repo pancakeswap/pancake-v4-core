@@ -170,7 +170,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
             // balances[i] was from first mint, so add 1e3 (min share) as second mint does not burn min share
             assertEq(poolManager.getPosition(poolId, bob, id, 0).share, 2 * balances[i] + 1e3, "test_DoubleMint:7");
 
-            // // Only bob minted, all the shares in the bin should be bob's
+            // Only bob minted, all the shares in the bin should be bob's
             assertEq(poolManager.getPosition(poolId, bob, id, 0).share, totalShares - 1e3, "test_DoubleMint:8");
         }
     }
