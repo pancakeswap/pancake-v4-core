@@ -325,7 +325,7 @@ contract BinPoolFeeTest is BinTestHelper {
         addLiquidityToBin(_key, poolManager, bob, activeId, amountX, amountY, 1e18, 1e18, "");
     }
 
-    function test_Burn_NoFee() external {
+    function test_Burn_MinimumShareAsFee() external {
         // add liqudiity
         uint24 activeId = ID_ONE; // where token price are the same
         _addLiquidityForBurnTest(activeId, key);
@@ -337,9 +337,29 @@ contract BinPoolFeeTest is BinTestHelper {
         ids[0] = activeId;
         removeLiquidity(key, poolManager, bob, ids, balances);
 
-        // check fee. no hook for pool, so can skip check
-        assertEq(poolManager.protocolFeesAccrued(currency0), 0, "test_Burn_NoFee::1");
-        assertEq(poolManager.protocolFeesAccrued(currency1), 0, "test_Burn_NoFee::1");
+        // check fee as minimum share will be withdrawn as fee
+        // no hook for pool, so can skip check
+        assertEq(poolManager.protocolFeesAccrued(currency0), 1, "test_Burn_MinimumShareAsFee::1");
+        assertEq(poolManager.protocolFeesAccrued(currency1), 1, "test_Burn_MinimumShareAsFee::1");
+    }
+
+    function test_Burn_NoMinimumShareAsFee() external {
+        // add liqudiity
+        uint24 activeId = ID_ONE; // where token price are the same
+        _addLiquidityForBurnTest(activeId, key);
+
+        // then remove liquidity
+        uint256[] memory balances = new uint256[](1);
+        uint256[] memory ids = new uint256[](1);
+        // remove 1 share less than what was minted, so that MINIMUM_SHARE is not withdrawn as fee
+        balances[0] = poolManager.getPosition(poolId, bob, activeId, 0).share - 1;
+        ids[0] = activeId;
+        removeLiquidity(key, poolManager, bob, ids, balances);
+
+        // check fee as minimum share will not be withdrawn as fee as there are still 1 user's share left
+        // no hook for pool, so can skip check
+        assertEq(poolManager.protocolFeesAccrued(currency0), 0, "test_Burn_NoMinimumShareAsFee::1");
+        assertEq(poolManager.protocolFeesAccrued(currency1), 0, "test_Burn_NoMinimumShareAsFee::1");
     }
 
     function test_Swap_NoFee() external {

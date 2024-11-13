@@ -239,7 +239,8 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
 
         uint256[] memory binIds;
         bytes32[] memory amountRemoved;
-        (delta, binIds, amountRemoved) = pool.burn(
+        bytes32 feeAmountToProtocol;
+        (delta, binIds, amountRemoved, feeAmountToProtocol) = pool.burn(
             BinPool.BurnParams({
                 from: msg.sender,
                 ids: params.ids,
@@ -247,6 +248,13 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
                 salt: params.salt
             })
         );
+
+        unchecked {
+            if (feeAmountToProtocol > 0) {
+                protocolFeesAccrued[key.currency0] += feeAmountToProtocol.decodeX();
+                protocolFeesAccrued[key.currency1] += feeAmountToProtocol.decodeY();
+            }
+        }
 
         /// @notice Make sure the first event is noted, so that later events from afterHook won't get mixed up with this one
         emit Burn(id, msg.sender, binIds, params.salt, amountRemoved);

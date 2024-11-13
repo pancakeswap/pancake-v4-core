@@ -104,7 +104,7 @@ contract BinMintBurnFeeHookTest is Test, GasSnapshot, BinTestHelper {
         token1.mint(address(this), 10 ether);
 
         IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
-        BalanceDelta delta = binLiquidityHelper.mint(key, mintParams, abi.encode(0));
+        binLiquidityHelper.mint(key, mintParams, abi.encode(0));
 
         assertEq(token0.balanceOf(address(this)), 7 ether);
         assertEq(token1.balanceOf(address(this)), 7 ether);
@@ -120,16 +120,16 @@ contract BinMintBurnFeeHookTest is Test, GasSnapshot, BinTestHelper {
         binLiquidityHelper.burn(key, burnParams, "");
         snapEnd();
 
-        // +1 eth from remove liqudiity, -4 eth from hook fee
+        // +1 ether from remove liqudiity, -4 ether from hook fee
         // +3 from min_liquidity amount as -1 (min_liquidity) + 1 * 4 (fee)
         assertEq(token0.balanceOf(address(this)), 7 ether + 1 ether - 4 ether + 3);
         assertEq(token1.balanceOf(address(this)), 7 ether + 1 ether - 4 ether + 3);
 
-        // -1 eth from remove liquidity, +4 eth from hook calling vault.mint
+        // -1 ether from remove liquidity, +4 ether from hook calling vault.mint
+        // -3 as min_liquidity amount as 1 (min_liquidity) still in vault but hook's fee is less 1 * 4 (fee)
         assertEq(token0.balanceOf(address(vault)), 3 ether - 1 ether + 4 ether - 3);
         assertEq(token1.balanceOf(address(vault)), 3 ether - 1 ether + 4 ether - 3);
 
-        // -4 as due to min_liquidity = 1, hook took 4 token less fee
         assertEq(vault.balanceOf(address(binMintBurnFeeHook), key.currency0), 2 ether + 4 ether - 4);
         assertEq(vault.balanceOf(address(binMintBurnFeeHook), key.currency1), 2 ether + 4 ether - 4);
     }

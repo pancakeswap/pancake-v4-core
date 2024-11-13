@@ -328,8 +328,12 @@ contract BinPoolLiquidityTest is BinTestHelper {
 
         reserveX = vault.reservesOfApp(address(key.poolManager), key.currency0);
         reserveY = vault.reservesOfApp(address(key.poolManager), key.currency1);
-        assertEq(reserveX, lockedTokenDueToMinShare, "test_BurnPartial::3");
-        assertEq(reserveY, lockedTokenDueToMinShare, "test_BurnPartial::4");
+        assertEq(reserveX, lockedTokenDueToMinShare, "test_SimpleBurn::3");
+        assertEq(reserveY, lockedTokenDueToMinShare, "test_SimpleBurn::4");
+
+        // make sure all those locked up tokens are now protocol fee
+        assertEq(poolManager.protocolFeesAccrued(key.currency0), lockedTokenDueToMinShare, "test_SimpleBurn::5");
+        assertEq(poolManager.protocolFeesAccrued(key.currency1), lockedTokenDueToMinShare, "test_SimpleBurn::6");
     }
 
     function test_BurnHalfTwice() external {
@@ -381,6 +385,10 @@ contract BinPoolLiquidityTest is BinTestHelper {
         reserveY = vault.reservesOfApp(address(key.poolManager), key.currency1); // vault.reservesOfPool(poolId, 1);
         assertEq(reserveX, lockedTokenDueToMinShare, "test_BurnPartial::5");
         assertEq(reserveY, lockedTokenDueToMinShare, "test_BurnPartial::6");
+
+        // make sure all those locked up tokens are now protocol fee
+        assertEq(poolManager.protocolFeesAccrued(key.currency0), lockedTokenDueToMinShare, "test_BurnPartial::7");
+        assertEq(poolManager.protocolFeesAccrued(key.currency1), lockedTokenDueToMinShare, "test_BurnPartial::8");
     }
 
     function test_revert_BurnEmptyArraysOrDifferent() external {
