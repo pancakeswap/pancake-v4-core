@@ -170,6 +170,8 @@ interface IBinPoolManager is IProtocolFees, IPoolManager, IExtsload {
     function initialize(PoolKey memory key, uint24 activeId) external;
 
     /// @notice Add liquidity to a pool
+    /// @dev For the first liquidity added to a bin, the share minted would be slightly lessser (1e3 lesser) to prevent
+    /// share inflation attack.
     /// @return delta BalanceDelta, will be negative indicating how much total amt0 and amt1 liquidity added
     /// @return mintArray Liquidity added in which ids, how much amt0, amt1 and how much liquidity added
     function mint(PoolKey memory key, IBinPoolManager.MintParams calldata params, bytes calldata hookData)
