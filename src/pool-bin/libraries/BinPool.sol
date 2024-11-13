@@ -48,6 +48,7 @@ library BinPool {
     error BinPool__NoLiquidityToReceiveFees();
     /// @dev if swap exactIn, x for y, unspecifiedToken = token y. if swap x for exact out y, unspecified token is x
     error BinPool__InsufficientAmountUnSpecified();
+    error BinPool__MaxLiquidityPerBinExceeded();
 
     /// @dev The state of a pool
     struct State {
@@ -169,6 +170,14 @@ library BinPool {
                     }
 
                     self.reserveOfBin[swapState.activeId] = binReserves.add(amountsInWithFees).sub(amountsOutOfBin);
+
+                    if (
+                        self.reserveOfBin[swapState.activeId].getLiquidity(
+                            swapState.activeId.getPriceFromId(params.binStep)
+                        ) > Constants.MAX_LIQUIDITY_PER_BIN
+                    ) {
+                        revert BinPool__MaxLiquidityPerBinExceeded();
+                    }
                 }
             }
 
@@ -347,9 +356,12 @@ library BinPool {
 
         /// @dev overflow check on total reserves and the resulting liquidity
         uint256 price = activeId.getPriceFromId(binStep);
-        binReserves.add(amountIn).getLiquidity(price);
+        bytes32 newReserves = binReserves.add(amountIn);
+        if (newReserves.getLiquidity(price) > Constants.MAX_LIQUIDITY_PER_BIN) {
+            revert BinPool__MaxLiquidityPerBinExceeded();
+        }
 
-        self.reserveOfBin[activeId] = binReserves.add(amountIn);
+        self.reserveOfBin[activeId] = newReserves;
         result = toBalanceDelta(-(amount0.safeInt128()), -(amount1.safeInt128()));
     }
 
@@ -457,7 +469,12 @@ library BinPool {
         if (shares == 0 || amountsInToBin == 0) revert BinPool__ZeroShares(id);
         if (supply == 0) _addBinIdToTree(self, id);
 
-        self.reserveOfBin[id] = binReserves.add(amountsInToBin);
+        bytes32 newReserves = binReserves.add(amountsInToBin);
+        if (newReserves.getLiquidity(price) > Constants.MAX_LIQUIDITY_PER_BIN) {
+            revert BinPool__MaxLiquidityPerBinExceeded();
+        }
+
+        self.reserveOfBin[id] = newReserves;
     }
 
     /// @notice Subtract share from user's position and update total share supply of bin

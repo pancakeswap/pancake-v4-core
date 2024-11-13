@@ -18,6 +18,7 @@ import {BinPoolParametersHelper} from "../../../src/pool-bin/libraries/BinPoolPa
 import {BinTestHelper} from "../helpers/BinTestHelper.sol";
 import {IProtocolFeeController} from "../../../src/interfaces/IProtocolFeeController.sol";
 import {MockProtocolFeeController} from "../../../src/test/fee/MockProtocolFeeController.sol";
+import {Constants} from "../../../src/pool-bin/libraries/Constants.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 
 contract BinPoolSwapTest is BinTestHelper, GasSnapshot {
@@ -267,6 +268,28 @@ contract BinPoolSwapTest is BinTestHelper, GasSnapshot {
 
         vm.expectRevert(BinPool.BinPool__InsufficientAmountUnSpecified.selector);
         poolManager.swap(key, false, -int128(amountIn), "0x");
+    }
+
+    function test_revert_swapMaxLiquidityPerBinfuzz(int128 amountSpecified) external {
+        vm.assume(amountSpecified != 0);
+
+        // Add liquidity to the point where it is close to the max liquidity per bin
+        poolManager.initialize(key, activeId);
+        addLiquidity(
+            key,
+            poolManager,
+            bob,
+            activeId,
+            // when price is 1:1, then Constants.MAX_LIQUIDITY_PER_BIN >> 128 / 2 is the threshold
+            (Constants.MAX_LIQUIDITY_PER_BIN >> 128) / 2,
+            (Constants.MAX_LIQUIDITY_PER_BIN >> 128) / 2,
+            1,
+            1
+        );
+
+        // arbitrary amount of token will trigger the revert
+        vm.expectRevert(BinPool.BinPool__MaxLiquidityPerBinExceeded.selector);
+        poolManager.swap(key, false, amountSpecified, "0x");
     }
 
     function test_revert_SwapOutOfLiquidity() external {

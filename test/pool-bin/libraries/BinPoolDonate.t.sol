@@ -17,11 +17,14 @@ import {PackedUint128Math} from "../../../src/pool-bin/libraries/math/PackedUint
 import {SafeCast} from "../../../src/pool-bin/libraries/math/SafeCast.sol";
 import {BinPoolParametersHelper} from "../../../src/pool-bin/libraries/BinPoolParametersHelper.sol";
 import {BinTestHelper} from "../helpers/BinTestHelper.sol";
+import {Constants} from "../../../src/pool-bin/libraries/Constants.sol";
+import {PriceHelper} from "../../../src/pool-bin/libraries/PriceHelper.sol";
 
 contract BinPoolDonateTest is BinTestHelper {
     using PackedUint128Math for bytes32;
     using BinPoolParametersHelper for bytes32;
     using SafeCast for uint256;
+    using BinHelper for bytes32;
 
     MockVault public vault;
     BinPoolManager public poolManager;
@@ -118,6 +121,14 @@ contract BinPoolDonateTest is BinTestHelper {
         poolManager.initialize(key, activeId);
         addLiquidityToBin(key, poolManager, bob, activeId, 1e18, 1e18, 1e18, 1e18, "");
         poolManager.getPosition(poolId, bob, activeId, 0).share;
+
+        bytes32 newReserves = PackedUint128Math.encode(1e18 + amt0, 1e18 + amt1);
+        uint256 price = PriceHelper.getPriceFromId(activeId, poolParam.getBinStep());
+        if (newReserves.getLiquidity(price) > Constants.MAX_LIQUIDITY_PER_BIN) {
+            vm.expectRevert(BinPool.BinPool__MaxLiquidityPerBinExceeded.selector);
+            poolManager.donate(key, amt0, amt1, "");
+            return;
+        }
 
         poolManager.donate(key, amt0, amt1, "");
 
