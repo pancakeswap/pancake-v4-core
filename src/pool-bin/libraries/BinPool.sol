@@ -48,6 +48,7 @@ library BinPool {
     error BinPool__NoLiquidityToReceiveFees();
     /// @dev if swap exactIn, x for y, unspecifiedToken = token y. if swap x for exact out y, unspecified token is x
     error BinPool__InsufficientAmountUnSpecified();
+    error BinPool__UserPositionBelowMinimumShare(uint256 balanceShare);
 
     /// @dev The state of a pool
     struct State {
@@ -65,6 +66,9 @@ library BinPool {
         mapping(bytes32 => bytes32) level1;
         mapping(bytes32 => bytes32) level2;
     }
+
+    /// @dev when liquidity is removed, ensure there is either greater than min_share or 0 liquidity left
+    uint256 constant MINIMUM_SHARE = 1e9;
 
     function initialize(State storage self, uint24 activeId, uint24 protocolFee, uint24 lpFee) internal {
         /// An initialized pool will not have activeId: 0
@@ -313,6 +317,12 @@ library BinPool {
             bytes32 binReserves = self.reserveOfBin[id];
             uint256 supply = self.shareOfBin[id];
 
+            uint256 userTotalShare = self.positions.get(params.from, id, params.salt).share;
+            /// @dev Remove all shares if the remaining shares fall below the minimum threshold
+            if (amountToBurn + MINIMUM_SHARE > userTotalShare) {
+                amountToBurn = userTotalShare;
+            }
+
             _subShare(self, params.from, id, params.salt, amountToBurn);
 
             bytes32 amountsOutFromBin = binReserves.getAmountOutOfBin(amountToBurn, supply);
@@ -464,12 +474,24 @@ library BinPool {
     function _subShare(State storage self, address owner, uint24 binId, bytes32 salt, uint256 shares) internal {
         self.positions.get(owner, binId, salt).subShare(shares);
         self.shareOfBin[binId] -= shares;
+
+        /// @dev Ensure bin user's position share is either 0 or greater than minimum share
+        uint256 userPositionShare = self.positions.get(owner, binId, salt).share;
+        if (userPositionShare > 0 && userPositionShare < MINIMUM_SHARE) {
+            revert BinPool__UserPositionBelowMinimumShare(userPositionShare);
+        }
     }
 
     /// @notice Add share to user's position and update total share supply of bin
     function _addShare(State storage self, address owner, uint24 binId, bytes32 salt, uint256 shares) internal {
         self.positions.get(owner, binId, salt).addShare(shares);
         self.shareOfBin[binId] += shares;
+
+        /// @dev Ensure bin user's position share is either 0 or greater than minimum share
+        uint256 userPositionShare = self.positions.get(owner, binId, salt).share;
+        if (userPositionShare < MINIMUM_SHARE) {
+            revert BinPool__UserPositionBelowMinimumShare(userPositionShare);
+        }
     }
 
     /// @notice Enable bin id for a pool
