@@ -127,11 +127,15 @@ contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
         binLiquidityHelper.burn(key, burnParams, "");
 
         (uint128 reserveXAfter, uint128 reserveYAfter,,) = poolManager.getBin(key.toId(), activeId);
-        // reserve non zero due to min liquidity locked up in the bin
+        // reserve back to zero due to min liquidity locked up in the bin will be withdrawn as protocol fee
         assertEq(reserveXAfter, 0);
         assertEq(reserveYAfter, 0);
-        assertEq(token0.balanceOf(address(binReturnsDeltaHook)), 0.1 ether);
-        assertEq(token1.balanceOf(address(binReturnsDeltaHook)), 0.1 ether);
+        assertEq(token0.balanceOf(address(binReturnsDeltaHook)), 0.1 ether - 1);
+        assertEq(token1.balanceOf(address(binReturnsDeltaHook)), 0.1 ether - 1);
+
+        // check protocol fee increase
+        assertEq(poolManager.protocolFeesAccrued(key.currency0), 1);
+        assertEq(poolManager.protocolFeesAccrued(key.currency1), 1);
     }
 
     function testSwap_noSwap_specifyInput() external {

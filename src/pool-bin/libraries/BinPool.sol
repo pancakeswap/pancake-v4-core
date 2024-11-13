@@ -317,21 +317,26 @@ library BinPool {
             bytes32 binReserves = self.reserveOfBin[id];
             uint256 supply = self.shareOfBin[id];
 
+            /// @notice if user is last lp for this bin, amountToBurn would be amountToBurn + MINIMUM_SHARE
             amountToBurn = _subShare(self, params.from, id, params.salt, amountToBurn);
 
-            bytes32 amountsOutFromBin = binReserves.getAmountOutOfBin(amountToBurn, supply);
-            if (supply == amountToBurn) feeAmountToProtocol = binReserves.getAmountOutOfBin(MINIMUM_SHARE, supply);
-
-            if (amountsOutFromBin == 0) revert BinPool__ZeroAmountsOut(id);
-
-            binReserves = binReserves.sub(amountsOutFromBin);
-
+            bytes32 amountsOutFromBin;
+            /// @dev if user is last lp for this bin, supply == amountToBurn == amountsToBurn[i] + MINIMUM_SHARE
+            /// then we will remove all the liqudity from the bin where MINIMUM_SHARE will be withdrawn as protocol fee
+            /// to prevent MINIMUM_SHARE from being locked up in the bin which cause extra gas cost when swap
             if (supply == amountToBurn) {
                 _removeBinIdToTree(self, id);
 
                 /// @notice withdraw all the liquidity from the bin, the locked up share will be withdrawn as protocol fee
-                amountsOutFromBin.sub(feeAmountToProtocol);
+                /// @dev we can't use "binReserves.getAmountOutOfBin(MINIMUM_SHARE, supply)" to calc the fee as it will round down to 0
+                amountsOutFromBin = binReserves.getAmountOutOfBin(amountToBurn - MINIMUM_SHARE, supply);
+                feeAmountToProtocol = feeAmountToProtocol.add(binReserves.sub(amountsOutFromBin));
+                binReserves = 0;
+            } else {
+                amountsOutFromBin = binReserves.getAmountOutOfBin(amountToBurn, supply);
+                binReserves = binReserves.sub(amountsOutFromBin);
             }
+            if (amountsOutFromBin.add(feeAmountToProtocol) == 0) revert BinPool__ZeroAmountsOut(id);
 
             self.reserveOfBin[id] = binReserves;
             amounts[i] = amountsOutFromBin;
@@ -471,6 +476,8 @@ library BinPool {
     }
 
     /// @notice Subtract share from user's position and update total share supply of bin
+    /// @param shares - amount of share to deduct specified by user
+    /// @return amountsToBurn amount of share burned, nornally equals to shares except when bin is left with MINIMUM_SHARE, amountsToBurn will be share + MINIMUM_SHARE
     function _subShare(State storage self, address owner, uint24 binId, bytes32 salt, uint256 shares)
         internal
         returns (uint256 amountsToBurn)

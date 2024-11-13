@@ -641,7 +641,8 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         uint256[] memory ids = new uint256[](1);
         bytes32[] memory amounts = new bytes32[](1);
         ids[0] = activeId;
-        amounts[0] = 0x00000000000000000de0b6b3a764000000000000000000000de0b6b3a7640000; // <wip> uint128(1e18).encode(uint128(1e18));
+        // lock-up 1e3 share are not burned by user but instead withdrawn as protocol fee
+        amounts[0] = uint128(1e18 - 1).encode(uint128(1e18 - 1));
         vm.expectEmit();
         emit IBinPoolManager.Burn(key.toId(), address(binLiquidityHelper), ids, 0, amounts);
 
@@ -710,7 +711,8 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         uint256[] memory ids = new uint256[](1);
         bytes32[] memory amounts = new bytes32[](1);
         ids[0] = activeId;
-        amounts[0] = 0x00000000000000000de0b6b3a764000000000000000000000de0b6b3a7640000; // <wip> to fill in numbers uint128(1e18).encode(uint128(1e18));
+        // lock-up 1e3 share are not burned by user but instead withdrawn as protocol fee
+        amounts[0] = uint128(1e18 - 1).encode(uint128(1e18 - 1));
         vm.expectEmit();
         emit IBinPoolManager.Burn(key.toId(), address(binLiquidityHelper), ids, 0, amounts);
 

@@ -87,9 +87,11 @@ contract BinPoolDonateTest is BinTestHelper {
         // Verify reserve before donate
         uint128 reserveX;
         uint128 reserveY;
-        (reserveX, reserveY,,) = poolManager.getBin(poolId, activeId);
+        uint256 totalSupply;
+        (reserveX, reserveY,, totalSupply) = poolManager.getBin(poolId, activeId);
         assertEq(reserveX, 2e18);
         assertEq(reserveY, 2e18);
+        assertEq(totalSupply, aliceShare + bobShare + BinPool.MINIMUM_SHARE);
 
         // Donate
         poolManager.donate(key, 2e18, 2e18, "");
@@ -106,14 +108,18 @@ contract BinPoolDonateTest is BinTestHelper {
 
         // lesser than 2e18 as alice is the first lp provider and liquidity locked up
         BalanceDelta removeDelta2 = removeLiquidityFromBin(key, poolManager, alice, activeId, aliceShare, "");
-        assertEq(removeDelta2.amount0(), 2e18);
-        assertEq(removeDelta2.amount1(), 2e18);
+        assertEq(removeDelta2.amount0(), 2e18 - 1);
+        assertEq(removeDelta2.amount1(), 2e18 - 1);
 
-        // Verify only min_liquidity worth of token locked up
-        (reserveX, reserveY,,) = poolManager.getBin(poolId, activeId);
+        // can see the reserve is back to 0 after all liquidity has been removed
+        (reserveX, reserveY,, totalSupply) = poolManager.getBin(poolId, activeId);
         assertEq(reserveX, 0);
         assertEq(reserveY, 0);
+        assertEq(totalSupply, 0);
+        assertEq(poolManager.protocolFeesAccrued(key.currency0), 1);
+        assertEq(poolManager.protocolFeesAccrued(key.currency1), 1);
 
+        // Verify min_liquidity worth of token locked up is accumulated to protocol fee
         vm.expectRevert(abi.encodeWithSelector(IBinPoolManager.InsufficientBinShareForDonate.selector, 0));
         poolManager.donate(key, 1e18, 1e18, "");
     }
