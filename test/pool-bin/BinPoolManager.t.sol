@@ -1194,6 +1194,69 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         assertEq(shares, liquidity);
     }
 
+    function test_getNextNonEmptyBin() public {
+        poolManager.initialize(key, activeId);
+
+        // add 1 eth of tokenX and 1 eth to activeId - 2 to active + 2 bins
+        token0.mint(address(this), 10 ether);
+        token1.mint(address(this), 10 ether);
+        (IBinPoolManager.MintParams memory mintParams,) = _getMultipleBinMintParams(activeId, 2 ether, 2 ether, 3, 3);
+        binLiquidityHelper.mint(key, mintParams, "");
+
+        // swapForY is true, means search for bin to the left as tokenY reside on the left side of the bin
+        bool swapForY = true;
+        for (uint24 i = 0; i < 5; i++) {
+            // [-2, -1, activeId, 1, 2] are bins initialized due to liqudiity adding above
+            uint24 nextEmptyBin = poolManager.getNextNonEmptyBin(key.toId(), swapForY, activeId + 3 - i);
+            assertEq(nextEmptyBin, activeId + 2 - i);
+        }
+
+        IBinPoolManager.BurnParams memory burnParams;
+
+        // burn activeId-1
+        burnParams = _getSingleBinBurnLiquidityParams(key, poolManager, activeId - 1, address(binLiquidityHelper), 100);
+        binLiquidityHelper.burn(key, burnParams, "");
+
+        // as activeId-1 bin is empty now, verify the next non empty bin to the left of activeId is activeId-2
+        assertEq(poolManager.getNextNonEmptyBin(key.toId(), true, activeId), activeId - 2);
+
+        // burn activeId+1
+        burnParams = _getSingleBinBurnLiquidityParams(key, poolManager, activeId + 1, address(binLiquidityHelper), 100);
+        binLiquidityHelper.burn(key, burnParams, "");
+
+        // as activeId+1 bin is empty now, verify the next non empty bin to the left of activeId+2 is activeId
+        assertEq(poolManager.getNextNonEmptyBin(key.toId(), true, activeId + 2), activeId);
+    }
+
+    function test_getNextNonEmptyBin_AddRemoveAddLiquidity() public {
+        // initialize
+        poolManager.initialize(key, activeId);
+
+        // mint, verify activeId is in treeMath
+        token0.mint(address(this), 2 ether);
+        token1.mint(address(this), 2 ether);
+        IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
+        binLiquidityHelper.mint(key, mintParams, "");
+        assertEq(poolManager.getNextNonEmptyBin(key.toId(), true, activeId + 1), activeId);
+
+        // remove, verify activeId not in treeMath
+        IBinPoolManager.BurnParams memory burnParams;
+        burnParams = _getSingleBinBurnLiquidityParams(key, poolManager, activeId, address(binLiquidityHelper), 100);
+        binLiquidityHelper.burn(key, burnParams, "");
+        assertEq(poolManager.getNextNonEmptyBin(key.toId(), true, activeId + 1), type(uint24).max);
+
+        // mint, verify activeId in treeMath again
+        binLiquidityHelper.mint(key, mintParams, "");
+        assertEq(poolManager.getNextNonEmptyBin(key.toId(), true, activeId + 1), activeId);
+    }
+
+    function test_getNextNonEmptyBin_NoBinWithLiqudiity() public {
+        poolManager.initialize(key, activeId);
+
+        assertEq(poolManager.getNextNonEmptyBin(key.toId(), true, activeId), type(uint24).max);
+        assertEq(poolManager.getNextNonEmptyBin(key.toId(), false, activeId), 0);
+    }
+
     receive() external payable {}
 
     function supportsInterface(bytes4) external pure returns (bool) {
