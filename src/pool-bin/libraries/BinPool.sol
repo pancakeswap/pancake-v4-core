@@ -325,7 +325,8 @@ library BinPool {
 
             binReserves = binReserves.sub(amountsOutFromBin);
 
-            if (supply == amountToBurn) _removeBinIdToTree(self, id);
+            /// @dev _removeBinIdToTree if supply is MINIMUM_SHARE after burning as min share is too low liquidity for trade anyway
+            if (supply - amountToBurn == MINIMUM_SHARE) _removeBinIdToTree(self, id);
 
             self.reserveOfBin[id] = binReserves;
             amounts[i] = amountsOutFromBin;
@@ -459,7 +460,8 @@ library BinPool {
         }
 
         if (shares == 0 || amountsInToBin == 0) revert BinPool__ZeroShares(id);
-        if (supply == 0) _addBinIdToTree(self, id);
+        /// @dev if supply was originally MINIMUM_SHARE (people added and remove liquidity before) or 0 (new bin), add binId to tree
+        if (supply <= MINIMUM_SHARE) _addBinIdToTree(self, id);
 
         self.reserveOfBin[id] = binReserves.add(amountsInToBin);
     }
