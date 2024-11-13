@@ -192,8 +192,8 @@ contract BinPoolLiquidityTest is BinTestHelper {
         uint256 aliceBal = poolManager.getPosition(key.toId(), alice, activeId, 0).share;
         BalanceDelta aliceDelta = removeLiquidityFromBin(key, poolManager, alice, activeId, aliceBal, "");
         // -1 tokenX and -1 tokenY as they are locked as min liquidity
-        assertEq(aliceDelta.amount0() + bobDelta.amount0(), 200 ether - 1);
-        assertEq(aliceDelta.amount1() + bobDelta.amount1(), 1 ether - 1);
+        assertEq(aliceDelta.amount0() + bobDelta.amount0(), 200 ether);
+        assertEq(aliceDelta.amount1() + bobDelta.amount1(), 1 ether);
     }
 
     function test_MintWithDifferentBins() external {
@@ -317,7 +317,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
         removeLiquidity(key, poolManager, bob, ids, balances);
 
         // 6 as liquidity was added to 6 bins, each bin lock 1 token due to min share
-        uint256 lockedTokenDueToMinShare = 6;
+        uint256 lockedTokenDueToMinShare = 0;
         {
             // balanceDelta positive (so user need to call take/mint)
             uint256 balanceDelta0 = uint128(vault.balanceDeltaOfPool(poolId).amount0());
@@ -376,7 +376,7 @@ contract BinPoolLiquidityTest is BinTestHelper {
         removeLiquidity(key, poolManager, bob, ids, halfbalances);
 
         // 6 as liquidity was added to 6 bins, each bin lock 1 token due to min share
-        uint256 lockedTokenDueToMinShare = 6;
+        uint256 lockedTokenDueToMinShare = 0;
         reserveX = vault.reservesOfApp(address(key.poolManager), key.currency0); // vault.reservesOfPool(poolId, 0);
         reserveY = vault.reservesOfApp(address(key.poolManager), key.currency1); // vault.reservesOfPool(poolId, 1);
         assertEq(reserveX, lockedTokenDueToMinShare, "test_BurnPartial::5");

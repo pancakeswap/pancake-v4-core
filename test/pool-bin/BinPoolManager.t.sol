@@ -461,13 +461,13 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             // should have 1 token left due to min liquidity
             if (binIds[i] < activeId) {
                 assertEq(binReserveX, 0);
-                assertEq(binReserveY, 1);
+                assertEq(binReserveY, 0);
             } else if (binIds[i] > activeId) {
-                assertEq(binReserveX, 1);
+                assertEq(binReserveX, 0);
                 assertEq(binReserveY, 0);
             } else {
-                assertEq(binReserveX, 1);
-                assertEq(binReserveY, 1);
+                assertEq(binReserveX, 0);
+                assertEq(binReserveY, 0);
             }
 
             BinPosition.Info memory position =
@@ -641,7 +641,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         uint256[] memory ids = new uint256[](1);
         bytes32[] memory amounts = new bytes32[](1);
         ids[0] = activeId;
-        amounts[0] = uint128(1e18 - 1).encode(uint128(1e18 - 1)); // -1 due to minshare locked up
+        amounts[0] = 0x00000000000000000de0b6b3a764000000000000000000000de0b6b3a7640000; // <wip> uint128(1e18).encode(uint128(1e18));
         vm.expectEmit();
         emit IBinPoolManager.Burn(key.toId(), address(binLiquidityHelper), ids, 0, amounts);
 
@@ -710,7 +710,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         uint256[] memory ids = new uint256[](1);
         bytes32[] memory amounts = new bytes32[](1);
         ids[0] = activeId;
-        amounts[0] = uint128(1e18 - 1).encode(uint128(1e18 - 1)); // -1 due to minshare locked up
+        amounts[0] = 0x00000000000000000de0b6b3a764000000000000000000000de0b6b3a7640000; // <wip> to fill in numbers uint128(1e18).encode(uint128(1e18));
         vm.expectEmit();
         emit IBinPoolManager.Burn(key.toId(), address(binLiquidityHelper), ids, 0, amounts);
 

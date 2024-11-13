@@ -298,7 +298,7 @@ library BinPool {
     /// @return result the delta of the token balance of the pool
     function burn(State storage self, BurnParams memory params)
         internal
-        returns (BalanceDelta result, uint256[] memory ids, bytes32[] memory amounts)
+        returns (BalanceDelta result, uint256[] memory ids, bytes32[] memory amounts, bytes32 feeAmountToProtocol)
     {
         ids = params.ids;
         uint256 idsLength = ids.length;
@@ -317,15 +317,21 @@ library BinPool {
             bytes32 binReserves = self.reserveOfBin[id];
             uint256 supply = self.shareOfBin[id];
 
-            _subShare(self, params.from, id, params.salt, amountToBurn);
+            amountToBurn = _subShare(self, params.from, id, params.salt, amountToBurn);
 
             bytes32 amountsOutFromBin = binReserves.getAmountOutOfBin(amountToBurn, supply);
+            if (supply == amountToBurn) feeAmountToProtocol = binReserves.getAmountOutOfBin(MINIMUM_SHARE, supply);
 
             if (amountsOutFromBin == 0) revert BinPool__ZeroAmountsOut(id);
 
             binReserves = binReserves.sub(amountsOutFromBin);
 
-            if (supply == amountToBurn) _removeBinIdToTree(self, id);
+            if (supply == amountToBurn) {
+                _removeBinIdToTree(self, id);
+
+                /// @notice withdraw all the liquidity from the bin, the locked up share will be withdrawn as protocol fee
+                amountsOutFromBin.sub(feeAmountToProtocol);
+            }
 
             self.reserveOfBin[id] = binReserves;
             amounts[i] = amountsOutFromBin;
@@ -465,9 +471,16 @@ library BinPool {
     }
 
     /// @notice Subtract share from user's position and update total share supply of bin
-    function _subShare(State storage self, address owner, uint24 binId, bytes32 salt, uint256 shares) internal {
+    function _subShare(State storage self, address owner, uint24 binId, bytes32 salt, uint256 shares)
+        internal
+        returns (uint256 amountsToBurn)
+    {
         self.positions.get(owner, binId, salt).subShare(shares);
-        self.shareOfBin[binId] -= shares;
+        amountsToBurn = shares;
+        if (self.shareOfBin[binId] - shares == MINIMUM_SHARE) {
+            amountsToBurn += MINIMUM_SHARE;
+        }
+        self.shareOfBin[binId] -= amountsToBurn;
     }
 
     /// @notice Add share to user's position and update total share supply of bin

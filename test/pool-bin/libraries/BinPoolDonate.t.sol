@@ -106,15 +106,15 @@ contract BinPoolDonateTest is BinTestHelper {
 
         // lesser than 2e18 as alice is the first lp provider and liquidity locked up
         BalanceDelta removeDelta2 = removeLiquidityFromBin(key, poolManager, alice, activeId, aliceShare, "");
-        assertEq(removeDelta2.amount0(), 2e18 - 1);
-        assertEq(removeDelta2.amount1(), 2e18 - 1);
+        assertEq(removeDelta2.amount0(), 2e18);
+        assertEq(removeDelta2.amount1(), 2e18);
 
         // Verify only min_liquidity worth of token locked up
         (reserveX, reserveY,,) = poolManager.getBin(poolId, activeId);
-        assertEq(reserveX, 1);
-        assertEq(reserveY, 1);
+        assertEq(reserveX, 0);
+        assertEq(reserveY, 0);
 
-        vm.expectRevert(abi.encodeWithSelector(IBinPoolManager.InsufficientBinShareForDonate.selector, 1e3));
+        vm.expectRevert(abi.encodeWithSelector(IBinPoolManager.InsufficientBinShareForDonate.selector, 0));
         poolManager.donate(key, 1e18, 1e18, "");
     }
 
