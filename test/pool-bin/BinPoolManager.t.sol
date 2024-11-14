@@ -40,6 +40,7 @@ import {PriceHelper} from "../../src/pool-bin/libraries/PriceHelper.sol";
 import {BinHelper} from "../../src/pool-bin/libraries/BinHelper.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import "forge-std/console2.sol";
 
 contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     using SafeCast for uint256;
@@ -65,6 +66,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
     BinLiquidityHelper public binLiquidityHelper;
     BinDonateHelper public binDonateHelper;
 
+    // 8388608 = 2^23
     uint24 activeId = 2 ** 23; // where token0 and token1 price is the same
 
     PoolKey key;
@@ -685,6 +687,83 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         snapStart("BinPoolManagerTest#testGasBurnNineBins");
         binLiquidityHelper.burn(key, burnParams, "");
         snapEnd();
+    }
+
+    function test_verify_r7_option2() public {
+        poolManager.initialize(key, activeId);
+
+        // mint on 3 bins, price 1 bin , left bin and right bin
+        token0.mint(address(this), 10 ether);
+        token1.mint(address(this), 10 ether);
+        (IBinPoolManager.MintParams memory mintParams, uint24[] memory binIds) =
+            _getMultipleBinMintParams(activeId, 10 ether, 10 ether, 2, 2);
+        binLiquidityHelper.mint(key, mintParams, "");
+
+        // burn liquidity with bin which price is 1
+        uint24[] memory binIdsToBurn = new uint24[](1);
+        binIdsToBurn[0] = activeId;
+        IBinPoolManager.BurnParams memory burnParams =
+            _getMultipleBinBurnLiquidityParams(key, poolManager, binIdsToBurn, address(binLiquidityHelper), 100);
+        binLiquidityHelper.burn(key, burnParams, "");
+
+        // check current bin price 1 info
+        uint24 Price1BinId = activeId;
+        (uint128 binReserveX, uint128 binReserveY, uint256 binLiquidity, uint256 totalShares) =
+            poolManager.getBin(key.toId(), Price1BinId);
+        console2.logString("Bin price 1 information");
+        console2.log(binReserveX, binReserveY, binLiquidity, totalShares);
+
+        // swap to change bin id
+        token0.mint(address(this), 1 ether);
+        BinSwapHelper.TestSettings memory testSettings =
+            BinSwapHelper.TestSettings({withdrawTokens: true, settleUsingTransfer: true});
+        binSwapHelper.swap(key, true, -int128(1 ether), testSettings, "");
+        // getSlot0
+        (uint24 activeId, uint24 protocolFee, uint24 lpFee) = poolManager.getSlot0(key.toId());
+        console2.logString("After first swap bin information");
+        console2.log(activeId, protocolFee, lpFee);
+
+        // check price 1 bin info again
+        (binReserveX, binReserveY, binLiquidity, totalShares) = poolManager.getBin(key.toId(), Price1BinId);
+        console2.logString("Bin price 1 information after first swap");
+        console2.log(binReserveX, binReserveY, binLiquidity, totalShares);
+
+        // swap in opposite direction
+        token1.mint(address(this), 2 ether);
+        binSwapHelper.swap(key, false, -int128(2 ether), testSettings, "");
+        // getSlot0
+        (activeId, protocolFee, lpFee) = poolManager.getSlot0(key.toId());
+        console2.logString("After second swap in opposite direction, bin information");
+        console2.log(activeId, protocolFee, lpFee);
+
+        // check price 1 bin info again
+        (binReserveX, binReserveY, binLiquidity, totalShares) = poolManager.getBin(key.toId(), Price1BinId);
+        console2.logString("Bin price 1 information after second swap");
+        console2.log(binReserveX, binReserveY, binLiquidity, totalShares);
+
+        // add liuqidity in bin id , Price1BinId , then remove all liquidity
+        token0.mint(address(this), 1 ether);
+        token1.mint(address(this), 1 ether);
+        (IBinPoolManager.MintParams memory mintParamsNew, uint24[] memory binIdsNew) =
+            _getMultipleBinMintParams(activeId, 1 ether, 1 ether, 1, 2);
+
+        binLiquidityHelper.mint(key, mintParamsNew, "");
+
+        // check price 1 bin info again
+        (binReserveX, binReserveY, binLiquidity, totalShares) = poolManager.getBin(key.toId(), Price1BinId);
+        console2.logString("Bin price 1 information after mint again");
+        console2.log(binReserveX, binReserveY, binLiquidity, totalShares);
+
+        // remove all liquidity in bin id , Price1BinId
+        binIdsToBurn[0] = Price1BinId;
+        burnParams =
+            _getMultipleBinBurnLiquidityParams(key, poolManager, binIdsToBurn, address(binLiquidityHelper), 100);
+        binLiquidityHelper.burn(key, burnParams, "");
+
+        // check price 1 bin info again
+        (binReserveX, binReserveY, binLiquidity, totalShares) = poolManager.getBin(key.toId(), Price1BinId);
+        console2.logString("Bin price 1 information after burn again");
+        console2.log(binReserveX, binReserveY, binLiquidity, totalShares);
     }
 
     function testBurnNativeCurrency() public {
