@@ -458,9 +458,17 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         for (uint256 i = 0; i < binIds.length; i++) {
             (uint128 binReserveX, uint128 binReserveY,,) = poolManager.getBin(key.toId(), binIds[i]);
 
-            // make sure the liquidity is added to the correct bin
-            assertEq(binReserveX, 0 ether);
-            assertEq(binReserveY, 0 ether);
+            // should have 1 token left due to min liquidity
+            if (binIds[i] < activeId) {
+                assertEq(binReserveX, 0);
+                assertEq(binReserveY, 1);
+            } else if (binIds[i] > activeId) {
+                assertEq(binReserveX, 1);
+                assertEq(binReserveY, 0);
+            } else {
+                assertEq(binReserveX, 1);
+                assertEq(binReserveY, 1);
+            }
 
             BinPosition.Info memory position =
                 poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt);
@@ -480,6 +488,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         token0.mint(address(this), 30 ether);
         token1.mint(address(this), 30 ether);
 
+        // mint for salt1
         (IBinPoolManager.MintParams memory mintParams, uint24[] memory binIds) =
             _getMultipleBinMintParams(activeId, 2 ether, 2 ether, 5, 5, salt1);
         binLiquidityHelper.mint(key, mintParams, "");
@@ -514,6 +523,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         }
 
         {
+            // now mint for salt2
             (mintParams, binIds) = _getMultipleBinMintParams(activeId, 2 ether, 2 ether, 5, 5, salt2);
             binLiquidityHelper.mint(key, mintParams, "");
 
@@ -542,11 +552,13 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
                 // only position with salt 0 should be empty
                 assertTrue(position0.share == 0);
                 assertTrue(position1.share != 0);
-                assertTrue(position1.share == position2.share);
+                // // 1e3 is MINIMUM_SHARE locked when added liquidity first
+                assertTrue(position1.share + 1e3 == position2.share);
             }
         }
 
         {
+            // now mint for salt0
             (mintParams, binIds) = _getMultipleBinMintParams(activeId, 2 ether, 2 ether, 5, 5, salt0);
             binLiquidityHelper.mint(key, mintParams, "");
 
@@ -572,9 +584,10 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
                 BinPosition.Info memory position2 =
                     poolManager.getPosition(key.toId(), address(binLiquidityHelper), binIds[i], salt2);
 
+                // 1e3 is MINIMUM_SHARE locked when added liquidity first
                 assertTrue(position0.share != 0);
-                assertTrue(position1.share == position0.share);
-                assertTrue(position1.share == position2.share);
+                assertTrue(position1.share + 1e3 == position0.share);
+                assertTrue(position1.share + 1e3 == position2.share);
             }
         }
 
@@ -589,13 +602,13 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
             // make sure the liquidity is added to the correct bin
             if (binIds[i] < activeId) {
                 assertEq(binReserveX, 0 ether);
-                assertEq(binReserveY, 0.4 ether * 2);
+                assertEq(binReserveY, 0.4 ether * 2 + 1);
             } else if (binIds[i] > activeId) {
-                assertEq(binReserveX, 0.4 ether * 2);
+                assertEq(binReserveX, 0.4 ether * 2 + 1);
                 assertEq(binReserveY, 0 ether);
             } else {
-                assertEq(binReserveX, 0.4 ether * 2);
-                assertEq(binReserveY, 0.4 ether * 2);
+                assertEq(binReserveX, 0.4 ether * 2 + 1);
+                assertEq(binReserveY, 0.4 ether * 2 + 1);
             }
 
             BinPosition.Info memory position0 =
@@ -628,7 +641,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         uint256[] memory ids = new uint256[](1);
         bytes32[] memory amounts = new bytes32[](1);
         ids[0] = activeId;
-        amounts[0] = uint128(1e18).encode(uint128(1e18));
+        amounts[0] = uint128(1e18 - 1).encode(uint128(1e18 - 1)); // -1 due to minshare locked up
         vm.expectEmit();
         emit IBinPoolManager.Burn(key.toId(), address(binLiquidityHelper), ids, 0, amounts);
 
@@ -697,7 +710,7 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         uint256[] memory ids = new uint256[](1);
         bytes32[] memory amounts = new bytes32[](1);
         ids[0] = activeId;
-        amounts[0] = uint128(1e18).encode(uint128(1e18));
+        amounts[0] = uint128(1e18 - 1).encode(uint128(1e18 - 1)); // -1 due to minshare locked up
         vm.expectEmit();
         emit IBinPoolManager.Burn(key.toId(), address(binLiquidityHelper), ids, 0, amounts);
 
@@ -1179,6 +1192,69 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         uint256 binLiquidity = binReserves.getLiquidity(activeId.getPriceFromId(binStep));
         assertEq(liquidity, binLiquidity);
         assertEq(shares, liquidity);
+    }
+
+    function test_getNextNonEmptyBin() public {
+        poolManager.initialize(key, activeId);
+
+        // add 1 eth of tokenX and 1 eth to activeId - 2 to active + 2 bins
+        token0.mint(address(this), 10 ether);
+        token1.mint(address(this), 10 ether);
+        (IBinPoolManager.MintParams memory mintParams,) = _getMultipleBinMintParams(activeId, 2 ether, 2 ether, 3, 3);
+        binLiquidityHelper.mint(key, mintParams, "");
+
+        // swapForY is true, means search for bin to the left as tokenY reside on the left side of the bin
+        bool swapForY = true;
+        for (uint24 i = 0; i < 5; i++) {
+            // [-2, -1, activeId, 1, 2] are bins initialized due to liqudiity adding above
+            uint24 nextEmptyBin = poolManager.getNextNonEmptyBin(key.toId(), swapForY, activeId + 3 - i);
+            assertEq(nextEmptyBin, activeId + 2 - i);
+        }
+
+        IBinPoolManager.BurnParams memory burnParams;
+
+        // burn activeId-1
+        burnParams = _getSingleBinBurnLiquidityParams(key, poolManager, activeId - 1, address(binLiquidityHelper), 100);
+        binLiquidityHelper.burn(key, burnParams, "");
+
+        // as activeId-1 bin is empty now, verify the next non empty bin to the left of activeId is activeId-2
+        assertEq(poolManager.getNextNonEmptyBin(key.toId(), true, activeId), activeId - 2);
+
+        // burn activeId+1
+        burnParams = _getSingleBinBurnLiquidityParams(key, poolManager, activeId + 1, address(binLiquidityHelper), 100);
+        binLiquidityHelper.burn(key, burnParams, "");
+
+        // as activeId+1 bin is empty now, verify the next non empty bin to the left of activeId+2 is activeId
+        assertEq(poolManager.getNextNonEmptyBin(key.toId(), true, activeId + 2), activeId);
+    }
+
+    function test_getNextNonEmptyBin_AddRemoveAddLiquidity() public {
+        // initialize
+        poolManager.initialize(key, activeId);
+
+        // mint, verify activeId is in treeMath
+        token0.mint(address(this), 2 ether);
+        token1.mint(address(this), 2 ether);
+        IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
+        binLiquidityHelper.mint(key, mintParams, "");
+        assertEq(poolManager.getNextNonEmptyBin(key.toId(), true, activeId + 1), activeId);
+
+        // remove, verify activeId not in treeMath
+        IBinPoolManager.BurnParams memory burnParams;
+        burnParams = _getSingleBinBurnLiquidityParams(key, poolManager, activeId, address(binLiquidityHelper), 100);
+        binLiquidityHelper.burn(key, burnParams, "");
+        assertEq(poolManager.getNextNonEmptyBin(key.toId(), true, activeId + 1), type(uint24).max);
+
+        // mint, verify activeId in treeMath again
+        binLiquidityHelper.mint(key, mintParams, "");
+        assertEq(poolManager.getNextNonEmptyBin(key.toId(), true, activeId + 1), activeId);
+    }
+
+    function test_getNextNonEmptyBin_NoBinWithLiqudiity() public {
+        poolManager.initialize(key, activeId);
+
+        assertEq(poolManager.getNextNonEmptyBin(key.toId(), true, activeId), type(uint24).max);
+        assertEq(poolManager.getNextNonEmptyBin(key.toId(), false, activeId), 0);
     }
 
     receive() external payable {}

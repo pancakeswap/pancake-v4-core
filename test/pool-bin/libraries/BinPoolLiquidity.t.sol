@@ -268,10 +268,11 @@ contract BinPoolLiquidityTest is BinTestHelper {
                 assertEq(binReserveY, 0, "test_SimpleMint::6");
             }
 
-            assertEq(poolManager.getPosition(poolId, bob, id, 0).share, 2 * balances[i], "test_DoubleMint:7");
+            // balances[i] was from first mint, so add 1e3 (min share) as second mint does not burn min share
+            assertEq(poolManager.getPosition(poolId, bob, id, 0).share, 2 * balances[i] + 1e3, "test_DoubleMint:7");
 
             // Only bob minted, all the shares in the bin should be bob's
-            assertEq(poolManager.getPosition(poolId, bob, id, 0).share, totalShares);
+            assertEq(poolManager.getPosition(poolId, bob, id, 0).share, totalShares - 1e3, "test_DoubleMint:8");
         }
     }
 
@@ -291,8 +292,9 @@ contract BinPoolLiquidityTest is BinTestHelper {
         BalanceDelta bobDelta = removeLiquidityFromBin(key, poolManager, bob, activeId, bobBal, "");
         uint256 aliceBal = poolManager.getPosition(key.toId(), alice, activeId, 0).share;
         BalanceDelta aliceDelta = removeLiquidityFromBin(key, poolManager, alice, activeId, aliceBal, "");
-        assertEq(aliceDelta.amount0() + bobDelta.amount0(), 200 ether);
-        assertEq(aliceDelta.amount1() + bobDelta.amount1(), 1 ether);
+        // -1 tokenX and -1 tokenY as they are locked as min liquidity
+        assertEq(aliceDelta.amount0() + bobDelta.amount0(), 200 ether - 1);
+        assertEq(aliceDelta.amount1() + bobDelta.amount1(), 1 ether - 1);
     }
 
     function test_MintWithDifferentBins() external {
@@ -327,8 +329,11 @@ contract BinPoolLiquidityTest is BinTestHelper {
                     "test_MintWithDifferentBins::1"
                 ); // composition fee, so share will be lesser than 2 * balances[i]
             } else {
+                // 1e3 as balance[i] was from first mint, so add 1e3 (min share) as second mint does not burn min share
                 assertEq(
-                    poolManager.getPosition(poolId, bob, id, 0).share, 2 * balances[i], "test_MintWithDifferentBins::2"
+                    poolManager.getPosition(poolId, bob, id, 0).share,
+                    2 * balances[i] + 1e3,
+                    "test_MintWithDifferentBins::2"
                 );
             }
         }
@@ -389,8 +394,8 @@ contract BinPoolLiquidityTest is BinTestHelper {
     function test_SimpleBurn() external {
         poolManager.initialize(key, activeId);
 
-        uint256 amountX = 100 * 10 ** 18;
-        uint256 amountY = 100 * 10 ** 18;
+        uint256 amountX = 100 ether;
+        uint256 amountY = 100 ether;
         uint8 nbBinX = 6;
         uint8 nbBinY = 6;
         vault.updateCurrentPoolKey(key);
@@ -412,25 +417,27 @@ contract BinPoolLiquidityTest is BinTestHelper {
         vault.updateCurrentPoolKey(key);
         removeLiquidity(key, poolManager, bob, ids, balances);
 
+        // 6 as liquidity was added to 6 bins, each bin lock 1 token due to min share
+        uint256 lockedTokenDueToMinShare = 6;
         {
             // balanceDelta positive (so user need to call take/mint)
             uint256 balanceDelta0 = uint128(vault.balanceDeltaOfPool(poolId).amount0());
-            assertEq(uint256(balanceDelta0), reserveX, "test_SimpleBurn::1");
+            assertEq(uint256(balanceDelta0), reserveX - lockedTokenDueToMinShare, "test_SimpleBurn::1");
             uint256 balanceDelta1 = uint128(vault.balanceDeltaOfPool(poolId).amount1());
-            assertEq(uint256(balanceDelta1), reserveY, "test_SimpleBurn::1");
+            assertEq(uint256(balanceDelta1), reserveY - lockedTokenDueToMinShare, "test_SimpleBurn::2");
         }
 
         reserveX = vault.reservesOfApp(address(key.poolManager), key.currency0);
         reserveY = vault.reservesOfApp(address(key.poolManager), key.currency1);
-        assertEq(reserveX, 0, "test_BurnPartial::3");
-        assertEq(reserveY, 0, "test_BurnPartial::4");
+        assertEq(reserveX, lockedTokenDueToMinShare, "test_BurnPartial::3");
+        assertEq(reserveY, lockedTokenDueToMinShare, "test_BurnPartial::4");
     }
 
     function test_BurnHalfTwice() external {
         poolManager.initialize(key, activeId);
 
-        uint256 amountX = 100 * 10 ** 18;
-        uint256 amountY = 100 * 10 ** 18;
+        uint256 amountX = 100 ether;
+        uint256 amountY = 100 ether;
         uint8 nbBinX = 6;
         uint8 nbBinY = 6;
 
@@ -469,10 +476,12 @@ contract BinPoolLiquidityTest is BinTestHelper {
 
         removeLiquidity(key, poolManager, bob, ids, halfbalances);
 
+        // 6 as liquidity was added to 6 bins, each bin lock 1 token due to min share
+        uint256 lockedTokenDueToMinShare = 6;
         reserveX = vault.reservesOfApp(address(key.poolManager), key.currency0); // vault.reservesOfPool(poolId, 0);
         reserveY = vault.reservesOfApp(address(key.poolManager), key.currency1); // vault.reservesOfPool(poolId, 1);
-        assertEq(reserveX, 0, "test_BurnPartial::5");
-        assertEq(reserveY, 0, "test_BurnPartial::6");
+        assertEq(reserveX, lockedTokenDueToMinShare, "test_BurnPartial::5");
+        assertEq(reserveY, lockedTokenDueToMinShare, "test_BurnPartial::6");
     }
 
     function test_revert_BurnEmptyArraysOrDifferent() external {

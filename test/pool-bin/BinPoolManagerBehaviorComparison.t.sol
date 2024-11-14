@@ -36,6 +36,9 @@ abstract contract LBFuzzer is LBHelper, BinTestHelper {
     Currency currency0;
     Currency currency1;
 
+    /// @dev when a bin has supply for the first time, 1e3 share will be locked up
+    uint256 constant MINIMUM_SHARE = 1e3;
+
     function setUp() public virtual override {
         super.setUp();
 
@@ -135,9 +138,18 @@ abstract contract LBFuzzer is LBHelper, BinTestHelper {
         for (uint256 i = 0; i < liquidityMinted.length; i++) {
             uint24 id = uint24(uint256(mintParams.liquidityConfigs[i]));
             BinPosition.Info memory positionInfoAfter = manager.getPosition(key.toId(), address(liquidityHelper), id, 0);
-            assertEq(
-                liquidityMinted[i], positionInfoAfter.share - sharesBefore[i], "Expecting to mint same liquidity !"
-            );
+            if (sharesBefore[i] == 0) {
+                // first mint, so positionInfoAfter.share has MINIMUM_SHARE lesser
+                assertEq(
+                    liquidityMinted[i],
+                    positionInfoAfter.share - sharesBefore[i] + MINIMUM_SHARE,
+                    "Expecting to mint same liquidity !"
+                );
+            } else {
+                assertEq(
+                    liquidityMinted[i], positionInfoAfter.share - sharesBefore[i], "Expecting to mint same liquidity !"
+                );
+            }
         }
     }
 

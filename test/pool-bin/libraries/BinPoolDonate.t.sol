@@ -60,16 +60,22 @@ contract BinPoolDonateTest is BinTestHelper {
     }
 
     function testDonate_InsufficientBinShareForDonate(uint256 remainingShare) public {
+        uint256 MINIMUM_SHARE = 1e3;
+
         // Initialize pool and add liqudiity
         poolManager.initialize(key, activeId);
         addLiquidityToBin(key, poolManager, alice, activeId, 1e18, 1e18, 1e18, 1e18, "");
 
         // Remove all share leaving less than MIN_LIQUIDITY_BEFORE_DONATE shares
-        remainingShare = bound(remainingShare, 1, poolManager.minBinShareForDonate() - 1);
+        remainingShare = bound(remainingShare, 1, poolManager.minBinShareForDonate() - 1 - MINIMUM_SHARE);
         uint256 aliceShare = poolManager.getPosition(poolId, alice, activeId, 0).share;
         removeLiquidityFromBin(key, poolManager, alice, activeId, aliceShare - remainingShare, "");
 
-        vm.expectRevert(abi.encodeWithSelector(IBinPoolManager.InsufficientBinShareForDonate.selector, remainingShare));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBinPoolManager.InsufficientBinShareForDonate.selector, remainingShare + MINIMUM_SHARE
+            )
+        );
         poolManager.donate(key, 1e18, 1e18, "");
     }
 
@@ -101,16 +107,17 @@ contract BinPoolDonateTest is BinTestHelper {
         assertEq(removeDelta1.amount0(), 2e18);
         assertEq(removeDelta1.amount1(), 2e18);
 
+        // lesser than 2e18 as alice is the first lp provider and liquidity locked up
         BalanceDelta removeDelta2 = removeLiquidityFromBin(key, poolManager, alice, activeId, aliceShare, "");
-        assertEq(removeDelta2.amount0(), 2e18);
-        assertEq(removeDelta2.amount1(), 2e18);
+        assertEq(removeDelta2.amount0(), 2e18 - 1);
+        assertEq(removeDelta2.amount1(), 2e18 - 1);
 
-        // Verify no reserve remaining
+        // Verify only min_liquidity worth of token locked up
         (reserveX, reserveY,,) = poolManager.getBin(poolId, activeId);
-        assertEq(reserveX, 0);
-        assertEq(reserveY, 0);
+        assertEq(reserveX, 1);
+        assertEq(reserveY, 1);
 
-        vm.expectRevert(abi.encodeWithSelector(IBinPoolManager.InsufficientBinShareForDonate.selector, 0));
+        vm.expectRevert(abi.encodeWithSelector(IBinPoolManager.InsufficientBinShareForDonate.selector, 1e3));
         poolManager.donate(key, 1e18, 1e18, "");
     }
 

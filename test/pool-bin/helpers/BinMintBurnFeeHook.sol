@@ -84,10 +84,6 @@ contract BinMintBurnFeeHook is BaseBinTestHook {
         BalanceDelta delta,
         bytes calldata
     ) external override returns (bytes4, BalanceDelta) {
-        console2.log("afterBurn delta");
-        console2.logInt(delta.amount0());
-        console2.logInt(delta.amount1());
-
         int128 amt0Fee;
         if (delta.amount0() > 0) {
             amt0Fee = (delta.amount0()) * 4;
