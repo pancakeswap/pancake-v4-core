@@ -16,10 +16,12 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  *
  * Step 2: Verify there is no need for --constructor-args as there are no constructor arguments for Vault
  * forge verify-contract <address> Vault --watch --chain <chain_id>
+ *
+ * Step 3: Proceed to deploy contract and call vault.acceptOwnership
  */
 contract DeployVaultScript is BaseScript {
     function getDeploymentSalt() public pure override returns (bytes32) {
-        return keccak256("PANCAKE-V4-CORE/VAULT/1.0");
+        return keccak256("PANCAKE-V4-CORE/VAULT/0.90");
     }
 
     function run() public {

@@ -1,7 +1,7 @@
 {
-    "create3Factory": "0x",
+    "create3Factory": "0x38Ab3f2CE00973A51d3A2A04d634C9bcbf20e4e1",
     "owner": "0x",
-    "vault": "0x4670F769Daa625FF5F89719AE5295E9824f5805f",
-    "clPoolManager": "0xD4EAc75ee0E76EAD6AC6995DF30CA14b38549682",
-    "binPoolManager": "0x0Ca8430E263A098B998E47e0544C2C82B30CbDB1"
+    "vault": "0x",
+    "clPoolManager": "0x",
+    "binPoolManager": "0x"
 }
