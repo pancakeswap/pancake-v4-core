@@ -1,4 +1,6 @@
 {
+    "create3Factory": "0x",
+    "owner": "0x",
     "vault": "0x",
     "clPoolManager": "0x",
     "binPoolManager": "0x"

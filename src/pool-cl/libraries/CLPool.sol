@@ -232,8 +232,7 @@ library CLPool {
             });
         }
 
-        /// @dev If amountSpecified is the output, also given amountSpecified cant be 0,
-        /// then the tx will always revert if the swap fee is 100%
+        /// @dev a swap fee totaling 100% makes exact output swaps impossible since the input is entirely consumed by the fee
         if (state.swapFee >= LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE) {
             if (!exactInput) {
                 revert InvalidFeeForExactOut();
@@ -288,9 +287,11 @@ library CLPool {
             /// @dev if the protocol fee is on, calculate how much is owed, decrement feeAmount, and increment protocolFee
             if (state.protocolFee > 0) {
                 unchecked {
-                    // protocol fee is charged on input token first
-                    uint256 delta =
-                        (step.amountIn + step.feeAmount) * state.protocolFee / ProtocolFeeLibrary.PIPS_DENOMINATOR;
+                    // cannot overflow due to limits on the size of protocolFee and params.amountSpecified
+                    // this rounds down to favor LPs over the protocol
+                    uint256 delta = (state.swapFee == state.protocolFee)
+                        ? step.feeAmount // lp fee is 0, so the entire fee is owed to the protocol instead
+                        : (step.amountIn + step.feeAmount) * state.protocolFee / ProtocolFeeLibrary.PIPS_DENOMINATOR;
 
                     // subtract it from the total fee then left over is the LP fee
                     step.feeAmount -= delta;

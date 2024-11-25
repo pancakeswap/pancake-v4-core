@@ -11,4 +11,8 @@ library Constants {
     uint256 internal constant SQUARED_PRECISION = PRECISION * PRECISION;
 
     uint256 internal constant BASIS_POINT_MAX = 10_000;
+
+    // (2^256 - 1) / (2 * log(2**128) / log(1.0001))
+    uint256 internal constant MAX_LIQUIDITY_PER_BIN =
+        65251743116719673010965625540244653191619923014385985379600384103134737;
 }

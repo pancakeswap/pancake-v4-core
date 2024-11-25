@@ -10,17 +10,18 @@ import {ParametersHelper} from "./math/ParametersHelper.sol";
 import {ParseBytes} from "./ParseBytes.sol";
 import {CustomRevert} from "./CustomRevert.sol";
 
+/**
+ * @title Hooks library
+ * @notice It provides some general helper functions that are used by the poolManager when verifying hook permissions, interacting with hooks, etc.
+ */
 library Hooks {
     using Encoded for bytes32;
     using ParametersHelper for bytes32;
     using LPFeeLibrary for uint24;
     using ParseBytes for bytes;
-    using CustomRevert for bytes4;
 
-    /// @notice thrown when a hook call fails
-    /// @param hook the hook address
-    /// @param revertReason bubbled up revert reason
-    error Wrap__FailedHookCall(address hook, bytes revertReason);
+    /// @notice Additional context for ERC-7751 wrapped error when a hook call fails
+    error HookCallFailed();
 
     /// @notice Hook permissions contain conflict
     ///  1. enabled beforeSwapReturnsDelta, but lacking beforeSwap call
@@ -79,7 +80,7 @@ library Hooks {
             success := call(gas(), self, 0, add(data, 0x20), mload(data), 0, 0)
         }
         // Revert with FailedHookCall, containing any error message to bubble up
-        if (!success) Wrap__FailedHookCall.selector.bubbleUpAndRevertWith(address(self));
+        if (!success) CustomRevert.bubbleUpAndRevertWith(address(self), bytes4(data), HookCallFailed.selector);
 
         // The call was successful, fetch the returned data
         assembly ("memory-safe") {

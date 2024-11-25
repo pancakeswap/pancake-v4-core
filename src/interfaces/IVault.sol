@@ -27,8 +27,8 @@ interface IVault is IVaultToken {
     /// @notice Thrown when there is no locker
     error NoLocker();
 
-    /// @notice Thrown when lock is held by someone
-    error LockHeld();
+    /// @notice Thrown when collectFee is attempted on a token that is synced.
+    error FeeCurrencySynced();
 
     function isAppRegistered(address app) external returns (bool);
 
@@ -57,6 +57,24 @@ interface IVault is IVaultToken {
     function lock(bytes calldata data) external returns (bytes memory);
 
     /// @notice Called by registered app to account for a change in the pool balance,
+    /// convenient for AMM pool manager, typically after modifyLiquidity, swap, donate,
+    /// include the case where hookDelta is involved
+    /// @param currency0 The PoolKey currency0 to update
+    /// @param currency1 The PoolKey currency1 to update
+    /// @param delta The change in the pool's balance
+    /// @param settler The address whose delta will be updated
+    /// @param hookDelta The change in the pool's balance from hook
+    /// @param hook The address whose hookDelta will be updated
+    function accountAppBalanceDelta(
+        Currency currency0,
+        Currency currency1,
+        BalanceDelta delta,
+        address settler,
+        BalanceDelta hookDelta,
+        address hook
+    ) external;
+
+    /// @notice Called by registered app to account for a change in the pool balance,
     /// convenient for AMM pool manager, typically after modifyLiquidity, swap, donate
     /// @param currency0 The PoolKey currency0 to update
     /// @param currency1 The PoolKey currency1 to update
@@ -72,7 +90,8 @@ interface IVault is IVaultToken {
     function accountAppBalanceDelta(Currency currency, int128 delta, address settler) external;
 
     /// @notice Called by the user to net out some value owed to the user
-    /// @dev Can also be used as a mechanism for _free_ flash loans
+    /// @dev Will revert if the requested amount is not available, consider using `mint` instead
+    /// @dev Can also be used as a mechanism for free flash loans
     function take(Currency currency, address to, uint256 amount) external;
 
     /// @notice Writes the current ERC20 balance of the specified currency to transient storage

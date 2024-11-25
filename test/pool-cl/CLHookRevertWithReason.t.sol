@@ -19,6 +19,8 @@ import {TokenFixture} from "../helpers/TokenFixture.sol";
 import {CLRevertHook} from "./helpers/CLRevertHook.sol";
 import {CLPoolParametersHelper} from "../../src/pool-cl/libraries/CLPoolParametersHelper.sol";
 import {BaseCLTestHook} from "./helpers/BaseCLTestHook.sol";
+import {CustomRevert} from "../../src/libraries/CustomRevert.sol";
+import {ICLHooks} from "../../src/pool-cl/interfaces/ICLHooks.sol";
 
 /// @dev make sure the revert reason is bubbled up
 contract CLHookRevertWithReasonTest is Test, Deployers, TokenFixture {
@@ -45,7 +47,15 @@ contract CLHookRevertWithReasonTest is Test, Deployers, TokenFixture {
     }
 
     function testRevertWithNoReason() public {
-        vm.expectRevert(abi.encodeWithSelector(Hooks.Wrap__FailedHookCall.selector, hook, new bytes(0)));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CustomRevert.WrappedError.selector,
+                hook,
+                ICLHooks.afterInitialize.selector,
+                new bytes(0),
+                abi.encodeWithSelector(Hooks.HookCallFailed.selector)
+            )
+        );
         poolManager.initialize(key, SQRT_RATIO_1_1);
     }
 
@@ -53,9 +63,11 @@ contract CLHookRevertWithReasonTest is Test, Deployers, TokenFixture {
         hook.setRevertWithHookNotImplemented(true);
         vm.expectRevert(
             abi.encodeWithSelector(
-                Hooks.Wrap__FailedHookCall.selector,
+                CustomRevert.WrappedError.selector,
                 hook,
-                abi.encodeWithSelector(BaseCLTestHook.HookNotImplemented.selector)
+                ICLHooks.afterInitialize.selector,
+                abi.encodeWithSelector(BaseCLTestHook.HookNotImplemented.selector),
+                abi.encodeWithSelector(Hooks.HookCallFailed.selector)
             )
         );
         poolManager.initialize(key, SQRT_RATIO_1_1);

@@ -226,8 +226,21 @@ library PackedUint128Math {
         uint128 feeForX;
         uint128 feeForY;
         unchecked {
-            feeForX = fee0 == 0 ? 0 : (uint256(amountX) * fee0 / swapFee).safe128();
-            feeForY = fee1 == 0 ? 0 : (uint256(amountY) * fee1 / swapFee).safe128();
+            if (fee0 == 0) {
+                feeForX = 0;
+            } else if (fee0 == swapFee) {
+                feeForX = amountX;
+            } else {
+                feeForX = (uint256(amountX) * fee0 / swapFee).safe128();
+            }
+
+            if (fee1 == 0) {
+                feeForY = 0;
+            } else if (fee1 == swapFee) {
+                feeForY = amountY;
+            } else {
+                feeForY = (uint256(amountY) * fee1 / swapFee).safe128();
+            }
         }
 
         return encode(feeForX, feeForY);

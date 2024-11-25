@@ -3,3 +3,4 @@ forge-gas-snapshot/=lib/forge-gas-snapshot/src/
 forge-std/=lib/forge-std/src/
 @openzeppelin/=lib/openzeppelin-contracts/
 solmate/=lib/solmate/
+pancake-create3-factory/=lib/pancake-create3-factory/

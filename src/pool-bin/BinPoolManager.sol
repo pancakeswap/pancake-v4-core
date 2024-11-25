@@ -21,8 +21,8 @@ import {Extsload} from "../Extsload.sol";
 import {BinHooks} from "./libraries/BinHooks.sol";
 import {PriceHelper} from "./libraries/PriceHelper.sol";
 import {BeforeSwapDelta} from "../types/BeforeSwapDelta.sol";
-import "./interfaces/IBinHooks.sol";
 import {BinSlot0} from "./types/BinSlot0.sol";
+import {VaultAppDeltaSettlement} from "../libraries/VaultAppDeltaSettlement.sol";
 
 /// @notice Holds the state for all bin pools
 contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
@@ -32,15 +32,16 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
     using LPFeeLibrary for uint24;
     using PackedUint128Math for bytes32;
     using Hooks for bytes32;
+    using VaultAppDeltaSettlement for IVault;
 
     /// @inheritdoc IBinPoolManager
     uint16 public constant override MIN_BIN_STEP = 1;
 
     /// @inheritdoc IBinPoolManager
-    uint16 public override MAX_BIN_STEP = 100;
+    uint16 public override maxBinStep = 100;
 
     /// @inheritdoc IBinPoolManager
-    uint256 public override MIN_BIN_SHARE_FOR_DONATE = 2 ** 128;
+    uint256 public override minBinShareForDonate = 2 ** 128;
 
     mapping(PoolId id => BinPool.State poolState) public pools;
 
@@ -52,10 +53,6 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
     modifier poolManagerMatch(address poolManager) {
         if (address(this) != poolManager) revert PoolManagerMismatch();
         _;
-    }
-
-    function _getPool(PoolKey memory key) private view returns (BinPool.State storage) {
-        return pools[key.toId()];
     }
 
     /// @inheritdoc IBinPoolManager
@@ -104,7 +101,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
     {
         uint16 binStep = key.parameters.getBinStep();
         if (binStep < MIN_BIN_STEP) revert BinStepTooSmall(binStep);
-        if (binStep > MAX_BIN_STEP) revert BinStepTooLarge(binStep);
+        if (binStep > maxBinStep) revert BinStepTooLarge(binStep);
         if (key.currency0 >= key.currency1) {
             revert CurrenciesInitializedOutOfOrder(Currency.unwrap(key.currency0), Currency.unwrap(key.currency1));
         }
@@ -181,11 +178,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         BalanceDelta hookDelta;
         (delta, hookDelta) = BinHooks.afterSwap(key, swapForY, amountSpecified, delta, hookData, beforeSwapDelta);
 
-        if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
-            vault.accountAppBalanceDelta(key.currency0, key.currency1, hookDelta, address(key.hooks));
-        }
-
-        vault.accountAppBalanceDelta(key.currency0, key.currency1, delta, msg.sender);
+        vault.accountAppDeltaWithHookDelta(key, delta, hookDelta);
     }
 
     /// @inheritdoc IBinPoolManager
@@ -229,10 +222,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         BalanceDelta hookDelta;
         (delta, hookDelta) = BinHooks.afterMint(key, params, delta, hookData);
 
-        if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
-            vault.accountAppBalanceDelta(key.currency0, key.currency1, hookDelta, address(key.hooks));
-        }
-        vault.accountAppBalanceDelta(key.currency0, key.currency1, delta, msg.sender);
+        vault.accountAppDeltaWithHookDelta(key, delta, hookDelta);
     }
 
     /// @inheritdoc IBinPoolManager
@@ -264,10 +254,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
         BalanceDelta hookDelta;
         (delta, hookDelta) = BinHooks.afterBurn(key, params, delta, hookData);
 
-        if (hookDelta != BalanceDeltaLibrary.ZERO_DELTA) {
-            vault.accountAppBalanceDelta(key.currency0, key.currency1, hookDelta, address(key.hooks));
-        }
-        vault.accountAppBalanceDelta(key.currency0, key.currency1, delta, msg.sender);
+        vault.accountAppDeltaWithHookDelta(key, delta, hookDelta);
     }
 
     function donate(PoolKey memory key, uint128 amount0, uint128 amount1, bytes calldata hookData)
@@ -284,7 +271,7 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
 
         /// @dev Share is 1:1 liquidity when liquidity is first added to bin
         uint256 currentBinShare = pool.shareOfBin[pool.slot0.activeId()];
-        if (currentBinShare <= MIN_BIN_SHARE_FOR_DONATE) {
+        if (currentBinShare < minBinShareForDonate) {
             revert InsufficientBinShareForDonate(currentBinShare);
         }
 
@@ -299,16 +286,16 @@ contract BinPoolManager is IBinPoolManager, ProtocolFees, Extsload {
     }
 
     /// @inheritdoc IBinPoolManager
-    function setMaxBinStep(uint16 maxBinStep) external override onlyOwner {
-        if (maxBinStep <= MIN_BIN_STEP) revert MaxBinStepTooSmall(maxBinStep);
+    function setMaxBinStep(uint16 newMaxBinStep) external override onlyOwner {
+        if (newMaxBinStep <= MIN_BIN_STEP) revert MaxBinStepTooSmall(newMaxBinStep);
 
-        MAX_BIN_STEP = maxBinStep;
-        emit SetMaxBinStep(maxBinStep);
+        maxBinStep = newMaxBinStep;
+        emit SetMaxBinStep(newMaxBinStep);
     }
 
     /// @inheritdoc IBinPoolManager
     function setMinBinSharesForDonate(uint256 minBinShare) external override onlyOwner {
-        MIN_BIN_SHARE_FOR_DONATE = minBinShare;
+        minBinShareForDonate = minBinShare;
         emit SetMinBinSharesForDonate(minBinShare);
     }
 

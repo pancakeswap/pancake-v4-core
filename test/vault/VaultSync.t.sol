@@ -124,8 +124,8 @@ contract VaultSyncTest is Test, TokenFixture, GasSnapshot, NoIsolate {
         assertEq(amount, 10 ether);
     }
 
-    function test_sync_NoLock() public {
-        vm.expectRevert(abi.encodeWithSelector(IVault.NoLocker.selector));
+    function test_sync() public {
+        // it's ok to sync without lock
         vault.sync(currency0);
     }
 

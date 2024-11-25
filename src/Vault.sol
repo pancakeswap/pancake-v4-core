@@ -2,7 +2,7 @@
 // Copyright (C) 2024 PancakeSwap
 pragma solidity 0.8.26;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable, Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {IVault, IVaultToken} from "./interfaces/IVault.sol";
 import {SettlementGuard} from "./libraries/SettlementGuard.sol";
 import {Currency, CurrencyLibrary} from "./types/Currency.sol";
@@ -12,7 +12,7 @@ import {SafeCast} from "./libraries/SafeCast.sol";
 import {VaultReserve} from "./libraries/VaultReserve.sol";
 import {VaultToken} from "./VaultToken.sol";
 
-contract Vault is IVault, VaultToken, Ownable {
+contract Vault is IVault, VaultToken, Ownable2Step {
     using SafeCast for *;
     using CurrencyLibrary for Currency;
 
@@ -73,6 +73,30 @@ contract Vault is IVault, VaultToken, Ownable {
     }
 
     /// @inheritdoc IVault
+    function accountAppBalanceDelta(
+        Currency currency0,
+        Currency currency1,
+        BalanceDelta delta,
+        address settler,
+        BalanceDelta hookDelta,
+        address hook
+    ) external override isLocked onlyRegisteredApp {
+        (int128 delta0, int128 delta1) = (delta.amount0(), delta.amount1());
+        (int128 hookDelta0, int128 hookDelta1) = (hookDelta.amount0(), hookDelta.amount1());
+
+        /// @dev call _accountDeltaForApp once with both delta/hookDelta to save gas and prevent
+        /// reservesOfApp from underflow when it deduct before addition
+        _accountDeltaForApp(currency0, delta0 + hookDelta0);
+        _accountDeltaForApp(currency1, delta1 + hookDelta1);
+
+        // keep track of the balance on vault level
+        SettlementGuard.accountDelta(settler, currency0, delta0);
+        SettlementGuard.accountDelta(settler, currency1, delta1);
+        SettlementGuard.accountDelta(hook, currency0, hookDelta0);
+        SettlementGuard.accountDelta(hook, currency1, hookDelta1);
+    }
+
+    /// @inheritdoc IVault
     function accountAppBalanceDelta(Currency currency0, Currency currency1, BalanceDelta delta, address settler)
         external
         override
@@ -118,7 +142,7 @@ contract Vault is IVault, VaultToken, Ownable {
         }
     }
 
-    function sync(Currency currency) public override isLocked {
+    function sync(Currency currency) public override {
         if (currency.isNative()) {
             VaultReserve.setVaultReserve(CurrencyLibrary.NATIVE, 0);
         } else {
@@ -156,7 +180,9 @@ contract Vault is IVault, VaultToken, Ownable {
 
     /// @inheritdoc IVault
     function collectFee(Currency currency, uint256 amount, address recipient) external onlyRegisteredApp {
-        if (SettlementGuard.getLocker() != address(0)) revert LockHeld();
+        // prevent transfer between the sync and settle balanceOfs (native settle uses msg.value)
+        (Currency syncedCurrency,) = VaultReserve.getVaultReserve();
+        if (!currency.isNative() && syncedCurrency == currency) revert FeeCurrencySynced();
         reservesOfApp[msg.sender][currency] -= amount;
         currency.transfer(recipient, amount);
     }
@@ -179,6 +205,7 @@ contract Vault is IVault, VaultToken, Ownable {
         }
     }
 
+    // if settling native, integrators should still call `sync` first to avoid DoS attack vectors
     function _settle(address recipient) internal returns (uint256 paid) {
         (Currency currency, uint256 reservesBefore) = VaultReserve.getVaultReserve();
         if (!currency.isNative()) {

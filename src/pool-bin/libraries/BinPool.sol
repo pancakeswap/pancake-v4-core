@@ -48,6 +48,7 @@ library BinPool {
     error BinPool__NoLiquidityToReceiveFees();
     /// @dev if swap exactIn, x for y, unspecifiedToken = token y. if swap x for exact out y, unspecified token is x
     error BinPool__InsufficientAmountUnSpecified();
+    error BinPool__MaxLiquidityPerBinExceeded();
 
     /// @dev The state of a pool
     struct State {
@@ -65,6 +66,10 @@ library BinPool {
         mapping(bytes32 => bytes32) level1;
         mapping(bytes32 => bytes32) level2;
     }
+
+    /// @dev when a bin has supply for the first time, 1e3 share will be locked up
+    /// this is to prevent share inflation attack on BinPool type
+    uint256 constant MINIMUM_SHARE = 1e3;
 
     function initialize(State storage self, uint24 activeId, uint24 protocolFee, uint24 lpFee) internal {
         /// An initialized pool will not have activeId: 0
@@ -169,6 +174,14 @@ library BinPool {
                     }
 
                     self.reserveOfBin[swapState.activeId] = binReserves.add(amountsInWithFees).sub(amountsOutOfBin);
+
+                    if (
+                        self.reserveOfBin[swapState.activeId].getLiquidity(
+                            swapState.activeId.getPriceFromId(params.binStep)
+                        ) > Constants.MAX_LIQUIDITY_PER_BIN
+                    ) {
+                        revert BinPool__MaxLiquidityPerBinExceeded();
+                    }
                 }
             }
 
@@ -321,7 +334,8 @@ library BinPool {
 
             binReserves = binReserves.sub(amountsOutFromBin);
 
-            if (supply == amountToBurn) _removeBinIdToTree(self, id);
+            /// @dev _removeBinIdToTree if supply is MINIMUM_SHARE after burning as min share is too low liquidity for trade anyway
+            if (supply - amountToBurn == MINIMUM_SHARE) _removeBinIdToTree(self, id);
 
             self.reserveOfBin[id] = binReserves;
             amounts[i] = amountsOutFromBin;
@@ -347,9 +361,12 @@ library BinPool {
 
         /// @dev overflow check on total reserves and the resulting liquidity
         uint256 price = activeId.getPriceFromId(binStep);
-        binReserves.add(amountIn).getLiquidity(price);
+        bytes32 newReserves = binReserves.add(amountIn);
+        if (newReserves.getLiquidity(price) > Constants.MAX_LIQUIDITY_PER_BIN) {
+            revert BinPool__MaxLiquidityPerBinExceeded();
+        }
 
-        self.reserveOfBin[activeId] = binReserves.add(amountIn);
+        self.reserveOfBin[activeId] = newReserves;
         result = toBalanceDelta(-(amount0.safeInt128()), -(amount1.safeInt128()));
     }
 
@@ -385,11 +402,11 @@ library BinPool {
             amountsLeft = amountsLeft.sub(amountsIn);
             feeAmountToProtocol = feeAmountToProtocol.add(binFeeAmt);
 
+            shares = _addShare(self, params.to, id, params.salt, shares);
+
             arrays.ids[i] = id;
             arrays.amounts[i] = amountsInToBin;
             arrays.liquidityMinted[i] = shares;
-
-            _addShare(self, params.to, id, params.salt, shares);
 
             compositionFeeAmount = compositionFeeAmount.add(binCompositionFee);
 
@@ -455,9 +472,15 @@ library BinPool {
         }
 
         if (shares == 0 || amountsInToBin == 0) revert BinPool__ZeroShares(id);
-        if (supply == 0) _addBinIdToTree(self, id);
+        /// @dev if supply was originally MINIMUM_SHARE (people added and remove liquidity before) or 0 (new bin), add binId to tree
+        if (supply <= MINIMUM_SHARE) _addBinIdToTree(self, id);
 
-        self.reserveOfBin[id] = binReserves.add(amountsInToBin);
+        bytes32 newReserves = binReserves.add(amountsInToBin);
+        if (newReserves.getLiquidity(price) > Constants.MAX_LIQUIDITY_PER_BIN) {
+            revert BinPool__MaxLiquidityPerBinExceeded();
+        }
+
+        self.reserveOfBin[id] = newReserves;
     }
 
     /// @notice Subtract share from user's position and update total share supply of bin
@@ -467,8 +490,20 @@ library BinPool {
     }
 
     /// @notice Add share to user's position and update total share supply of bin
-    function _addShare(State storage self, address owner, uint24 binId, bytes32 salt, uint256 shares) internal {
-        self.positions.get(owner, binId, salt).addShare(shares);
+    /// @dev if bin is empty, deduct MINIMUM_SHARE from shares
+    /// @return userShareAdded The amount of share added to user's position
+    function _addShare(State storage self, address owner, uint24 binId, bytes32 salt, uint256 shares)
+        internal
+        returns (uint256 userShareAdded)
+    {
+        userShareAdded = shares;
+        if (self.shareOfBin[binId] == 0) {
+            /// @dev Only for first liquidity provider for the bin, deduct MINIMUM_SHARE, expected to underflow
+            /// if shares < MINIMUM_SHARE for first mint
+            userShareAdded = shares - MINIMUM_SHARE;
+        }
+
+        self.positions.get(owner, binId, salt).addShare(userShareAdded);
         self.shareOfBin[binId] += shares;
     }
 

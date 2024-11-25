@@ -7,6 +7,7 @@ import {Deployers} from "./helpers/Deployers.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
 import {CLPoolManager} from "../../src/pool-cl/CLPoolManager.sol";
 import {CLPoolManagerOwner, ICLPoolManagerWithPauseOwnable} from "../../src/pool-cl/CLPoolManagerOwner.sol";
+import {PoolManagerOwnable2Step} from "../../src/base/PoolManagerOwnable2Step.sol";
 import {Pausable} from "../../src/base/Pausable.sol";
 import {PausableRole} from "../../src/base/PausableRole.sol";
 
@@ -108,8 +109,19 @@ contract CLPoolManagerOwnerTest is Test, Deployers {
         // before:
         assertEq(poolManager.owner(), address(clPoolManagerOwner));
 
-        // after:
+        // pending:
+        // it's still the original owner if new owner not accept yet
+        vm.expectEmit(true, true, true, true);
+        emit PoolManagerOwnable2Step.PoolManagerOwnershipTransferStarted(address(clPoolManagerOwner), alice);
         clPoolManagerOwner.transferPoolManagerOwnership(alice);
+        assertEq(poolManager.owner(), address(clPoolManagerOwner));
+        assertEq(clPoolManagerOwner.pendingPoolManagerOwner(), alice);
+
+        // after:
+        vm.expectEmit(true, true, true, true);
+        emit PoolManagerOwnable2Step.PoolManagerOwnershipTransferred(address(clPoolManagerOwner), alice);
+        vm.prank(alice);
+        clPoolManagerOwner.acceptPoolManagerOwnership();
         assertEq(poolManager.owner(), alice);
     }
 
@@ -118,5 +130,39 @@ contract CLPoolManagerOwnerTest is Test, Deployers {
 
         vm.prank(alice);
         clPoolManagerOwner.transferPoolManagerOwnership(alice);
+    }
+
+    function test_TransferPoolManagerOwnership_NotPendingPoolManagerOwner() public {
+        clPoolManagerOwner.transferPoolManagerOwnership(alice);
+
+        // if it's not from alice then revert
+        vm.expectRevert(PoolManagerOwnable2Step.NotPendingPoolManagerOwner.selector);
+        clPoolManagerOwner.acceptPoolManagerOwnership();
+    }
+
+    function test_TransferPoolManagerOwnership_OverridePendingOwner() public {
+        // before:
+        assertEq(poolManager.owner(), address(clPoolManagerOwner));
+
+        // pending:
+        // it's still the original owner if new owner not accept yet
+        clPoolManagerOwner.transferPoolManagerOwnership(alice);
+        assertEq(poolManager.owner(), address(clPoolManagerOwner));
+        assertEq(clPoolManagerOwner.pendingPoolManagerOwner(), alice);
+
+        // override pending owner
+        clPoolManagerOwner.transferPoolManagerOwnership(makeAddr("bob"));
+        assertEq(poolManager.owner(), address(clPoolManagerOwner));
+        assertEq(clPoolManagerOwner.pendingPoolManagerOwner(), makeAddr("bob"));
+
+        // alice no longer the valid pending owner
+        vm.expectRevert(PoolManagerOwnable2Step.NotPendingPoolManagerOwner.selector);
+        vm.prank(alice);
+        clPoolManagerOwner.acceptPoolManagerOwnership();
+
+        // bob is the new owner
+        vm.prank(makeAddr("bob"));
+        clPoolManagerOwner.acceptPoolManagerOwnership();
+        assertEq(poolManager.owner(), makeAddr("bob"));
     }
 }
