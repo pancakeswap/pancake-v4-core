@@ -2,7 +2,7 @@
 // Copyright (C) 2024 PancakeSwap
 pragma solidity 0.8.26;
 
-import {Ownable} from "./base/Ownable.sol";
+import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {PoolKey} from "./types/PoolKey.sol";
 import {PoolId} from "./types/PoolId.sol";
 import {Currency} from "./types/Currency.sol";
@@ -12,7 +12,7 @@ import {IProtocolFees} from "./interfaces/IProtocolFees.sol";
 import {ProtocolFeeLibrary} from "./libraries/ProtocolFeeLibrary.sol";
 
 /// @notice ProtocolFeeController for both Pool type
-contract ProtocolFeeController is IProtocolFeeController, Ownable {
+contract ProtocolFeeController is IProtocolFeeController, Ownable2Step {
     using ProtocolFeeLibrary for uint24;
 
     /// @notice throw when the pool manager saved does not match the pool manager from the pool key
@@ -27,13 +27,6 @@ contract ProtocolFeeController is IProtocolFeeController, Ownable {
     /// @notice The ratio of the protocol fee in the total fee, expressed in hundredths of a bip i.e. 1e4 is 1%
     /// @dev The default value is 33% i.e. protocol fee should be 33% of the total fee
     uint256 public protocolFeeSplitRatio = 33 * 1e4;
-
-    /// @notice The default protocol fee to be used when a pool is initialized
-    /// warning: update this value won't affect the existing pools
-    /// @dev if not set then the protocol fee is
-    ///   1. 0 for dynamic fee pools
-    ///   2. a portion of the total fee based on 'protocolFeeSplitRatio' for static fee pools
-    mapping(PoolId => uint24) public defaultProtocolFees;
 
     address public immutable poolManager;
 
@@ -50,25 +43,10 @@ contract ProtocolFeeController is IProtocolFeeController, Ownable {
         protocolFeeSplitRatio = newProtocolFeeSplitRatio;
     }
 
-    function setDefaultProtocolFee(PoolKey memory key, uint24 newProtocolFee) external onlyOwner {
-        if (address(key.poolManager) != poolManager) revert InvalidPoolManager();
-        /// @notice Validate the protocol fee, revert if fee is over the limit
-        if (!newProtocolFee.validate()) revert IProtocolFees.ProtocolFeeTooLarge(newProtocolFee);
-
-        defaultProtocolFees[key.toId()] = newProtocolFee;
-    }
-
     /// @notice Get the protocol fee for a pool given the conditions of this contract
     /// @return protocolFee The pool's protocol fee, expressed in hundredths of a bip. The upper 12 bits are for 1->0
     function protocolFeeForPool(PoolKey memory poolKey) external view override returns (uint24 protocolFee) {
         if (address(poolKey.poolManager) != poolManager) revert InvalidPoolManager();
-
-        // in case we've set a default protocol fee for the pool
-        uint24 defaultProtocolFee = defaultProtocolFees[poolKey.toId()];
-        if (defaultProtocolFee != 0) {
-            // already bi-directional fee so that it can be different in each direction
-            return defaultProtocolFee;
-        }
 
         // otherwise, calculate the protocol fee based on the predefined rule
         uint256 lpFee = poolKey.fee;
@@ -96,12 +74,14 @@ contract ProtocolFeeController is IProtocolFeeController, Ownable {
     }
 
     /// @param fee If 1000, the protocol fee is 0.1%, cap at 0.4%
+    /// @return The protocol fee for both directions, the upper 12 bits are for 1->0
     function _buildProtocolFee(uint24 fee) internal pure returns (uint24) {
         return fee + (fee << 12);
     }
 
     /// @notice Override the default protcool fee for the pool
     /// @dev this could be used for marketing campaign where PCS takes 0 protocol fee for a pool for a period
+    /// @param newProtocolFee 1000 = 0.1%, and max at 4000 = 0.4%. If set at 0.1%, this means 0.1% of amountIn for each swap will go to protocol
     function setProtocolFee(PoolKey memory key, uint24 newProtocolFee) external onlyOwner {
         if (address(key.poolManager) != poolManager) revert InvalidPoolManager();
 

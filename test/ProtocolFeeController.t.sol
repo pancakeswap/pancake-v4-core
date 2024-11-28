@@ -16,6 +16,13 @@ import {BinPoolParametersHelper} from "../src/pool-bin/libraries/BinPoolParamete
 import {ProtocolFeeLibrary} from "../src/libraries/ProtocolFeeLibrary.sol";
 import {IPoolManager} from "../src/interfaces/IPoolManager.sol";
 import {IProtocolFees} from "../src/interfaces/IProtocolFees.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {CLPoolManagerRouter} from "../test/pool-cl/helpers/CLPoolManagerRouter.sol";
+import {ICLPoolManager} from "../src/pool-cl/interfaces/ICLPoolManager.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Currency} from "../src/types/Currency.sol";
+import {TickMath} from "../src/pool-cl/libraries/TickMath.sol";
+import {BalanceDelta} from "../src/types/BalanceDelta.sol";
 
 contract ProtocolFeeControllerTest is TokenFixture, Test {
     using CLPoolParametersHelper for bytes32;
@@ -30,8 +37,40 @@ contract ProtocolFeeControllerTest is TokenFixture, Test {
         vault = new Vault();
         clPoolManager = new CLPoolManager(vault);
         binPoolManager = new BinPoolManager(vault);
+        vault.registerApp(address(clPoolManager));
+        vault.registerApp(address(binPoolManager));
 
         initializeTokens();
+    }
+
+    function testOwnerTransfer() public {
+        ProtocolFeeController controller = new ProtocolFeeController(address(clPoolManager));
+        // starts with address(this) as owner
+        assertEq(controller.owner(), address(this));
+
+        {
+            // must from owner
+            vm.prank(makeAddr("someone"));
+            vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, makeAddr("someone")));
+            controller.transferOwnership(makeAddr("newOwner"));
+        }
+
+        controller.transferOwnership(makeAddr("newOwner"));
+
+        // still address(this) as owner before new owner accept
+        assertEq(controller.pendingOwner(), makeAddr("newOwner"));
+        assertEq(controller.owner(), address(this));
+
+        {
+            // must from pending owner
+            vm.prank(makeAddr("someone"));
+            vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, makeAddr("someone")));
+            controller.acceptOwnership();
+        }
+
+        vm.prank(makeAddr("newOwner"));
+        controller.acceptOwnership();
+        assertEq(controller.owner(), makeAddr("newOwner"));
     }
 
     function testSetProcotolFeeSplitRatio(uint256 newProtocolFeeSplitRatio) public {
@@ -40,7 +79,7 @@ contract ProtocolFeeControllerTest is TokenFixture, Test {
         {
             // must from owner
             vm.prank(makeAddr("someone"));
-            vm.expectRevert();
+            vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, makeAddr("someone")));
             controller.setProtocolFeeSplitRatio(newProtocolFeeSplitRatio);
         }
 
@@ -50,33 +89,6 @@ contract ProtocolFeeControllerTest is TokenFixture, Test {
         } else {
             controller.setProtocolFeeSplitRatio(newProtocolFeeSplitRatio);
             assertEq(controller.protocolFeeSplitRatio(), newProtocolFeeSplitRatio);
-        }
-    }
-
-    function testSetDefaultProtocolFee(PoolKey memory key, uint24 newProtocolFee) public {
-        ProtocolFeeController controller = new ProtocolFeeController(address(clPoolManager));
-
-        {
-            // must from owner
-            vm.prank(makeAddr("someone"));
-            vm.expectRevert();
-            controller.setDefaultProtocolFee(key, newProtocolFee);
-        }
-
-        {
-            // key match
-            key.poolManager = IPoolManager(makeAddr("notPoolManagerAddress"));
-            vm.expectRevert(ProtocolFeeController.InvalidPoolManager.selector);
-            controller.setDefaultProtocolFee(key, newProtocolFee);
-        }
-
-        key.poolManager = clPoolManager;
-        if (!newProtocolFee.validate()) {
-            vm.expectRevert(abi.encodeWithSelector(IProtocolFees.ProtocolFeeTooLarge.selector, newProtocolFee));
-            controller.setDefaultProtocolFee(key, newProtocolFee);
-        } else {
-            controller.setDefaultProtocolFee(key, newProtocolFee);
-            assertEq(controller.defaultProtocolFees(key.toId()), newProtocolFee);
         }
     }
 
@@ -143,13 +155,24 @@ contract ProtocolFeeControllerTest is TokenFixture, Test {
         }
     }
 
-    function testProtocolFee(PoolKey memory key, uint24 newProtocolFee) public {
+    function testSetProtocolFeeForCLPool(uint24 newProtocolFee) public {
         ProtocolFeeController controller = new ProtocolFeeController(address(clPoolManager));
+        clPoolManager.setProtocolFeeController(controller);
+
+        PoolKey memory key = PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            hooks: IHooks(address(0)),
+            poolManager: clPoolManager,
+            fee: 3000,
+            parameters: bytes32(0).setTickSpacing(10)
+        });
+        clPoolManager.initialize(key, Constants.SQRT_RATIO_1_1);
 
         {
             // must from owner
             vm.prank(makeAddr("someone"));
-            vm.expectRevert();
+            vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, makeAddr("someone")));
             controller.setProtocolFee(key, newProtocolFee);
         }
 
@@ -157,17 +180,104 @@ contract ProtocolFeeControllerTest is TokenFixture, Test {
             // key match
             key.poolManager = IPoolManager(makeAddr("notPoolManagerAddress"));
             vm.expectRevert(ProtocolFeeController.InvalidPoolManager.selector);
-            controller.setDefaultProtocolFee(key, newProtocolFee);
+            controller.setProtocolFee(key, newProtocolFee);
         }
 
         key.poolManager = clPoolManager;
         if (!newProtocolFee.validate()) {
             vm.expectRevert(abi.encodeWithSelector(IProtocolFees.ProtocolFeeTooLarge.selector, newProtocolFee));
-            controller.setDefaultProtocolFee(key, newProtocolFee);
+            controller.setProtocolFee(key, newProtocolFee);
         } else {
-            controller.setDefaultProtocolFee(key, newProtocolFee);
-            assertEq(controller.defaultProtocolFees(key.toId()), newProtocolFee);
+            controller.setProtocolFee(key, newProtocolFee);
+
+            (,, uint24 actualProtocolFee,) = clPoolManager.getSlot0(key.toId());
+            assertEq(actualProtocolFee, newProtocolFee);
         }
+    }
+
+    function testCollectProtocolFeeForCLPool() public {
+        // init protocol fee controller and bind it to clPoolManager
+        ProtocolFeeController controller = new ProtocolFeeController(address(clPoolManager));
+        clPoolManager.setProtocolFeeController(controller);
+
+        // init pool with protocol fee controller
+        PoolKey memory key = PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            hooks: IHooks(address(0)),
+            poolManager: clPoolManager,
+            fee: 2000,
+            parameters: bytes32(0).setTickSpacing(10)
+        });
+        clPoolManager.initialize(key, Constants.SQRT_RATIO_1_1);
+
+        (,, uint24 actualProtocolFee,) = clPoolManager.getSlot0(key.toId());
+
+        // add some liquidity
+        CLPoolManagerRouter router = new CLPoolManagerRouter(vault, clPoolManager);
+        IERC20(Currency.unwrap(currency0)).approve(address(router), 10000 ether);
+        IERC20(Currency.unwrap(currency1)).approve(address(router), 10000 ether);
+        router.modifyPosition(
+            key,
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 1000000 ether, salt: 0}),
+            ""
+        );
+
+        // swap to generate protocol fee
+        // by default splitRatio=33.33% if lpFee is 0.2% then protocol fee should be roughly 0.1%
+        router.swap(
+            key,
+            ICLPoolManager.SwapParams({
+                zeroForOne: true,
+                amountSpecified: -100 ether,
+                sqrtPriceLimitX96: TickMath.MIN_SQRT_RATIO + 1
+            }),
+            CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true}),
+            ""
+        );
+
+        assertEq(
+            clPoolManager.protocolFeesAccrued(currency0),
+            100 ether * uint256(actualProtocolFee >> 12) / controller.ONE_HUNDRED_PERCENT_RATIO()
+        );
+
+        // check lp fee is twice the protocol fee
+        (, BalanceDelta accumulatedLPFee) = router.modifyPosition(
+            key,
+            ICLPoolManager.ModifyLiquidityParams({
+                tickLower: -10,
+                tickUpper: 10,
+                liquidityDelta: -1000000 ether,
+                salt: 0
+            }),
+            ""
+        );
+
+        // allow 5% error
+        assertApproxEqAbs(
+            clPoolManager.protocolFeesAccrued(currency0) * 2,
+            uint256(int256(accumulatedLPFee.amount0())),
+            clPoolManager.protocolFeesAccrued(currency0) * 2 / 20
+        );
+
+        // collect protocol fee
+        {
+            vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, makeAddr("someone")));
+            vm.prank(makeAddr("someone"));
+            controller.collectProtocolFee(makeAddr("recipient"), currency0, 0);
+        }
+
+        // collect half
+        uint256 protocolFeeAmount = clPoolManager.protocolFeesAccrued(currency0);
+        controller.collectProtocolFee(makeAddr("recipient"), currency0, protocolFeeAmount / 2);
+
+        assertEq(clPoolManager.protocolFeesAccrued(currency0), protocolFeeAmount / 2);
+        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(makeAddr("recipient")), protocolFeeAmount / 2);
+
+        // collect the rest
+        controller.collectProtocolFee(makeAddr("recipient"), currency0, 0);
+        assertEq(clPoolManager.protocolFeesAccrued(currency0), 0);
+        assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(makeAddr("recipient")), protocolFeeAmount);
     }
 
     function _calculateLPFeeThreshold(ProtocolFeeController controller) internal view returns (uint24) {
