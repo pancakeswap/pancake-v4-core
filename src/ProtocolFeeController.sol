@@ -30,17 +30,24 @@ contract ProtocolFeeController is IProtocolFeeController, Ownable2Step {
 
     address public immutable poolManager;
 
+    event ProtocolFeeSplitRatioUpdated(uint256 oldProtocolFeeSplitRatio, uint256 newProtocolFeeSplitRatio);
+
     /// @notice emit when the protocol fee is collected
     event ProtocolFeeCollected(Currency indexed currency, uint256 amount);
 
-    constructor(address _clPoolManager) Ownable(msg.sender) {
-        poolManager = _clPoolManager;
+    constructor(address _poolManager) Ownable(msg.sender) {
+        poolManager = _poolManager;
     }
 
     /// @notice Set the ratio of the protocol fee in the total fee
+    /// @param newProtocolFeeSplitRatio 30e4 would mean 30% of the total fee goes to protocol
     function setProtocolFeeSplitRatio(uint256 newProtocolFeeSplitRatio) external onlyOwner {
         if (newProtocolFeeSplitRatio > ONE_HUNDRED_PERCENT_RATIO) revert InvliadProtocolFeeSplitRatio();
+
+        uint256 oldProtocolFeeSplitRatio = protocolFeeSplitRatio;
         protocolFeeSplitRatio = newProtocolFeeSplitRatio;
+
+        emit ProtocolFeeSplitRatioUpdated(oldProtocolFeeSplitRatio, newProtocolFeeSplitRatio);
     }
 
     /// @notice Get the protocol fee for a pool given the conditions of this contract
@@ -89,6 +96,10 @@ contract ProtocolFeeController is IProtocolFeeController, Ownable2Step {
         IProtocolFees(address(key.poolManager)).setProtocolFee(key, newProtocolFee);
     }
 
+    /// @notice Collect the protocol fee from the pool manager
+    /// @param recipient The address to receive the protocol fee
+    /// @param currency The currency of the protocol fee
+    /// @param amount The amount of the protocol fee to collect, 0 means collect all
     function collectProtocolFee(address recipient, Currency currency, uint256 amount) external onlyOwner {
         IProtocolFees(poolManager).collectProtocolFees(recipient, currency, amount);
 
