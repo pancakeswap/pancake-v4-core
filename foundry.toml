@@ -14,7 +14,7 @@ fs_permissions = [
 ]
 evm_version = 'cancun'
 gas_limit = "300000000"
-
+bytecode_hash = "none"
 
 [fuzz]
 # used for both fuzz and invariant tests for local development
