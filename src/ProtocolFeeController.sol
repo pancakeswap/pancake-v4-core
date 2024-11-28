@@ -60,6 +60,10 @@ contract ProtocolFeeController is IProtocolFeeController, Ownable2Step {
         if (lpFee == LPFeeLibrary.DYNAMIC_FEE_FLAG) {
             /// @notice for dynamic fee pools, the default protocol fee is 0
             return _buildProtocolFee(0);
+        } else if (protocolFeeSplitRatio == 0) {
+            return _buildProtocolFee(0);
+        } else if (protocolFeeSplitRatio == ONE_HUNDRED_PERCENT_RATIO) {
+            return _buildProtocolFee(ProtocolFeeLibrary.MAX_PROTOCOL_FEE);
         } else {
             /// @notice for static fee pools, the protocol fee should be a portion of the total fee based on 'protocolFeeSplitRatio'
             /// @dev the formula is derived from the following equation:

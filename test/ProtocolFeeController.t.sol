@@ -110,6 +110,45 @@ contract ProtocolFeeControllerTest is Test, BinTestHelper, TokenFixture {
         }
     }
 
+    function testProtocolFeeForPool(uint24 lpFee, uint256 protocolFeeRatio) public {
+        lpFee = uint24(bound(lpFee, 0, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE));
+        ProtocolFeeController controller = new ProtocolFeeController(address(clPoolManager));
+        protocolFeeRatio = bound(protocolFeeRatio, 0, controller.ONE_HUNDRED_PERCENT_RATIO());
+        controller.setProtocolFeeSplitRatio(protocolFeeRatio);
+
+        PoolKey memory key = PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            hooks: IHooks(address(0)),
+            poolManager: clPoolManager,
+            fee: lpFee,
+            parameters: bytes32(0).setTickSpacing(10)
+        });
+
+        uint24 protcolFee = controller.protocolFeeForPool(key);
+        uint16 protocolFeeZeroForOne = protcolFee.getZeroForOneFee();
+
+        // protocol fee should be equal for both directions
+        assertEq(protocolFeeZeroForOne, protcolFee.getOneForZeroFee());
+
+        // protocol fee should always be no more than the cap
+        assertLe(protocolFeeZeroForOne, ProtocolFeeLibrary.MAX_PROTOCOL_FEE);
+
+        if (protocolFeeZeroForOne == ProtocolFeeLibrary.MAX_PROTOCOL_FEE) {
+            // for example, given splitRatio=33% then lpFee=0.81538274% is the threshold that will make the protocol fee 0.4%
+            assertGe(lpFee, _calculateLPFeeThreshold(controller));
+        } else {
+            // protocol fee should be protocolFeeRatio of the total fee
+            uint24 totalFee = protocolFeeZeroForOne.calculateSwapFee(lpFee);
+            assertApproxEqAbs(
+                totalFee * controller.protocolFeeSplitRatio() / controller.ONE_HUNDRED_PERCENT_RATIO(),
+                protocolFeeZeroForOne,
+                // keeping the error within 0.01% (can't avoid due to precision loss)
+                100
+            );
+        }
+    }
+
     function testCLPoolInitWithoutProtolFeeController(uint24 lpFee) public {
         lpFee = uint24(bound(lpFee, 0, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE));
         PoolKey memory key = PoolKey({
