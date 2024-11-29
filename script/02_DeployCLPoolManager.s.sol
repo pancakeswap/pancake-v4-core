@@ -41,7 +41,7 @@ contract DeployCLPoolManagerScript is BaseScript {
 
         /// @dev prepare the payload to transfer ownership from deployer to real owner
         bytes memory afterDeploymentExecutionPayload =
-            abi.encodeWithSelector(Ownable.transferOwnership.selector, getAddressFromConfig("owner"));
+            abi.encodeWithSelector(Ownable.transferOwnership.selector, getAddressFromConfig("poolOwner"));
 
         address clPoolManager = factory.deploy(
             getDeploymentSalt(), creationCode, keccak256(creationCode), 0, afterDeploymentExecutionPayload, 0
