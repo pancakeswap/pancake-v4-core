@@ -50,12 +50,31 @@ contract ProtocolFeeController is IProtocolFeeController, Ownable2Step {
         emit ProtocolFeeSplitRatioUpdated(oldProtocolFeeSplitRatio, newProtocolFeeSplitRatio);
     }
 
-    /// @notice Get the protocol fee for a pool given the conditions of this contract
-    /// @return protocolFee The pool's protocol fee, expressed in hundredths of a bip. The upper 12 bits are for 1->0
+    /// @notice Get the LP fee based on protocolFeeSplitRatio and total fee. This is useful for FE to calculate the LP fee
+    /// based on user's input when initializing a static fee pool
+    /// warning: if protocolFee is over 0.4% based on the totalFee, then it will be capped at 0.4% which means
+    /// lpFee in this case will charge more lpFee than expected i.e more than "1 - protocolFeeSplitRatio"
+    /// @param totalFee The total fee (including lpFee and protocolFee) for the pool, expressed in hundredths of a bip
+    /// @return lpFee The LP fee that can be passed in as poolKey.fee, expressed in hundredths of a bip
+    function getLPFeeFromTotalFee(uint24 totalFee) external view returns (uint24) {
+        /// @dev the formula is derived from the following equation:
+        /// poolKey.fee = lpFee = (totalFee - protocolFee) / (1 - protocolFee)
+        uint256 oneDirectionProtocolFee = totalFee * protocolFeeSplitRatio / ONE_HUNDRED_PERCENT_RATIO;
+        if (oneDirectionProtocolFee > ProtocolFeeLibrary.MAX_PROTOCOL_FEE) {
+            oneDirectionProtocolFee = ProtocolFeeLibrary.MAX_PROTOCOL_FEE;
+        }
+
+        return uint24(
+            (totalFee - oneDirectionProtocolFee) * ONE_HUNDRED_PERCENT_RATIO
+                / (ONE_HUNDRED_PERCENT_RATIO - oneDirectionProtocolFee)
+        );
+    }
+
+    /// @inheritdoc IProtocolFeeController
     function protocolFeeForPool(PoolKey memory poolKey) external view override returns (uint24 protocolFee) {
         if (address(poolKey.poolManager) != poolManager) revert InvalidPoolManager();
 
-        // otherwise, calculate the protocol fee based on the predefined rule
+        // calculate the protocol fee based on the predefined rule
         uint256 lpFee = poolKey.fee;
         if (lpFee == LPFeeLibrary.DYNAMIC_FEE_FLAG) {
             /// @notice for dynamic fee pools, the default protocol fee is 0
