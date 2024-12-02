@@ -5,6 +5,6 @@
     "clPoolManager": "0x70890E308DCE727180ac1B9550928fED342dea52",
     "binPoolManager": "0x68554d088F3640Bd2A7B38b43AE70FDcc16ef197",
     "protocolFeeControllerOwner": "0x42571B8414c68B63A2729146CE93F23639d25399",
-    "clProtocolFeeController": "0x3573C29a8f26968297f5E28B4618F236A6613D11",
-    "binProtocolFeeController": "0xe78673d07FC3bbB784B21D96AD3c44EC613a227C"
+    "clProtocolFeeController": "0xa3b9Af6E83B5161AC008cafb76712857bE54536D",
+    "binProtocolFeeController": "0x4eE90A76f4C0b32bce3C941b6Fa409E6c4DCE98A"
 }
