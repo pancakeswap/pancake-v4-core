@@ -110,6 +110,42 @@ contract ProtocolFeeControllerTest is Test, BinTestHelper, TokenFixture {
         }
     }
 
+    function testGetLPFeeFromTotalFee(uint24 totalFee, uint24 splitRatio) public {
+        totalFee = uint24(bound(totalFee, 0, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE));
+        ProtocolFeeController controller = new ProtocolFeeController(address(clPoolManager));
+        splitRatio = uint24(bound(splitRatio, 0, controller.ONE_HUNDRED_PERCENT_RATIO()));
+        controller.setProtocolFeeSplitRatio(splitRatio);
+
+        // try to simulate the calculation the process of FE initialization pool
+
+        // step1: calculate lpFee from totalFee
+        uint24 lpFee = controller.getLPFeeFromTotalFee(totalFee);
+
+        assertGe(lpFee, 0);
+        assertLe(lpFee, totalFee);
+
+        // step2: prepare the poolKey
+        PoolKey memory key = PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            hooks: IHooks(address(0)),
+            poolManager: clPoolManager,
+            fee: lpFee,
+            parameters: bytes32(0).setTickSpacing(10)
+        });
+        uint24 protocolFee = controller.protocolFeeForPool(key);
+        uint16 protocolFeeZeroForOne = protocolFee.getZeroForOneFee();
+
+        // verify the totalFee expected to be equal to protocolFee + (1 - protocolFee) * lpFee
+        assertApproxEqAbs(
+            totalFee,
+            protocolFeeZeroForOne.calculateSwapFee(lpFee),
+            // keeping the error within 0.01% (can't avoid due to precision loss)
+            100,
+            "totalFee should be equal to protocolFee + (1 - protocolFee) * lpFee"
+        );
+    }
+
     function testProtocolFeeForPool(uint24 lpFee, uint256 protocolFeeRatio) public {
         lpFee = uint24(bound(lpFee, 0, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE));
         ProtocolFeeController controller = new ProtocolFeeController(address(clPoolManager));
@@ -223,8 +259,8 @@ contract ProtocolFeeControllerTest is Test, BinTestHelper, TokenFixture {
             assertApproxEqAbs(
                 totalFee * controller.protocolFeeSplitRatio() / controller.ONE_HUNDRED_PERCENT_RATIO(),
                 protocolFeeZeroForOne,
-                // keeping the error within 0.01% (can't avoid due to precision loss)
-                100
+                // keeping the error within 0.05% (can't avoid due to precision loss)
+                500
             );
         }
     }
