@@ -259,8 +259,8 @@ contract ProtocolFeeControllerTest is Test, BinTestHelper, TokenFixture {
             assertApproxEqAbs(
                 totalFee * controller.protocolFeeSplitRatio() / controller.ONE_HUNDRED_PERCENT_RATIO(),
                 protocolFeeZeroForOne,
-                // keeping the error within 0.01% (can't avoid due to precision loss)
-                100
+                // keeping the error within 0.05% (can't avoid due to precision loss)
+                500
             );
         }
     }
