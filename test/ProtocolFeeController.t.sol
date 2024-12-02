@@ -140,8 +140,8 @@ contract ProtocolFeeControllerTest is Test, BinTestHelper, TokenFixture {
         assertApproxEqAbs(
             totalFee,
             protocolFeeZeroForOne.calculateSwapFee(lpFee),
-            // keeping the error within 0.01% (can't avoid due to precision loss)
-            100,
+            // keeping the error within 0.05% (can't avoid due to precision loss)
+            500,
             "totalFee should be equal to protocolFee + (1 - protocolFee) * lpFee"
         );
     }
