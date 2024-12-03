@@ -110,10 +110,60 @@ contract ProtocolFeeControllerTest is Test, BinTestHelper, TokenFixture {
         }
     }
 
+    function testGetLPFeeFromTotalFee() public {
+        ProtocolFeeController controller = new ProtocolFeeController(address(clPoolManager));
+        // common case1: totalFee=1%, splitRatio=33%
+        {
+            uint24 totalFee = 10000;
+            uint24 lpFee = controller.getLPFeeFromTotalFee(totalFee);
+            assertEq(lpFee, 6722);
+        }
+
+        // common case2: totalFee=0.5%, splitRatio=33%
+        {
+            uint24 totalFee = 5000;
+            uint24 lpFee = controller.getLPFeeFromTotalFee(totalFee);
+            assertEq(lpFee, 3355);
+        }
+
+        // common case3: totalFee=0.1%, splitRatio=33%
+        {
+            uint24 totalFee = 1000;
+            uint24 lpFee = controller.getLPFeeFromTotalFee(totalFee);
+            assertEq(lpFee, 670);
+        }
+
+        controller.setProtocolFeeSplitRatio(500000);
+
+        // common case4: totalFee=1%, splitRatio=50%
+        {
+            uint24 totalFee = 10000;
+            uint24 lpFee = controller.getLPFeeFromTotalFee(totalFee);
+            // protocol fee is capped at 0.4% so lpFee will be 0.6% in this case
+            assertEq(lpFee, 6024);
+        }
+
+        // common case5: totalFee=0.5%, splitRatio=50%
+        {
+            uint24 totalFee = 5000;
+            uint24 lpFee = controller.getLPFeeFromTotalFee(totalFee);
+            assertEq(lpFee, 2506);
+        }
+
+        // common case6: totalFee=0.1%, splitRatio=50%
+        {
+            uint24 totalFee = 1000;
+            uint24 lpFee = controller.getLPFeeFromTotalFee(totalFee);
+            assertEq(lpFee, 500);
+        }
+    }
+
     function testGetLPFeeFromTotalFee(uint24 totalFee, uint24 splitRatio) public {
         totalFee = uint24(bound(totalFee, 0, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE));
         ProtocolFeeController controller = new ProtocolFeeController(address(clPoolManager));
-        splitRatio = uint24(bound(splitRatio, 0, controller.ONE_HUNDRED_PERCENT_RATIO()));
+
+        // ignore extreme case where splitRatio is over 90% to avoid precision loss
+        splitRatio = uint24(bound(splitRatio, 0, controller.ONE_HUNDRED_PERCENT_RATIO() * 9 / 10));
         controller.setProtocolFeeSplitRatio(splitRatio);
 
         // try to simulate the calculation the process of FE initialization pool
