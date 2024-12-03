@@ -1,7 +1,10 @@
 {
     "create3Factory": "0x38Ab3f2CE00973A51d3A2A04d634C9bcbf20e4e1",
-    "owner": "0x",
+    "poolOwner": "0x",
     "vault": "0x",
     "clPoolManager": "0x",
-    "binPoolManager": "0x"
+    "binPoolManager": "0x",
+    "protocolFeeControllerOwner": "0x",
+    "clProtocolFeeController": "0x",
+    "binProtocolFeeController": "0x"
 }

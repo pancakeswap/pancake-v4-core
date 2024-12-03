@@ -32,7 +32,7 @@ contract DeployVaultScript is BaseScript {
 
         /// @dev prepare the payload to transfer ownership from deployer to real owner
         bytes memory afterDeploymentExecutionPayload =
-            abi.encodeWithSelector(Ownable.transferOwnership.selector, getAddressFromConfig("owner"));
+            abi.encodeWithSelector(Ownable.transferOwnership.selector, getAddressFromConfig("poolOwner"));
 
         address vault = factory.deploy(
             getDeploymentSalt(),
