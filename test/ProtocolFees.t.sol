@@ -155,24 +155,26 @@ contract ProtocolFeesTest is Test {
         assertEq(poolManager.getProtocolFee(key), 0);
     }
 
-    function testInitFuzz(uint24 fee) public {
+    function testInitFuzz(uint24 protocolFee) public {
         poolManager.setProtocolFeeController(feeController);
 
         vm.mockCall(
-            address(feeController), abi.encodeCall(IProtocolFeeController.protocolFeeForPool, key), abi.encode(fee)
+            address(feeController),
+            abi.encodeCall(IProtocolFeeController.protocolFeeForPool, key),
+            abi.encode(protocolFee)
         );
 
-        poolManager.initialize(key);
-
-        if (fee != 0) {
-            uint24 fee0 = fee % 4096;
-            uint24 fee1 = fee >> 12;
+        if (protocolFee != 0) {
+            uint24 fee0 = protocolFee % 4096;
+            uint24 fee1 = protocolFee >> 12;
 
             if (fee0 > ProtocolFeeLibrary.MAX_PROTOCOL_FEE || fee1 > ProtocolFeeLibrary.MAX_PROTOCOL_FEE) {
                 // invalid fee, fallback to 0
-                assertEq(poolManager.getProtocolFee(key), 0);
+                vm.expectRevert(abi.encodeWithSelector(IProtocolFees.ProtocolFeeTooLarge.selector, protocolFee));
+                poolManager.initialize(key);
             } else {
-                assertEq(poolManager.getProtocolFee(key), fee);
+                poolManager.initialize(key);
+                assertEq(poolManager.getProtocolFee(key), protocolFee);
             }
         }
     }
