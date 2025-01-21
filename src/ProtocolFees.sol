@@ -47,7 +47,7 @@ abstract contract ProtocolFees is IProtocolFees, Owner {
 
     /// @notice Fetch the protocol fee for a given pool
     /// @dev Revert if call to protocolFeeController fails or if return value is not 32 bytes
-    /// However if the call to protocolFeeController success and return value is 32 bytes but protocolFee
+    /// However if the call to protocolFeeController succeed, it can still revert if the return value is too large
     /// @return protocolFee The protocol fee for the pool
     function _fetchProtocolFee(PoolKey memory key) internal returns (uint24 protocolFee) {
         if (address(protocolFeeController) != address(0)) {
