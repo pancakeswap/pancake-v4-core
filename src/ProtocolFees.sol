@@ -11,6 +11,7 @@ import {PoolKey} from "./types/PoolKey.sol";
 import {PoolId} from "./types/PoolId.sol";
 import {IVault} from "./interfaces/IVault.sol";
 import {BipsLibrary} from "./libraries/BipsLibrary.sol";
+import {CustomRevert} from "./libraries/CustomRevert.sol";
 
 abstract contract ProtocolFees is IProtocolFees, Owner {
     using ProtocolFeeLibrary for uint24;
@@ -45,18 +46,11 @@ abstract contract ProtocolFees is IProtocolFees, Owner {
     }
 
     /// @notice Fetch the protocol fee for a given pool
-    /// @dev the success of this function is false if the call fails or the returned fees are invalid
-    /// @dev to prevent an invalid protocol fee controller from blocking pools from being initialized
-    /// the success of this function is NOT checked on initialize and if the call fails, the protocol fees are set to 0.
+    /// @dev Revert if call to protocolFeeController fails or if return value is not 32 bytes
+    /// However if the call to protocolFeeController success and return value is 32 bytes but protocolFee
+    /// @return protocolFee The protocol fee for the pool
     function _fetchProtocolFee(PoolKey memory key) internal returns (uint24 protocolFee) {
         if (address(protocolFeeController) != address(0)) {
-            uint256 controllerGasLimit = block.gaslimit.calculatePortion(BLOCK_LIMIT_BPS);
-
-            // note that EIP-150 mandates that calls requesting more than 63/64ths of remaining gas
-            // will be allotted no more than this amount, so controllerGasLimit must be set with this
-            // in mind.
-            if (gasleft() < controllerGasLimit) revert ProtocolFeeCannotBeFetched();
-
             address targetProtocolFeeController = address(protocolFeeController);
             bytes memory data = abi.encodeCall(IProtocolFeeController.protocolFeeForPool, (key));
 
@@ -64,7 +58,7 @@ abstract contract ProtocolFees is IProtocolFees, Owner {
             uint256 returnData;
             assembly ("memory-safe") {
                 // only load the first 32 bytes of the return data to prevent gas griefing
-                success := call(controllerGasLimit, targetProtocolFeeController, 0, add(data, 0x20), mload(data), 0, 32)
+                success := call(gas(), targetProtocolFeeController, 0, add(data, 0x20), mload(data), 0, 32)
                 // if success is false this wont actually be returned, instead 0 will be returned
                 returnData := mload(0)
 
@@ -72,9 +66,19 @@ abstract contract ProtocolFees is IProtocolFees, Owner {
                 success := and(success, eq(returndatasize(), 32))
             }
 
-            // Ensure return data does not overflow a uint24 and that the underlying fees are within bounds.
-            protocolFee =
-                success && (returnData == uint24(returnData)) && uint24(returnData).validate() ? uint24(returnData) : 0;
+            // Revert with ProtocolFeeCannotBeFetched, if calls to protocolFeeController fails or return size is not 32 bytes
+            if (!success) {
+                CustomRevert.bubbleUpAndRevertWith(
+                    targetProtocolFeeController, bytes4(data), ProtocolFeeCannotBeFetched.selector
+                );
+            }
+
+            if (returnData == uint24(returnData) && uint24(returnData).validate()) {
+                protocolFee = uint24(returnData);
+            } else {
+                // This error can be thrown if return value overflow a uint24
+                revert ProtocolFeeTooLarge(uint24(returnData));
+            }
         }
     }
 
