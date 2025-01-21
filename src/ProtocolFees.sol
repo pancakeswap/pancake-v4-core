@@ -10,12 +10,10 @@ import {ProtocolFeeLibrary} from "./libraries/ProtocolFeeLibrary.sol";
 import {PoolKey} from "./types/PoolKey.sol";
 import {PoolId} from "./types/PoolId.sol";
 import {IVault} from "./interfaces/IVault.sol";
-import {BipsLibrary} from "./libraries/BipsLibrary.sol";
 import {CustomRevert} from "./libraries/CustomRevert.sol";
 
 abstract contract ProtocolFees is IProtocolFees, Owner {
     using ProtocolFeeLibrary for uint24;
-    using BipsLibrary for uint256;
 
     /// @inheritdoc IProtocolFees
     mapping(Currency currency => uint256 amount) public protocolFeesAccrued;
@@ -59,14 +57,15 @@ abstract contract ProtocolFees is IProtocolFees, Owner {
             assembly ("memory-safe") {
                 // only load the first 32 bytes of the return data to prevent gas griefing
                 success := call(gas(), targetProtocolFeeController, 0, add(data, 0x20), mload(data), 0, 32)
-                // if success is false this wont actually be returned, instead 0 will be returned
+
+                // load the return data
                 returnData := mload(0)
 
-                // success if return data size is 32 bytes
+                // success if return data size is also 32 bytes
                 success := and(success, eq(returndatasize(), 32))
             }
 
-            // Revert with ProtocolFeeCannotBeFetched, if calls to protocolFeeController fails or return size is not 32 bytes
+            // revert with ProtocolFeeCannotBeFetched, if calls to protocolFeeController fails or return size is not 32 bytes
             if (!success) {
                 CustomRevert.bubbleUpAndRevertWith(
                     targetProtocolFeeController, bytes4(data), ProtocolFeeCannotBeFetched.selector
@@ -76,7 +75,7 @@ abstract contract ProtocolFees is IProtocolFees, Owner {
             if (returnData == uint24(returnData) && uint24(returnData).validate()) {
                 protocolFee = uint24(returnData);
             } else {
-                // This error can be thrown if return value overflow a uint24
+                // revert if return value overflow a uint24 or greater than max protocol fee
                 revert ProtocolFeeTooLarge(uint24(returnData));
             }
         }
