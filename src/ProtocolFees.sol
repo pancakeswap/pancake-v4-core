@@ -24,10 +24,6 @@ abstract contract ProtocolFees is IProtocolFees, Owner {
     /// @inheritdoc IProtocolFees
     IVault public immutable vault;
 
-    // a percentage of the block.gaslimit denoted in basis points, used as the gas limit for fee controller calls
-    // 100 bps is 1%, at 30M gas, the limit is 300K
-    uint256 private constant BLOCK_LIMIT_BPS = 100;
-
     constructor(IVault _vault) {
         vault = _vault;
     }
@@ -65,7 +61,7 @@ abstract contract ProtocolFees is IProtocolFees, Owner {
                 success := and(success, eq(returndatasize(), 32))
             }
 
-            // revert with ProtocolFeeCannotBeFetched, if calls to protocolFeeController fails or return size is not 32 bytes
+            // revert if call fails or return size is not 32 bytes
             if (!success) {
                 CustomRevert.bubbleUpAndRevertWith(
                     targetProtocolFeeController, bytes4(data), ProtocolFeeCannotBeFetched.selector
