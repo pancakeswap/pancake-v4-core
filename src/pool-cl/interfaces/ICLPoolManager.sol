@@ -108,6 +108,11 @@ interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload {
     function getPoolBitmapInfo(PoolId id, int16 word) external view returns (uint256 tickBitmap);
 
     /// @notice Get the fee growth global for the given pool
+    /// @return feeGrowthGlobal0x128 The global fee growth for token0
+    /// @return feeGrowthGlobal1x128 The global fee growth for token1
+    /// @dev feeGrowthGlobal can be artificially inflated by a malicious actor and integrators should be careful using the value
+    /// For pools with a single liquidity position, actors can donate to themselves to freely inflate feeGrowthGlobal
+    /// atomically donating and collecting fees in the same lockAcquired callback may make the inflated value more extreme
     function getFeeGrowthGlobals(PoolId id)
         external
         view
@@ -135,6 +140,9 @@ interface ICLPoolManager is IProtocolFees, IPoolManager, IExtsload {
     /// @notice Modify the position for the given pool
     /// @return delta The total balance delta of the caller of modifyLiquidity.
     /// @return feeDelta The balance delta of the fees generated in the liquidity range.
+    /// @dev feeDelta can be artificially inflated by a malicious actor and integrators should be careful using the value
+    /// For pools with a single liquidity position, actors can donate to themselves to inflate feeGrowthGlobal (and consequently feeDelta)
+    /// atomically donating and collecting fees in the same lockAcquired callback may make the inflated value more extreme
     function modifyLiquidity(PoolKey memory key, ModifyLiquidityParams memory params, bytes calldata hookData)
         external
         returns (BalanceDelta delta, BalanceDelta feeDelta);
