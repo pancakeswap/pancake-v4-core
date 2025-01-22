@@ -25,8 +25,10 @@ contract MockProtocolFeeController is IProtocolFeeController {
 
 /// @notice Reverts on call
 contract RevertingMockProtocolFeeController is IProtocolFeeController {
+    error DevsBlock();
+
     function protocolFeeForPool(PoolKey memory /* key */ ) external pure returns (uint24) {
-        revert();
+        revert DevsBlock();
     }
 }
 

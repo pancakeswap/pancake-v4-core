@@ -38,7 +38,7 @@ contract ProtocolFeesTest is Test {
 
     function setUp() public {
         vault = new MockVault();
-        poolManager = new MockFeePoolManager(IVault(address(vault)), 500_000);
+        poolManager = new MockFeePoolManager(IVault(address(vault)));
         feeController = new MockProtocolFeeController();
         revertingFeeController = new RevertingMockProtocolFeeController();
         outOfBoundsFeeController = new OutOfBoundsMockProtocolFeeController();
@@ -75,72 +75,106 @@ contract ProtocolFeesTest is Test {
         assertEq(protocolFee1, 0);
     }
 
-    function testInit_WhenFeeController_ProtocolFeeCannotBeFetched() public {
-        MockFeePoolManager poolManagerWithLowControllerGasLimit =
-            new MockFeePoolManager(IVault(address(vault)), 5000_000);
-        PoolKey memory _key = PoolKey({
-            currency0: Currency.wrap(address(token0)),
-            currency1: Currency.wrap(address(token1)),
-            hooks: IHooks(address(0)),
-            poolManager: IPoolManager(address(poolManagerWithLowControllerGasLimit)),
-            fee: uint24(0), // fee not used in the setup
-            parameters: 0x00
-        });
-        poolManagerWithLowControllerGasLimit.setProtocolFeeController(feeController);
+    function test_Init_ProtocolFeeTooLarge() public {
+        uint24 protocolFee =
+            _buildProtocolFee(ProtocolFeeLibrary.MAX_PROTOCOL_FEE + 1, ProtocolFeeLibrary.MAX_PROTOCOL_FEE + 1);
+        feeController.setProtocolFeeForPool(key, protocolFee);
+        poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
 
-        vm.expectRevert(IProtocolFees.ProtocolFeeCannotBeFetched.selector);
-        poolManagerWithLowControllerGasLimit.initialize{gas: 2000_000}(_key);
+        vm.expectRevert(abi.encodeWithSelector(IProtocolFees.ProtocolFeeTooLarge.selector, protocolFee));
+        poolManager.initialize(key);
+    }
+
+    function testFuzz_Init_WhenOutOfGasForProtocolFeeController(uint256 gasLimit) public {
+        gasLimit = bound(gasLimit, 10_000, 100_000); // 10_000 gas will have out of gas revert
+
+        uint24 protocolFee = _buildProtocolFee(ProtocolFeeLibrary.MAX_PROTOCOL_FEE, ProtocolFeeLibrary.MAX_PROTOCOL_FEE);
+        feeController.setProtocolFeeForPool(key, protocolFee);
+        poolManager.setProtocolFeeController(IProtocolFeeController(address(feeController)));
+
+        try poolManager.initialize{gas: gasLimit}(key) {
+            // txn success, verify if protocol fee is set
+            uint24 fetchedProtocolFee = poolManager.pools(key.toId());
+            assertEq(fetchedProtocolFee, protocolFee);
+        } catch {
+            // txn reverted, can ignore checking
+        }
     }
 
     function testInit_WhenFeeControllerRevert() public {
         poolManager.setProtocolFeeController(revertingFeeController);
-        poolManager.initialize(key);
 
-        assertEq(poolManager.getProtocolFee(key), 0);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CustomRevert.WrappedError.selector,
+                address(revertingFeeController),
+                IProtocolFeeController.protocolFeeForPool.selector,
+                abi.encodeWithSelector(RevertingMockProtocolFeeController.DevsBlock.selector),
+                abi.encodeWithSelector(IProtocolFees.ProtocolFeeCannotBeFetched.selector)
+            )
+        );
+        poolManager.initialize(key);
     }
 
     function testInit_WhenFeeControllerOutOfBound() public {
         poolManager.setProtocolFeeController(outOfBoundsFeeController);
         assertEq(address(poolManager.protocolFeeController()), address(outOfBoundsFeeController));
-        poolManager.initialize(key);
 
-        assertEq(poolManager.getProtocolFee(key), 0);
+        vm.expectRevert(
+            abi.encodeWithSelector(IProtocolFees.ProtocolFeeTooLarge.selector, ProtocolFeeLibrary.MAX_PROTOCOL_FEE + 1)
+        );
+        poolManager.initialize(key);
     }
 
     function testInit_WhenFeeControllerOverflow() public {
         poolManager.setProtocolFeeController(overflowFeeController);
         assertEq(address(poolManager.protocolFeeController()), address(overflowFeeController));
-        poolManager.initialize(key);
 
-        assertEq(poolManager.getProtocolFee(key), 0);
+        // 0xFFFFFFFFAAA001 from OverflowMockProtocolFeeController
+        vm.expectRevert(
+            abi.encodeWithSelector(IProtocolFees.ProtocolFeeTooLarge.selector, uint24(uint256(0xFFFFFFFFAAA001)))
+        );
+        poolManager.initialize(key);
     }
 
     function testInit_WhenFeeControllerInvalidReturnSize() public {
         poolManager.setProtocolFeeController(invalidReturnSizeFeeController);
         assertEq(address(poolManager.protocolFeeController()), address(invalidReturnSizeFeeController));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CustomRevert.WrappedError.selector,
+                address(invalidReturnSizeFeeController),
+                IProtocolFeeController.protocolFeeForPool.selector,
+                abi.encode(address(invalidReturnSizeFeeController), address(invalidReturnSizeFeeController)),
+                abi.encodeWithSelector(IProtocolFees.ProtocolFeeCannotBeFetched.selector)
+            )
+        );
         poolManager.initialize(key);
 
         assertEq(poolManager.getProtocolFee(key), 0);
     }
 
-    function testInitFuzz(uint24 fee) public {
+    function testInitFuzz(uint24 protocolFee) public {
         poolManager.setProtocolFeeController(feeController);
 
         vm.mockCall(
-            address(feeController), abi.encodeCall(IProtocolFeeController.protocolFeeForPool, key), abi.encode(fee)
+            address(feeController),
+            abi.encodeCall(IProtocolFeeController.protocolFeeForPool, key),
+            abi.encode(protocolFee)
         );
 
-        poolManager.initialize(key);
-
-        if (fee != 0) {
-            uint24 fee0 = fee % 4096;
-            uint24 fee1 = fee >> 12;
+        if (protocolFee != 0) {
+            uint24 fee0 = protocolFee % 4096;
+            uint24 fee1 = protocolFee >> 12;
 
             if (fee0 > ProtocolFeeLibrary.MAX_PROTOCOL_FEE || fee1 > ProtocolFeeLibrary.MAX_PROTOCOL_FEE) {
                 // invalid fee, fallback to 0
-                assertEq(poolManager.getProtocolFee(key), 0);
+                vm.expectRevert(abi.encodeWithSelector(IProtocolFees.ProtocolFeeTooLarge.selector, protocolFee));
+                poolManager.initialize(key);
             } else {
-                assertEq(poolManager.getProtocolFee(key), fee);
+                poolManager.initialize(key);
+                assertEq(poolManager.getProtocolFee(key), protocolFee);
             }
         }
     }

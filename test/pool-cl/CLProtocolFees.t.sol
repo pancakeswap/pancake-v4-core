@@ -28,6 +28,7 @@ import {IVault} from "../../src/interfaces/IVault.sol";
 import {ProtocolFeeLibrary} from "../../src/libraries/ProtocolFeeLibrary.sol";
 import {CLPoolGetter} from "./helpers/CLPoolGetter.sol";
 import {CLSlot0} from "../../src/pool-cl/types/CLSlot0.sol";
+import {CustomRevert} from "../../src/libraries/CustomRevert.sol";
 
 contract CLProtocolFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
     using Hooks for IHooks;
@@ -164,19 +165,27 @@ contract CLProtocolFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
         assertEq(currency1.balanceOf(address(protocolFeeController)), expectedProtocolFees);
     }
 
+    /// @dev this should not happen as ProtocolFeeController is owned by PCS and theres no incentive for PCS to block pool creation
     function testMaliciousProtocolFeeControllerReturnHugeData() public {
         IProtocolFeeController controller = IProtocolFeeController(address(new MaliciousProtocolFeeController()));
         manager.setProtocolFeeController(controller);
 
         // the original pool has already been initialized, hence we need to pick a new pool
         key.fee = 6000;
-        uint256 gasBefore = gasleft();
 
+        // payload from MaliciousProtocolFeeController
+        bytes memory payload = new bytes(230_000);
+        payload[payload.length - 1] = 0x01;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CustomRevert.WrappedError.selector,
+                address(controller),
+                IProtocolFeeController.protocolFeeForPool.selector,
+                abi.encode(payload),
+                abi.encodeWithSelector(IProtocolFees.ProtocolFeeCannotBeFetched.selector)
+            )
+        );
         manager.initialize(key, SQRT_RATIO_1_1);
-        uint256 gasConsumed = gasBefore - gasleft();
-        /// @dev Return data size 230k would consume almost all the gas speicified in the controllerGasLimit i.e. 500k
-        /// And the gas consumed by the tx would be more than 800K if the payload is copied to the caller context.
-        /// The following assertion makes sure this doesn't happen.
-        assertLe(gasConsumed, 800_000, "gas griefing vector");
     }
 }
