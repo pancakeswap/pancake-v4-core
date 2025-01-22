@@ -2,7 +2,6 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
 import {IPoolManager} from "../../src/interfaces/IPoolManager.sol";
@@ -19,7 +18,7 @@ import {BinTestHelper} from "./helpers/BinTestHelper.sol";
 import {Hooks} from "../../src/libraries/Hooks.sol";
 import {BinMintBurnFeeHook} from "./helpers/BinMintBurnFeeHook.sol";
 
-contract BinMintBurnFeeHookTest is Test, GasSnapshot, BinTestHelper {
+contract BinMintBurnFeeHookTest is Test, BinTestHelper {
     using BinPoolParametersHelper for bytes32;
 
     Vault public vault;
@@ -85,9 +84,8 @@ contract BinMintBurnFeeHookTest is Test, GasSnapshot, BinTestHelper {
         assertEq(token1.balanceOf(address(binMintBurnFeeHook)), 0 ether);
 
         IBinPoolManager.MintParams memory mintParams = _getSingleBinMintParams(activeId, 1 ether, 1 ether);
-        snapStart("BinMintBurnFeeHookTest#test_Mint");
         BalanceDelta delta = binLiquidityHelper.mint(key, mintParams, abi.encode(0));
-        snapEnd();
+        vm.snapshotGasLastCall("test_Mint");
 
         assertEq(token0.balanceOf(address(this)), 7 ether);
         assertEq(token1.balanceOf(address(this)), 7 ether);
@@ -116,9 +114,8 @@ contract BinMintBurnFeeHookTest is Test, GasSnapshot, BinTestHelper {
         // take 4x the burn amount as fee
         IBinPoolManager.BurnParams memory burnParams =
             _getSingleBinBurnLiquidityParams(key, poolManager, activeId, address(binLiquidityHelper), 100);
-        snapStart("BinMintBurnFeeHookTest#test_Burn");
         binLiquidityHelper.burn(key, burnParams, "");
-        snapEnd();
+        vm.snapshotGasLastCall("test_Burn");
 
         // +1 eth from remove liqudiity, -4 eth from hook fee
         // +3 from min_liquidity amount as -1 (min_liquidity) + 1 * 4 (fee)

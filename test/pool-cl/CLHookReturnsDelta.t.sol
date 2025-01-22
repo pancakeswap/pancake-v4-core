@@ -2,7 +2,6 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
 import {Vault} from "../../src/Vault.sol";
 import {IPoolManager} from "../../src/interfaces/IPoolManager.sol";
@@ -23,7 +22,7 @@ import {CLReturnsDeltaHook} from "./helpers/CLReturnsDeltaHook.sol";
 import {BalanceDelta} from "../../src/types/BalanceDelta.sol";
 import {TickMath} from "../../src/pool-cl/libraries/TickMath.sol";
 
-contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture, GasSnapshot {
+contract CLHookReturnsDeltaTest is Test, Deployers, TokenFixture {
     using CLPoolParametersHelper for bytes32;
     using LPFeeLibrary for uint24;
 

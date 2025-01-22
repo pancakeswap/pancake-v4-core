@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import "forge-std/Test.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {Vault} from "../../src/Vault.sol";
@@ -169,7 +168,7 @@ contract VaultPoolManager is Test {
     }
 }
 
-contract VaultInvariant is Test, NoIsolate, GasSnapshot {
+contract VaultInvariant is Test, NoIsolate {
     VaultPoolManager public vaultPoolManager;
     Vault public vault;
     MockERC20 token0;

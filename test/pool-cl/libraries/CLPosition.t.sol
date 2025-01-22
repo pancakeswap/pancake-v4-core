@@ -2,14 +2,13 @@
 pragma solidity ^0.8.24;
 
 import {stdError} from "forge-std/StdError.sol";
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
 import {CLPosition} from "../../../src/pool-cl/libraries/CLPosition.sol";
 import {CLPool} from "../../../src/pool-cl/libraries/CLPool.sol";
 import {FixedPoint128} from "../../../src/pool-cl/libraries/FixedPoint128.sol";
 import {SafeCast} from "../../../src/libraries/SafeCast.sol";
 
-contract CLPositionTest is Test, GasSnapshot {
+contract CLPositionTest is Test {
     using CLPosition for mapping(bytes32 => CLPosition.Info);
     using CLPosition for CLPosition.Info;
 
@@ -55,9 +54,10 @@ contract CLPositionTest is Test, GasSnapshot {
 
         // add
         {
-            snapStart("CLPositionTest#Position_update_add");
+            vm.startSnapshotGas("Position_update_add");
             (uint256 feesOwed0, uint256 feesOwed1) = info.update(0, 10 * FixedPoint128.Q128, 12 * FixedPoint128.Q128);
-            snapEnd();
+            vm.stopSnapshotGas();
+
             assertEq(feesOwed0, (10 - 5) * 3);
             assertEq(feesOwed1, (12 - 6) * 3);
 
@@ -79,9 +79,9 @@ contract CLPositionTest is Test, GasSnapshot {
 
         // remove all
         {
-            snapStart("CLPositionTest#Position_update_remove");
+            vm.startSnapshotGas("Position_update_remove");
             (uint256 feesOwed0, uint256 feesOwed1) = info.update(-2, 20 * FixedPoint128.Q128, 15 * FixedPoint128.Q128);
-            snapEnd();
+            vm.stopSnapshotGas();
             assertEq(feesOwed0, (20 - 10) * 2);
             assertEq(feesOwed1, (15 - 12) * 2);
 

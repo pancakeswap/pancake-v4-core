@@ -2,7 +2,6 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
 import {IPoolManager} from "../../src/interfaces/IPoolManager.sol";
@@ -28,7 +27,7 @@ import {BinTestHelper} from "./helpers/BinTestHelper.sol";
 import {Hooks} from "../../src/libraries/Hooks.sol";
 import {BinReturnsDeltaHook} from "./helpers/BinReturnsDeltaHook.sol";
 
-contract BinHookReturnsDelta is Test, GasSnapshot, BinTestHelper {
+contract BinHookReturnsDelta is Test, BinTestHelper {
     using SafeCast for uint256;
     using PackedUint128Math for bytes32;
     using PackedUint128Math for uint128;

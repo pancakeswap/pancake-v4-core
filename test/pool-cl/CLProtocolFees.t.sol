@@ -17,7 +17,6 @@ import {TokenFixture} from "../helpers/TokenFixture.sol";
 import {Currency, CurrencyLibrary} from "../../src/types/Currency.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {MockHooks} from "./helpers/MockHooks.sol";
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {CLPoolManagerRouter} from "./helpers/CLPoolManagerRouter.sol";
 import {MockProtocolFeeController, MaliciousProtocolFeeController} from "./helpers/ProtocolFeeControllers.sol";
 import {IProtocolFeeController} from "../../src/interfaces/IProtocolFeeController.sol";
@@ -30,7 +29,7 @@ import {CLPoolGetter} from "./helpers/CLPoolGetter.sol";
 import {CLSlot0} from "../../src/pool-cl/types/CLSlot0.sol";
 import {CustomRevert} from "../../src/libraries/CustomRevert.sol";
 
-contract CLProtocolFeesTest is Test, Deployers, TokenFixture, GasSnapshot {
+contract CLProtocolFeesTest is Test, Deployers, TokenFixture {
     using Hooks for IHooks;
     using CLPool for CLPool.State;
     using CLPoolGetter for CLPoolManager;

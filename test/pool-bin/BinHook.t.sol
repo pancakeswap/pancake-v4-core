@@ -15,9 +15,8 @@ import {BinPoolParametersHelper} from "../../src/pool-bin/libraries/BinPoolParam
 import {IHooks} from "../../src/interfaces/IHooks.sol";
 import {Hooks} from "../../src/libraries/Hooks.sol";
 import {BinTestHelper} from "./helpers/BinTestHelper.sol";
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 
-contract BinHookTest is BinTestHelper, GasSnapshot {
+contract BinHookTest is BinTestHelper {
     using BinPoolParametersHelper for bytes32;
 
     error PoolAlreadyInitialized();
@@ -63,9 +62,8 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         uint16 bitMap = 0x0003;
         _createPoolWithBitMap(bitMap);
 
-        snapStart("BinHookTest#testInitializeSucceedsWithHook");
         poolManager.initialize(key, binId);
-        snapEnd();
+        vm.snapshotGasLastCall("testInitializeSucceedsWithHook");
     }
 
     function testMintInvalidReturn() public {
@@ -102,9 +100,8 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         // initialize and add 1e18 token0, 1e18 token1 into a single binId
         poolManager.initialize(key, binId);
 
-        snapStart("BinHookTest#testMintSucceedsWithHook");
         addLiquidityToBin(key, poolManager, bob, binId, 1e18, 1e18, 1e18, 1e18, new bytes(123));
-        snapEnd();
+        vm.snapshotGasLastCall("testMintSucceedsWithHook");
 
         assertEq(mockHooks.beforeMintData(), new bytes(123));
         assertEq(mockHooks.afterMintData(), new bytes(123));
@@ -121,9 +118,8 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
 
         uint256 bobBal = poolManager.getPosition(key.toId(), bob, binId, 0).share;
 
-        snapStart("BinHookTest#testBurnSucceedsWithHook");
         removeLiquidityFromBin(key, poolManager, bob, binId, bobBal, new bytes(456));
-        snapEnd();
+        vm.snapshotGasLastCall("testBurnSucceedsWithHook");
 
         assertEq(mockHooks.beforeBurnData(), new bytes(456));
         assertEq(mockHooks.afterBurnData(), new bytes(456));
@@ -170,9 +166,8 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         poolManager.initialize(key, binId);
         addLiquidityToBin(key, poolManager, bob, binId, 1e18, 1e18, 1e18, 1e18, new bytes(123));
 
-        snapStart("BinHookTest#testSwapSucceedsWithHook");
         poolManager.swap(key, true, -int128(1e18), new bytes(456));
-        snapEnd();
+        vm.snapshotGasLastCall("testSwapSucceedsWithHook");
 
         assertEq(mockHooks.beforeSwapData(), new bytes(456));
         assertEq(mockHooks.afterSwapData(), new bytes(456));
@@ -217,9 +212,8 @@ contract BinHookTest is BinTestHelper, GasSnapshot {
         poolManager.initialize(key, binId);
         addLiquidityToBin(key, poolManager, bob, binId, 1e18, 1e18, 1e18, 1e18, new bytes(123));
 
-        snapStart("BinHookTest#testDonateSucceedsWithHook");
         poolManager.donate(key, 1e18, 1e18, new bytes(456));
-        snapEnd();
+        vm.snapshotGasLastCall("testDonateSucceedsWithHook");
 
         assertEq(mockHooks.beforeDonateData(), new bytes(456));
         assertEq(mockHooks.afterDonateData(), new bytes(456));

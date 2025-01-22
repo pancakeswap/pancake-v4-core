@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
 import {BitMath} from "../../../src/pool-cl/libraries/BitMath.sol";
 
-contract BitMathTest is Test, GasSnapshot {
+contract BitMathTest is Test {
     function testMostSignificantBitZero() public {
         vm.expectRevert();
         BitMath.mostSignificantBit(0);
@@ -36,17 +35,17 @@ contract BitMathTest is Test, GasSnapshot {
     }
 
     function testMsbGas() public {
-        snapStart("BitMathTest#mostSignificantBitSmallNumber");
+        vm.startSnapshotGas("mostSignificantBitSmallNumber");
         BitMath.mostSignificantBit(3568);
-        snapEnd();
+        vm.stopSnapshotGas();
 
-        snapStart("BitMathTest#mostSignificantBitMaxUint128");
+        vm.startSnapshotGas("mostSignificantBitMaxUint128");
         BitMath.mostSignificantBit(type(uint128).max);
-        snapEnd();
+        vm.stopSnapshotGas();
 
-        snapStart("BitMathTest#mostSignificantBitMaxUint256");
+        vm.startSnapshotGas("mostSignificantBitMaxUint256");
         BitMath.mostSignificantBit(type(uint256).max);
-        snapEnd();
+        vm.stopSnapshotGas();
     }
 
     function testLeastSignificantBitZero() public {
@@ -79,17 +78,17 @@ contract BitMathTest is Test, GasSnapshot {
     }
 
     function testLsbGas() public {
-        snapStart("BitMathTest#leastSignificantBitSmallNumber");
+        vm.startSnapshotGas("leastSignificantBitSmallNumber");
         BitMath.leastSignificantBit(3568);
-        snapEnd();
+        vm.stopSnapshotGas();
 
-        snapStart("BitMathTest#leastSignificantBitMaxUint128");
+        vm.startSnapshotGas("leastSignificantBitMaxUint128");
         BitMath.leastSignificantBit(type(uint128).max);
-        snapEnd();
+        vm.stopSnapshotGas();
 
-        snapStart("BitMathTest#leastSignificantBitMaxUint256");
+        vm.startSnapshotGas("leastSignificantBitMaxUint256");
         BitMath.leastSignificantBit(type(uint256).max);
-        snapEnd();
+        vm.stopSnapshotGas();
     }
 
     function mostSignificantBitReference(uint256 x) private pure returns (uint256) {

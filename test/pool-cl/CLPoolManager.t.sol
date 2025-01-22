@@ -2,7 +2,6 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {Vault} from "../../src/Vault.sol";
@@ -42,7 +41,7 @@ import {CLSlot0} from "../../src/pool-cl/types/CLSlot0.sol";
 import {CustomRevert} from "../../src/libraries/CustomRevert.sol";
 import {ICLHooks} from "../../src/pool-cl/interfaces/ICLHooks.sol";
 
-contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnapshot {
+contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture {
     using CLPoolParametersHelper for bytes32;
     using ParametersHelper for bytes32;
     using LPFeeLibrary for uint24;
@@ -73,7 +72,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
     }
 
     function test_bytecodeSize() public {
-        snapSize("CLPoolManagerBytecodeSize", address(poolManager));
+        vm.snapshotValue("CLPoolManagerBytecodeSize", address(poolManager).code.length);
 
         // forge coverage will run with '--ir-minimum' which set optimizer run to min
         // thus we do not want to revert for forge coverage case
@@ -379,9 +378,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             parameters: bytes32(uint256(0xa0000))
         });
 
-        snapStart("CLPoolManagerTest#initializeWithoutHooks");
         poolManager.initialize(key, TickMath.MIN_SQRT_RATIO);
-        snapEnd();
+        vm.snapshotGasLastCall("initializeWithoutHooks");
     }
 
     function test_initialize_fuzz(PoolKey memory key, uint160 sqrtPriceX96) public {
@@ -796,7 +794,6 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         IERC20(Currency.unwrap(currency0)).approve(address(router), 1e10 ether);
         IERC20(Currency.unwrap(currency1)).approve(address(router), 1e10 ether);
 
-        snapStart("CLPoolManagerTest#addLiquidity_fromEmpty");
         router.modifyPosition(
             key,
             ICLPoolManager.ModifyLiquidityParams({
@@ -807,7 +804,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             }),
             ""
         );
-        snapEnd();
+        vm.snapshotGasLastCall("addLiquidity_fromEmpty");
 
         {
             uint256 token0Left = IERC20(Currency.unwrap(currency0)).balanceOf(address(this));
@@ -836,7 +833,6 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             );
         }
 
-        snapStart("CLPoolManagerTest#addLiquidity_fromNonEmpty");
         router.modifyPosition(
             key,
             ICLPoolManager.ModifyLiquidityParams({
@@ -847,7 +843,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             }),
             ""
         );
-        snapEnd();
+        vm.snapshotGasLastCall("addLiquidity_fromNonEmpty");
 
         {
             uint256 token0Left = IERC20(Currency.unwrap(currency0)).balanceOf(address(this));
@@ -1246,13 +1242,12 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         }
 
         // remove half
-        snapStart("CLPoolManagerTest#removeLiquidity_toNonEmpty");
         router.modifyPosition(
             key,
             ICLPoolManager.ModifyLiquidityParams({tickLower: 46000, tickUpper: 46050, liquidityDelta: -5 * 1e8, salt: 0}),
             ""
         );
-        snapEnd();
+        vm.snapshotGasLastCall("removeLiquidity_toNonEmpty");
 
         {
             uint256 token0Left = IERC20(Currency.unwrap(currency0)).balanceOf(address(this));
@@ -1565,13 +1560,12 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         poolManager.initialize(key, SQRT_RATIO_1_1);
 
-        snapStart("CLPoolManagerTest#addLiquidity_nativeToken");
         router.modifyPosition{value: 100}(
             key,
             ICLPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 100, salt: 0}),
             ZERO_BYTES
         );
-        snapEnd();
+        vm.snapshotGasLastCall("addLiquidity_nativeToken");
     }
 
     function testModifyPosition_withSalt_addAndRemove() external {
@@ -1806,7 +1800,6 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)), 502165582277283491084);
 
         // swap 10 ether token0 for token1
-        snapStart("CLPoolManagerTest#swap_runOutOfLiquidity");
         router.swap(
             key,
             ICLPoolManager.SwapParams({
@@ -1817,7 +1810,7 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true}),
             ""
         );
-        snapEnd();
+        vm.snapshotGasLastCall("swap_runOutOfLiquidity");
     }
 
     function testSwap_failsIfNotInitialized(uint160 sqrtPriceX96) public {
@@ -2206,9 +2199,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         params = ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: 100, sqrtPriceLimitX96: SQRT_RATIO_1_4});
         testSettings = CLPoolManagerRouter.SwapTestSettings({withdrawTokens: false, settleUsingTransfer: false});
 
-        snapStart("CLPoolManagerTest#swap_simple");
         router.swap(key, params, testSettings, ZERO_BYTES);
-        snapEnd();
+        vm.snapshotGasLastCall("swap_simple");
     }
 
     function testSwap_withNative_gas() public {
@@ -2233,9 +2225,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         params = ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: 100, sqrtPriceLimitX96: SQRT_RATIO_1_4});
         testSettings = CLPoolManagerRouter.SwapTestSettings({withdrawTokens: false, settleUsingTransfer: false});
 
-        snapStart("CLPoolManagerTest#swap_withNative");
         router.swap(key, params, testSettings, ZERO_BYTES);
-        snapEnd();
+        vm.snapshotGasLastCall("swap_withNative");
     }
 
     function testSwap_withHooks_gas() public {
@@ -2262,9 +2253,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         params = ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: 100, sqrtPriceLimitX96: SQRT_RATIO_1_4});
         testSettings = CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true});
 
-        snapStart("CLPoolManagerTest#swap_withHooks");
         router.swap(key, params, testSettings, ZERO_BYTES);
-        snapEnd();
+        vm.snapshotGasLastCall("swap_withHooks");
     }
 
     function testSwap_leaveSurplusTokenInVault_gas() public {
@@ -2295,9 +2285,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             ZERO_BYTES
         );
 
-        snapStart("CLPoolManagerTest#swap_leaveSurplusTokenInVault");
         router.swap(key, params, testSettings, ZERO_BYTES);
-        snapEnd();
+        vm.snapshotGasLastCall("swap_leaveSurplusTokenInVault");
     }
 
     function testSwap_useSurplusTokenAsInput_gas() public {
@@ -2341,9 +2330,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         testSettings = CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: false});
 
-        snapStart("CLPoolManagerTest#swap_useSurplusTokenAsInput");
         router.swap(key, params, testSettings, ZERO_BYTES);
-        snapEnd();
+        vm.snapshotGasLastCall("swap_useSurplusTokenAsInput");
     }
 
     function testSwap_againstLiq_gas() public {
@@ -2378,9 +2366,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         params = ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: 100, sqrtPriceLimitX96: SQRT_RATIO_1_4});
 
-        snapStart("CLPoolManagerTest#swap_againstLiquidity");
         router.swap(key, params, testSettings, ZERO_BYTES);
-        snapEnd();
+        vm.snapshotGasLastCall("swap_againstLiquidity");
     }
 
     function testSwap_againstLiqWithNative_gas() public {
@@ -2410,9 +2397,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         params = ICLPoolManager.SwapParams({zeroForOne: true, amountSpecified: 100, sqrtPriceLimitX96: SQRT_RATIO_1_4});
 
-        snapStart("CLPoolManagerTest#swap_againstLiquidity");
         router.swap{value: 1 ether}(key, params, testSettings, ZERO_BYTES);
-        snapEnd();
+        vm.snapshotGasLastCall("swap_againstLiquidity");
     }
 
     // **************        *************** //
@@ -2462,9 +2448,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
 
         ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-60, 60, 100, 0);
         router.modifyPosition(key, params, ZERO_BYTES);
-        snapStart("CLPoolManagerTest#donateBothTokens");
         router.donate(key, 100, 200, ZERO_BYTES);
-        snapEnd();
+        vm.snapshotGasLastCall("donateBothTokens");
 
         (, uint256 feeGrowthGlobal0X128, uint256 feeGrowthGlobal1X128,) = poolManager.pools(key.toId());
         assertEq(feeGrowthGlobal0X128, 340282366920938463463374607431768211456);
@@ -2587,9 +2572,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         ICLPoolManager.ModifyLiquidityParams memory params = ICLPoolManager.ModifyLiquidityParams(-60, 60, 100, 0);
         router.modifyPosition(key, params, ZERO_BYTES);
 
-        snapStart("CLPoolManagerTest#gasDonateOneToken");
         router.donate(key, 100, 0, ZERO_BYTES);
-        snapEnd();
+        vm.snapshotGasLastCall("gasDonateOneToken");
     }
 
     function testTake_failsWithInvalidTokensThatDoNotReturnTrueOnTransfer() public {
@@ -2904,9 +2888,8 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         emit DynamicLPFeeUpdated(key.toId(), _swapFee);
 
         vm.prank(address(clFeeManagerHook));
-        snapStart("CLPoolManagerTest#testFuzzUpdateDynamicLPFee");
         poolManager.updateDynamicLPFee(key, _swapFee);
-        snapEnd();
+        vm.snapshotGasLastCall("testFuzzUpdateDynamicLPFee");
 
         (,,, uint24 swapFee) = poolManager.getSlot0(key.toId());
         assertEq(swapFee, _swapFee);

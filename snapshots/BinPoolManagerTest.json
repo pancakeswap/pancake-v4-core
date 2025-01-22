@@ -1,3 +1,23 @@
 {
-  "binPoolManager initcode hash (without constructor params, as uint256)": "73425840329377707764016122574450195738786283045901954729586336840188059167782"
+  "BinPoolManagerBytecodeSize": "23822",
+  "BinPoolManagerTest": "292661",
+  "binPoolManager initcode hash (without constructor params, as uint256)": "73425840329377707764016122574450195738786283045901954729586336840188059167782",
+  "testBurnNativeCurrency": "146154",
+  "testExtLoadPoolActiveId": "272",
+  "testGasBurnHalfBin": "141152",
+  "testGasBurnOneBin": "137621",
+  "testGasDonate": "114795",
+  "testGasGetBin": "2275",
+  "testGasMintNneBins-1": "966356",
+  "testGasMintNneBins-2": "329651",
+  "testGasMintOneBin-1": "333929",
+  "testGasMintOneBin-2": "138934",
+  "testGasSwapMultipleBins": "172571",
+  "testGasSwapOverBigBinIdGate": "178835",
+  "testGasSwapSingleBin": "129875",
+  "testGasUpdateDynamicLPFee": "31203",
+  "testGas_SetMaxBinStep": "29821",
+  "testInitialize_gasCheck_withoutHooks": "144790",
+  "testMintNativeCurrency": "294287",
+  "testSetProtocolFee": "32751"
 }

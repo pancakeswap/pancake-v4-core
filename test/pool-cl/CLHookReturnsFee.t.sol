@@ -12,7 +12,6 @@ import {PoolKey} from "../../src/types/PoolKey.sol";
 import {CLPoolManager} from "../../src/pool-cl/CLPoolManager.sol";
 import {ICLPoolManager} from "../../src/pool-cl/interfaces/ICLPoolManager.sol";
 import {Deployers} from "./helpers/Deployers.sol";
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {CLDynamicReturnsFeeHook} from "./helpers/CLDynamicReturnsFeeHook.sol";
 import {Currency, CurrencyLibrary} from "../../src/types/Currency.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
@@ -23,7 +22,7 @@ import {CLPoolManagerRouter} from "./helpers/CLPoolManagerRouter.sol";
 import {CLPoolParametersHelper} from "../../src/pool-cl/libraries/CLPoolParametersHelper.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract CLHookReturnsFeeTest is Test, Deployers, TokenFixture, GasSnapshot {
+contract CLHookReturnsFeeTest is Test, Deployers, TokenFixture {
     using LPFeeLibrary for uint24;
 
     IVault vault;
