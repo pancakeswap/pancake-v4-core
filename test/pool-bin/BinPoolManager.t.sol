@@ -120,6 +120,13 @@ contract BinPoolManagerTest is Test, GasSnapshot, BinTestHelper {
         }
     }
 
+    function test_initcodeHash() public {
+        vm.snapshotValue(
+            "binPoolManager initcode hash (without constructor params, as uint256)",
+            uint256(keccak256(type(BinPoolManager).creationCode))
+        );
+    }
+
     function testInitialize_gasCheck_withoutHooks() public {
         snapStart("BinPoolManagerTest#testInitialize_gasCheck_withoutHooks");
         poolManager.initialize(key, activeId);
