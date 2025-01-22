@@ -82,6 +82,13 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
         }
     }
 
+    function test_initcodeHash() public {
+        vm.snapshotValue(
+            "clPoolManager initcode hash (without constructor params, as uint256)",
+            uint256(keccak256(type(CLPoolManager).creationCode))
+        );
+    }
+
     // **************              *************** //
     // **************  initialize  *************** //
     // **************              *************** //
@@ -1811,9 +1818,6 @@ contract CLPoolManagerTest is Test, NoIsolate, Deployers, TokenFixture, GasSnaps
             ""
         );
         snapEnd();
-
-        console2.log("token0 balance: ", IERC20(Currency.unwrap(currency0)).balanceOf(address(vault)));
-        console2.log("token1 balance: ", IERC20(Currency.unwrap(currency1)).balanceOf(address(vault)));
     }
 
     function testSwap_failsIfNotInitialized(uint160 sqrtPriceX96) public {
