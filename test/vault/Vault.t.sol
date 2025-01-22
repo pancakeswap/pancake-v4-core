@@ -88,6 +88,12 @@ contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
         }
     }
 
+    function test_initcodeHash() public {
+        vm.snapshotValue(
+            "Vault initcode hash (without constructor params, as uint256)", uint256(keccak256(type(Vault).creationCode))
+        );
+    }
+
     function testRegisterPoolManager() public {
         assertEq(vault.isAppRegistered(address(unRegPoolManager)), false);
         assertEq(vault.isAppRegistered(address(poolManager1)), true);
