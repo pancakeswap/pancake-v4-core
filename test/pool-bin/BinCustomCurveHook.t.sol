@@ -2,7 +2,6 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
 import {IPoolManager} from "../../src/interfaces/IPoolManager.sol";
@@ -19,7 +18,7 @@ import {BinTestHelper} from "./helpers/BinTestHelper.sol";
 import {Hooks} from "../../src/libraries/Hooks.sol";
 import {BinCustomCurveHook} from "./helpers/BinCustomCurveHook.sol";
 
-contract BinCustomCurveHookTest is Test, GasSnapshot, BinTestHelper {
+contract BinCustomCurveHookTest is Test, BinTestHelper {
     using BinPoolParametersHelper for bytes32;
 
     Vault public vault;
@@ -114,9 +113,8 @@ contract BinCustomCurveHookTest is Test, GasSnapshot, BinTestHelper {
         // swap exactIn token0 for token1
         uint128 amtIn = uint128(bound(_amtIn, 0.1 ether, 6 ether)); // 6 as token0.balanceOf(address(this) == 6 ethers
 
-        snapStart("BinCustomCurveHookTest#test_Swap_CustomCurve");
         BalanceDelta delta = binSwapHelper.swap(key, true, -int128(amtIn), BinSwapHelper.TestSettings(true, true), "");
-        snapEnd();
+        vm.snapshotGasLastCall("test_Swap_CustomCurve");
 
         // verify 1:1 swap
         assertEq(delta.amount0(), -int128(amtIn));

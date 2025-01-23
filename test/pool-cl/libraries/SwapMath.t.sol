@@ -2,13 +2,12 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {SwapMath} from "../../../src/pool-cl/libraries/SwapMath.sol";
 import {FixedPoint96} from "../../../src/pool-cl/libraries/FixedPoint96.sol";
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {SqrtPriceMath} from "../../../src/pool-cl/libraries/SqrtPriceMath.sol";
 
-contract SwapMathTest is Test, GasSnapshot {
+contract SwapMathTest is Test {
     function testFuzz_getSqrtPriceTarget(bool zeroForOne, uint160 sqrtPriceNextX96, uint160 sqrtPriceLimitX96)
         external
         pure
@@ -222,9 +221,9 @@ contract SwapMathTest is Test, GasSnapshot {
         int256 actualAmountIn = -1 ether;
         uint24 feePips = 600;
 
-        snapStart("SwapMathTest#SwapOneForZeroExactInCapped");
+        vm.startSnapshotGas("SwapOneForZeroExactInCapped");
         SwapMath.computeSwapStep(priceX96, targetPriceX96, liquidity, actualAmountIn, feePips);
-        snapEnd();
+        vm.stopSnapshotGas();
     }
 
     function testComputeSwapTest_gasSwapZeroForOneExactInCapped() external {
@@ -237,9 +236,9 @@ contract SwapMathTest is Test, GasSnapshot {
         int256 actualAmountIn = -1 ether;
         uint24 feePips = 600;
 
-        snapStart("SwapMathTest#SwapZeroForOneExactInCapped");
+        vm.startSnapshotGas("SwapZeroForOneExactInCapped");
         SwapMath.computeSwapStep(priceX96, targetPriceX96, liquidity, actualAmountIn, feePips);
-        snapEnd();
+        vm.stopSnapshotGas();
     }
 
     function testComputeSwapTest_gasSwapOneForZeroExactOutCapped() external {
@@ -252,9 +251,9 @@ contract SwapMathTest is Test, GasSnapshot {
         int256 wantedOutputAmount = 1 ether;
         uint24 feePips = 600;
 
-        snapStart("SwapMathTest#SwapOneForZeroExactOutCapped");
+        vm.startSnapshotGas("SwapOneForZeroExactOutCapped");
         SwapMath.computeSwapStep(priceX96, targetPriceX96, liquidity, wantedOutputAmount, feePips);
-        snapEnd();
+        vm.stopSnapshotGas();
     }
 
     function testComputeSwapTest_gasSwapZeroForOneExactOutCapped() external {
@@ -267,9 +266,9 @@ contract SwapMathTest is Test, GasSnapshot {
         int256 wantedOutputAmount = 1 ether;
         uint24 feePips = 600;
 
-        snapStart("SwapMathTest#SwapZeroForOneExactOutCapped");
+        vm.startSnapshotGas("SwapZeroForOneExactOutCapped");
         SwapMath.computeSwapStep(priceX96, targetPriceX96, liquidity, wantedOutputAmount, feePips);
-        snapEnd();
+        vm.stopSnapshotGas();
     }
 
     function testComputeSwapTest_gasSwapOneForZeroExactInPartial() external {
@@ -282,9 +281,9 @@ contract SwapMathTest is Test, GasSnapshot {
         int256 actualInputAmount = -1000;
         uint24 feePips = 600;
 
-        snapStart("SwapMathTest#SwapOneForZeroExactInPartial");
+        vm.startSnapshotGas("SwapOneForZeroExactInPartial");
         SwapMath.computeSwapStep(priceX96, targetPriceX96, liquidity, actualInputAmount, feePips);
-        snapEnd();
+        vm.stopSnapshotGas();
     }
 
     function testComputeSwapTest_gasSwapZeroForOneExactInPartial() external {
@@ -297,9 +296,9 @@ contract SwapMathTest is Test, GasSnapshot {
         int256 actualInputAmount = -1000;
         uint24 feePips = 600;
 
-        snapStart("SwapMathTest#SwapZeroForOneExactInPartial");
+        vm.startSnapshotGas("SwapZeroForOneExactInPartial");
         SwapMath.computeSwapStep(priceX96, targetPriceX96, liquidity, actualInputAmount, feePips);
-        snapEnd();
+        vm.stopSnapshotGas();
     }
 
     function testComputeSwapTest_gasSwapOneForZeroExactOutPartial() external {
@@ -312,9 +311,9 @@ contract SwapMathTest is Test, GasSnapshot {
         int256 actualInputAmount = -1000;
         uint24 feePips = 600;
 
-        snapStart("SwapMathTest#SwapOneForZeroExactOutPartial");
+        vm.startSnapshotGas("SwapOneForZeroExactOutPartial");
         SwapMath.computeSwapStep(priceX96, targetPriceX96, liquidity, actualInputAmount, feePips);
-        snapEnd();
+        vm.stopSnapshotGas();
     }
 
     function testComputeSwapTest_gasSwapZeroForOneExactOutPartial() external {
@@ -327,8 +326,8 @@ contract SwapMathTest is Test, GasSnapshot {
         int256 actualInputAmount = -1000;
         uint24 feePips = 600;
 
-        snapStart("SwapMathTest#SwapZeroForOneExactOutPartial");
+        vm.startSnapshotGas("SwapZeroForOneExactOutPartial");
         SwapMath.computeSwapStep(priceX96, targetPriceX96, liquidity, actualInputAmount, feePips);
-        snapEnd();
+        vm.stopSnapshotGas();
     }
 }

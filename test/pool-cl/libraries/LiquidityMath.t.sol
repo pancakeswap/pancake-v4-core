@@ -1,25 +1,24 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {stdError} from "forge-std/StdError.sol";
 import {Test} from "forge-std/Test.sol";
 import {SafeCast} from "../../../src/libraries/SafeCast.sol";
 import {LiquidityMath} from "../../../src/pool-cl/libraries/LiquidityMath.sol";
 
-contract LiquidityMathTest is Test, GasSnapshot {
+contract LiquidityMathTest is Test {
     function testAddDelta() public {
         assertEq(LiquidityMath.addDelta(1, 0), 1);
         assertEq(LiquidityMath.addDelta(1, -1), 0);
         assertEq(LiquidityMath.addDelta(1, 1), 2);
 
-        snapStart("LiquidityMathTest#addDeltaPositive");
+        vm.startSnapshotGas("addDeltaPositive");
         LiquidityMath.addDelta(15, 4);
-        snapEnd();
+        vm.stopSnapshotGas();
 
-        snapStart("LiquidityMathTest#addDeltaNegtive");
+        vm.startSnapshotGas("addDeltaNegtive");
         LiquidityMath.addDelta(15, -4);
-        snapEnd();
+        vm.stopSnapshotGas();
     }
 
     function testAddDeltaOverflow() public {

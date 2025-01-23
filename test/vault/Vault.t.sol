@@ -3,7 +3,6 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Vault} from "../../src/Vault.sol";
 import {BalanceDelta, toBalanceDelta} from "../../src/types/BalanceDelta.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
@@ -24,7 +23,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  * @notice Basic functionality test for Vault
  * More tests in terms of security and edge cases will be covered by VaultReentracy.t.sol & VaultInvariant.t.sol
  */
-contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
+contract VaultTest is Test, NoIsolate, TokenFixture {
     using CurrencySettlement for Currency;
 
     error ContractSizeTooLarge(uint256 diff);
@@ -79,7 +78,7 @@ contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
     }
 
     function test_bytecodeSize() public {
-        snapSize("VaultBytecodeSize", address(vault));
+        vm.snapshotValue("VaultBytecodeSize", address(vault).code.length);
 
         // forge coverage will run with '--ir-minimum' which set optimizer run to min
         // thus we do not want to revert for forge coverage case
@@ -100,9 +99,8 @@ contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
 
         vm.expectEmit();
         emit IVault.AppRegistered(address(unRegPoolManager));
-        snapStart("VaultTest#registerPoolManager");
         vault.registerApp(address(unRegPoolManager));
-        snapEnd();
+        vm.snapshotGasLastCall("registerPoolManager");
 
         assertEq(vault.isAppRegistered(address(unRegPoolManager)), true);
         assertEq(vault.isAppRegistered(address(poolManager1)), true);
@@ -783,9 +781,8 @@ contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
         poolManager1.mockAccounting(poolKey1, -20 ether, 0);
 
         poolManager1.mockAccounting(poolKey1, 10 ether, 0 ether);
-        snapStart("VaultTest#testVault_clear_successWithNonZeroExistingDelta");
         vault.clear(currency0, 10 ether);
-        snapEnd();
+        vm.snapshotGasLastCall("testVault_clear_successWithNonZeroExistingDelta");
     }
 
     function testVault_clear_successWithZeroExistingDelta() public noIsolate {
@@ -797,9 +794,8 @@ contract VaultTest is Test, NoIsolate, GasSnapshot, TokenFixture {
         currency0.settle(vault, address(this), 20 ether, false);
         poolManager1.mockAccounting(poolKey1, -20 ether, 0);
 
-        snapStart("VaultTest#testVault_clear_successWithZeroExistingDelta");
         vault.clear(currency0, 0);
-        snapEnd();
+        vm.snapshotGasLastCall("testVault_clear_successWithZeroExistingDelta");
     }
 
     function testLockSettledWhenAddLiquidity_HookDelta() public noIsolate {

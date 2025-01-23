@@ -19,9 +19,8 @@ import {BinTestHelper} from "../helpers/BinTestHelper.sol";
 import {IProtocolFeeController} from "../../../src/interfaces/IProtocolFeeController.sol";
 import {MockProtocolFeeController} from "../../../src/test/fee/MockProtocolFeeController.sol";
 import {Constants} from "../../../src/pool-bin/libraries/Constants.sol";
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 
-contract BinPoolSwapTest is BinTestHelper, GasSnapshot {
+contract BinPoolSwapTest is BinTestHelper {
     using PackedUint128Math for bytes32;
     using BinPoolParametersHelper for bytes32;
     using SafeCast for uint256;
@@ -58,9 +57,8 @@ contract BinPoolSwapTest is BinTestHelper, GasSnapshot {
         poolManager.initialize(key, activeId);
         addLiquidityToBin(key, poolManager, bob, activeId, 1e18, 1e18, 1e18, 1e18, "");
 
-        snapStart("BinPoolSwapTest#test_exactInputSingleBin_SwapForY");
         BalanceDelta delta = poolManager.swap(key, true, -int128(1e18), "");
-        snapEnd();
+        vm.snapshotGasLastCall("test_exactInputSingleBin_SwapForY");
         assertEq(delta.amount0(), -int128(1e18));
         assertEq(delta.amount1(), 997000000000000000);
     }
@@ -69,9 +67,8 @@ contract BinPoolSwapTest is BinTestHelper, GasSnapshot {
         poolManager.initialize(key, activeId);
         addLiquidityToBin(key, poolManager, bob, activeId, 1e18, 1e18, 1e18, 1e18, "");
 
-        snapStart("BinPoolSwapTest#test_exactInputSingleBin_SwapForX");
         BalanceDelta delta = poolManager.swap(key, false, -int128(1e18), "");
-        snapEnd();
+        vm.snapshotGasLastCall("test_exactInputSingleBin_SwapForX");
         assertEq(delta.amount0(), 997000000000000000);
         assertEq(delta.amount1(), -1e18);
     }
@@ -80,9 +77,8 @@ contract BinPoolSwapTest is BinTestHelper, GasSnapshot {
         poolManager.initialize(key, activeId);
         addLiquidityToBin(key, poolManager, bob, activeId, 1e18, 1e18, 1e18, 1e18, "");
 
-        snapStart("BinPoolSwapTest#test_exactOutputSingleBin_SwapForY");
         BalanceDelta delta = poolManager.swap(key, true, 1e18, "");
-        snapEnd();
+        vm.snapshotGasLastCall("test_exactOutputSingleBin_SwapForY");
         assertEq(delta.amount0(), -1003009027081243732);
         assertEq(delta.amount1(), 1e18);
     }
@@ -91,9 +87,8 @@ contract BinPoolSwapTest is BinTestHelper, GasSnapshot {
         poolManager.initialize(key, activeId);
         addLiquidityToBin(key, poolManager, bob, activeId, 1e18, 1e18, 1e18, 1e18, "");
 
-        snapStart("BinPoolSwapTest#test_exactOutputSingleBin_SwapForX");
         BalanceDelta delta = poolManager.swap(key, false, 1e18, "");
-        snapEnd();
+        vm.snapshotGasLastCall("test_exactOutputSingleBin_SwapForX");
         assertEq(delta.amount0(), 1e18);
         assertEq(delta.amount1(), -1003009027081243732);
     }
@@ -102,9 +97,8 @@ contract BinPoolSwapTest is BinTestHelper, GasSnapshot {
         poolManager.initialize(key, activeId);
         addLiquidity(key, poolManager, bob, activeId, 1e18, 1e18, 10, 10);
 
-        snapStart("BinPoolSwapTest#test_exactInputMultipleBin");
         BalanceDelta delta = poolManager.swap(key, true, -1e18, "");
-        snapEnd();
+        vm.snapshotGasLastCall("test_exactInputMultipleBin");
         assertEq(delta.amount0(), -1e18);
         assertEq(delta.amount1(), 992555250358834498);
     }
@@ -113,9 +107,8 @@ contract BinPoolSwapTest is BinTestHelper, GasSnapshot {
         poolManager.initialize(key, activeId);
         addLiquidity(key, poolManager, bob, activeId, 1e18, 1e18, 10, 10);
 
-        snapStart("BinPoolSwapTest#test_exactOutputMultipleBin");
         BalanceDelta delta = poolManager.swap(key, true, 1e18, "");
-        snapEnd();
+        vm.snapshotGasLastCall("test_exactOutputMultipleBin");
         assertEq(delta.amount0(), -1007534624899920784);
         assertEq(delta.amount1(), 1e18);
     }
@@ -137,9 +130,8 @@ contract BinPoolSwapTest is BinTestHelper, GasSnapshot {
             removeLiquidityFromBin(key, poolManager, bob, activeId - i, bobBal, "");
         }
 
-        snapStart("BinPoolSwapTest#testGas_exactOutputMultipleBin_WithEmptyBins");
         poolManager.swap(key, true, 1e18, "");
-        snapEnd();
+        vm.snapshotGasLastCall("testGas_exactOutputMultipleBin_WithEmptyBins");
     }
 
     function test_SwapWithProtocolFee_ExactIn_SwapForY() public {

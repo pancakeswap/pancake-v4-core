@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
 import {CLPoolGetters} from "../../../src/pool-cl/libraries/CLPoolGetters.sol";
 import {CLPool} from "../../../src/pool-cl/libraries/CLPool.sol";
 import {Tick} from "../../../src/pool-cl/libraries/Tick.sol";
 
-contract CLPoolGettersTest is Test, GasSnapshot {
+contract CLPoolGettersTest is Test {
     CLPool.State pool;
 
     using CLPoolGetters for CLPool.State;

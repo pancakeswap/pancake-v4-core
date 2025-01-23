@@ -1,0 +1,10 @@
+{
+  "SwapOneForZeroExactInCapped": "1253",
+  "SwapOneForZeroExactInPartial": "1371",
+  "SwapOneForZeroExactOutCapped": "1095",
+  "SwapOneForZeroExactOutPartial": "1371",
+  "SwapZeroForOneExactInCapped": "1230",
+  "SwapZeroForOneExactInPartial": "1570",
+  "SwapZeroForOneExactOutCapped": "1059",
+  "SwapZeroForOneExactOutPartial": "1570"
+}

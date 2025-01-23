@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import "forge-std/Test.sol";
 import {CLPoolManager} from "../src/pool-cl/CLPoolManager.sol";
 import {Vault} from "../src/Vault.sol";
@@ -12,7 +11,7 @@ import {Extsload} from "../src/Extsload.sol";
 
 contract Loadable is Extsload {}
 
-contract ExtsloadTest is Test, GasSnapshot {
+contract ExtsloadTest is Test {
     // "forge inspect src/pool-cl/CLPoolManager.sol:CLPoolManager storage --pretty" to get the storage layout below
     // | Name                  | Type                                   | Slot | Offset | Bytes | Contract                                    |
     // |-----------------------|----------------------------------------|------|--------|-------|---------------------------------------------|
@@ -34,9 +33,8 @@ contract ExtsloadTest is Test, GasSnapshot {
     }
 
     function testExtsload() public {
-        snapStart("ExtsloadTest#extsload");
         bytes32 slot0 = poolManager.extsload(0x00);
-        snapEnd();
+        vm.snapshotGasLastCall("extsload");
         assertEq(abi.encode(slot0), abi.encode(address(this))); // owner
 
         bytes32 slot2 = poolManager.extsload(bytes32(uint256(0x03)));
@@ -47,9 +45,8 @@ contract ExtsloadTest is Test, GasSnapshot {
         bytes32[] memory slots = new bytes32[](2);
         slots[0] = 0x00;
         slots[1] = bytes32(uint256(0x03));
-        snapStart("ExtsloadTest#extsloadInBatch");
         slots = poolManager.extsload(slots);
-        snapEnd();
+        vm.snapshotGasLastCall("extsloadInBatch");
 
         assertEq(abi.encode(slots[0]), abi.encode(address(this)));
         assertEq(abi.encode(slots[1]), abi.encode(address(0xabcd)));

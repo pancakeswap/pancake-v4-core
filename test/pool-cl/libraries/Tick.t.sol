@@ -3,13 +3,12 @@ pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
 import {stdError} from "forge-std/StdError.sol";
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Constants} from "../helpers/Constants.sol";
 import {CLPool} from "../../../src/pool-cl/libraries/CLPool.sol";
 import {TickMath} from "../../../src/pool-cl/libraries/TickMath.sol";
 import {Tick} from "../../../src/pool-cl/libraries/Tick.sol";
 
-contract TickTest is Test, GasSnapshot {
+contract TickTest is Test {
     // using CLPool for CLPool.State;
     using Tick for mapping(int24 => Tick.Info);
 
@@ -131,9 +130,9 @@ contract TickTest is Test, GasSnapshot {
     }
 
     function testTick_checkTicks_gasCost() public {
-        snapStart("TickTest#checkTicks");
+        vm.startSnapshotGas("checkTicks");
         Tick.checkTicks(TickMath.MIN_TICK, TickMath.MAX_TICK);
-        snapEnd();
+        vm.stopSnapshotGas();
     }
 
     function testTick_tickSpacingToMaxLiquidityPerTick_returnsTheCorrectValueForLowFee() public pure {
@@ -179,9 +178,9 @@ contract TickTest is Test, GasSnapshot {
     }
 
     function testTick_tickSpacingToMaxLiquidityPerTick_gasCost10TickSpacing() public {
-        snapStart("TickTest#tickSpacingToMaxLiquidityPerTick");
+        vm.startSnapshotGas("tickSpacingToMaxLiquidityPerTick");
         Tick.tickSpacingToMaxLiquidityPerTick(10);
-        snapEnd();
+        vm.stopSnapshotGas();
     }
 
     function testTick_getFeeGrowthInside_gasCost() public {
@@ -194,9 +193,9 @@ contract TickTest is Test, GasSnapshot {
 
         setTick(2, info);
 
-        snapStart("TickTest#getFeeGrowthInside");
+        vm.startSnapshotGas("getFeeGrowthInside");
         getFeeGrowthInside(-2, 2, 0, 15, 15);
-        snapEnd();
+        vm.stopSnapshotGas();
     }
 
     function testTick_getFeeGrowthInside_returnsAllForTwoUninitializedTicksIfTickIsInside() public {
@@ -299,9 +298,9 @@ contract TickTest is Test, GasSnapshot {
     }
 
     function testTick_update_gasCost() public {
-        snapStart("TickTest#update");
+        vm.startSnapshotGas("testTick_update_gasCost");
         update(1, 1, 1, 6, 7, false);
-        snapEnd();
+        vm.stopSnapshotGas();
     }
 
     function testTick_update_flipsFromZeroToNonzero() public {

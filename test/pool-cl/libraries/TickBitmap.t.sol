@@ -3,10 +3,9 @@ pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {TickBitmap} from "../../../src/pool-cl/libraries/TickBitmap.sol";
 
-contract TickBitmapTest is Test, GasSnapshot {
+contract TickBitmapTest is Test {
     using TickBitmap for mapping(int16 => uint256);
 
     int24 constant INITIALIZED_TICK = 70;
@@ -93,21 +92,18 @@ contract TickBitmapTest is Test, GasSnapshot {
     }
 
     function test_flipTick_gasCostOfFlippingFirstTickInWordToInitialized() public {
-        snapStart("flipTick_gasCostOfFlippingFirstTickInWordToInitialized");
         flipTick(TICK_IN_UNINITIALZIED_WORD);
-        snapEnd();
+        vm.snapshotGasLastCall("flipTick_gasCostOfFlippingFirstTickInWordToInitialized");
     }
 
     function test_flipTick_gasCostOfFlippingSecondTickInWordToInitialized() public {
-        snapStart("flipTick_gasCostOfFlippingSecondTickInWordToInitialized");
         flipTick(INITIALIZED_TICK + 1);
-        snapEnd();
+        vm.snapshotGasLastCall("flipTick_gasCostOfFlippingSecondTickInWordToInitialized");
     }
 
     function test_flipTick_gasCostOfFlippingATickThatResultsInDeletingAWord() public {
-        snapStart("flipTick_gasCostOfFlippingATickThatResultsInDeletingAWord");
         flipTick(SOLO_INITIALIZED_TICK_IN_WORD);
-        snapEnd();
+        vm.snapshotGasLastCall("flipTick_gasCostOfFlippingATickThatResultsInDeletingAWord");
     }
 
     function testFuzz_flipTick(int24 tick, int24 tickSpacing) public {
@@ -196,21 +192,18 @@ contract TickBitmapTest is Test, GasSnapshot {
     }
 
     function test_nextInitializedTickWithinOneWord_lteFalse_gasCostOnBoundary() public {
-        snapStart("nextInitializedTickWithinOneWord_lteFalse_gasCostOnBoundary");
         bitmap.nextInitializedTickWithinOneWord(255, 1, false);
-        snapEnd();
+        vm.snapshotGasLastCall("nextInitializedTickWithinOneWord_lteFalse_gasCostOnBoundary");
     }
 
     function test_nextInitializedTickWithinOneWord_lteFalse_gasCostJustBelowBoundary() public {
-        snapStart("nextInitializedTickWithinOneWord_lteFalse_gasCostJustBelowBoundary");
         bitmap.nextInitializedTickWithinOneWord(254, 1, false);
-        snapEnd();
+        vm.snapshotGasLastCall("nextInitializedTickWithinOneWord_lteFalse_gasCostJustBelowBoundary");
     }
 
     function test_nextInitializedTickWithinOneWord_lteFalse_gasCostForEntireWord() public {
-        snapStart("nextInitializedTickWithinOneWord_lteFalse_gasCostForEntireWord");
         bitmap.nextInitializedTickWithinOneWord(768, 1, false);
-        snapEnd();
+        vm.snapshotGasLastCall("nextInitializedTickWithinOneWord_lteFalse_gasCostForEntireWord");
     }
 
     function test_nextInitializedTickWithinOneWord_lteTrue_returnsSameTickIfInitialized() public view {
@@ -275,21 +268,18 @@ contract TickBitmapTest is Test, GasSnapshot {
     }
 
     function test_nextInitializedTickWithinOneWord_lteTrue_gasCostOnBoundary() public {
-        snapStart("nextInitializedTickWithinOneWord_lteTrue_gasCostOnBoundary");
         bitmap.nextInitializedTickWithinOneWord(256, 1, true);
-        snapEnd();
+        vm.snapshotGasLastCall("nextInitializedTickWithinOneWord_lteTrue_gasCostOnBoundary");
     }
 
     function test_nextInitializedTickWithinOneWord_lteTrue_gasCostJustBelowBoundary() public {
-        snapStart("nextInitializedTickWithinOneWord_lteTrue_gasCostJustBelowBoundary");
         bitmap.nextInitializedTickWithinOneWord(255, 1, true);
-        snapEnd();
+        vm.snapshotGasLastCall("nextInitializedTickWithinOneWord_lteTrue_gasCostJustBelowBoundary");
     }
 
     function test_nextInitializedTickWithinOneWord_lteTrue_gasCostForEntireWord() public {
-        snapStart("nextInitializedTickWithinOneWord_lteTrue_gasCostForEntireWord");
         bitmap.nextInitializedTickWithinOneWord(1024, 1, true);
-        snapEnd();
+        vm.snapshotGasLastCall("nextInitializedTickWithinOneWord_lteTrue_gasCostForEntireWord");
     }
 
     function test_nextInitializedTickWithinOneWord_fuzz(int24 tick, bool lte) public view {

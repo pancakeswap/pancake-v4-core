@@ -2,7 +2,6 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
 import {Vault} from "../../src/Vault.sol";
@@ -22,7 +21,7 @@ import {CLPoolParametersHelper} from "../../src/pool-cl/libraries/CLPoolParamete
 import {CLMintBurnFeeHook} from "./helpers/CLMintBurnFeeHook.sol";
 import {BalanceDelta} from "../../src/types/BalanceDelta.sol";
 
-contract CLMintBurnFeeHookTest is Test, Deployers, TokenFixture, GasSnapshot {
+contract CLMintBurnFeeHookTest is Test, Deployers, TokenFixture {
     using CLPoolParametersHelper for bytes32;
 
     PoolKey key;
@@ -77,13 +76,12 @@ contract CLMintBurnFeeHookTest is Test, Deployers, TokenFixture, GasSnapshot {
         assertEq(token1.balanceOf(address(clMintBurnFeeHook)), 0 ether);
 
         // around 0.5 eth token0 / 0.5 eth token1 liquidity added
-        snapStart("CLMintBurnFeeHookTest#test_Mint");
         (BalanceDelta delta,) = router.modifyPosition(
             key,
             ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 1000 ether, salt: 0}),
             ""
         );
-        snapEnd();
+        vm.snapshotGasLastCall("test_Mint");
 
         assertEq(token0.balanceOf(address(this)), 8500449895020996220); // ~8.5 ether
         assertEq(token1.balanceOf(address(this)), 8500449895020996220); // ~8.4 ether
@@ -114,13 +112,12 @@ contract CLMintBurnFeeHookTest is Test, Deployers, TokenFixture, GasSnapshot {
         assertEq(vault.balanceOf(address(clMintBurnFeeHook), key.currency1), 999700069986002520); // ~1 eth
 
         // remove liquidity
-        snapStart("CLMintBurnFeeHookTest#test_Burn");
         router.modifyPosition(
             key,
             ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: -1000 ether, salt: 0}),
             ""
         );
-        snapEnd();
+        vm.snapshotGasLastCall("test_Burn");
 
         // 8.5 to 7 eth = 1.5 eth diff :: -2 eth was taken by hook for fee and +0.5 was from remove liquidity
         assertEq(token0.balanceOf(address(this)), 7000899790041992443); // ~7 eth

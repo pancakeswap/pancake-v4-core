@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
 import {CLPoolParametersHelper} from "../../../src/pool-cl/libraries/CLPoolParametersHelper.sol";
 
-contract CLPoolParametersHelperTest is Test, GasSnapshot {
+contract CLPoolParametersHelperTest is Test {
     function testGetTickSpacing() public pure {
         bytes32 paramsWithTickSpacing0 = bytes32(uint256(0x0));
         int24 tickSpacing0 = CLPoolParametersHelper.getTickSpacing(paramsWithTickSpacing0);

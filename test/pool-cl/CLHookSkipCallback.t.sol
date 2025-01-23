@@ -2,7 +2,6 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
 import {Vault} from "../../src/Vault.sol";
 import {IPoolManager} from "../../src/interfaces/IPoolManager.sol";
@@ -22,7 +21,7 @@ import {CLPoolParametersHelper} from "../../src/pool-cl/libraries/CLPoolParamete
 import {ParametersHelper} from "../../src/libraries/math/ParametersHelper.sol";
 import {CLSkipCallbackHook} from "./helpers/CLSkipCallbackHook.sol";
 
-contract CLHookSkipCallbackTest is Test, Deployers, TokenFixture, GasSnapshot {
+contract CLHookSkipCallbackTest is Test, Deployers, TokenFixture {
     using CLPoolParametersHelper for bytes32;
     using ParametersHelper for bytes32;
     using LPFeeLibrary for uint24;

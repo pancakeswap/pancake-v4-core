@@ -1,3 +1,19 @@
 {
-  "clPoolManager initcode hash (without constructor params, as uint256)": "43498189724800683414039944409888665118981458752163755806370462274516389565331"
+  "CLPoolManagerBytecodeSize": "20886",
+  "addLiquidity_fromEmpty": "343791",
+  "addLiquidity_fromNonEmpty": "161744",
+  "addLiquidity_nativeToken": "225761",
+  "clPoolManager initcode hash (without constructor params, as uint256)": "43498189724800683414039944409888665118981458752163755806370462274516389565331",
+  "donateBothTokens": "162089",
+  "gasDonateOneToken": "107144",
+  "initializeWithoutHooks": "145737",
+  "removeLiquidity_toNonEmpty": "111547",
+  "swap_againstLiquidity": "129545",
+  "swap_leaveSurplusTokenInVault": "161954",
+  "swap_runOutOfLiquidity": "147224",
+  "swap_simple": "69980",
+  "swap_useSurplusTokenAsInput": "141915",
+  "swap_withHooks": "86198",
+  "swap_withNative": "69980",
+  "testFuzzUpdateDynamicLPFee": "30969"
 }

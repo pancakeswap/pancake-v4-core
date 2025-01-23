@@ -2,7 +2,6 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {IVault} from "../../src/interfaces/IVault.sol";
 import {Vault} from "../../src/Vault.sol";
@@ -24,7 +23,7 @@ import {CLCustomCurveHook} from "./helpers/CLCustomCurveHook.sol";
 import {BalanceDelta} from "../../src/types/BalanceDelta.sol";
 import {TickMath} from "../../src/pool-cl/libraries/TickMath.sol";
 
-contract CLCustomCurveHookTest is Test, Deployers, TokenFixture, GasSnapshot {
+contract CLCustomCurveHookTest is Test, Deployers, TokenFixture {
     using CLPoolParametersHelper for bytes32;
     using LPFeeLibrary for uint24;
 
@@ -108,7 +107,6 @@ contract CLCustomCurveHookTest is Test, Deployers, TokenFixture, GasSnapshot {
         // swap exactIn token0 for token1
         uint128 amtIn = uint128(bound(_amtIn, 0.1 ether, 6 ether)); // 6 as token0.balanceOf(address(this) == 6 ethers
 
-        snapStart("CLCustomCurveHookTest#test_Swap_CustomCurve");
         BalanceDelta delta = router.swap(
             key,
             ICLPoolManager.SwapParams({
@@ -119,7 +117,7 @@ contract CLCustomCurveHookTest is Test, Deployers, TokenFixture, GasSnapshot {
             CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true}),
             ""
         );
-        snapEnd();
+        vm.snapshotGasLastCall("test_Swap_CustomCurve");
 
         // verify 1:1 swap
         assertEq(delta.amount0(), -int128(amtIn));
