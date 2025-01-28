@@ -49,7 +49,7 @@ contract CLMintBurnFeeHook is BaseCLTestHook {
     }
 
     /// @dev take 2x of the mint amount as fee
-    /// meant for https://github.com/pancakeswap/pancake-v4-core/pull/203 to ensure reserveOfApp underflow won't happen
+    /// meant for https://github.com/pancakeswap/infinity-core/pull/203 to ensure reserveOfApp underflow won't happen
     function afterAddLiquidity(
         address,
         PoolKey calldata key,
@@ -75,7 +75,7 @@ contract CLMintBurnFeeHook is BaseCLTestHook {
     }
 
     /// @dev take 4x the burn amount as fee
-    /// meant for https://github.com/pancakeswap/pancake-v4-core/pull/203 to ensure reserveOfApp underflow won't happen
+    /// meant for https://github.com/pancakeswap/infinity-core/pull/203 to ensure reserveOfApp underflow won't happen
     function afterRemoveLiquidity(
         address,
         PoolKey calldata key,

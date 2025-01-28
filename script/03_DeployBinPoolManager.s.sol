@@ -24,7 +24,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  */
 contract DeployBinPoolManagerScript is BaseScript {
     function getDeploymentSalt() public pure override returns (bytes32) {
-        return keccak256("PANCAKE-V4-CORE/BinPoolManager/0.90");
+        return keccak256("INFINITY-CORE/BinPoolManager/0.90");
     }
 
     function run() public {

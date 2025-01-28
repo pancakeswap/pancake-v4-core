@@ -177,7 +177,7 @@ contract PackedUint128MathTest is Test {
         bytes32 amounts = uint128(type(uint128).max).encode(uint128(type(uint128).max));
 
         /// @dev This shouldn't happen as swapFee passed in will be inclusive of protocolFee
-        ///      However, adding safeCast protects against future extension of v4 in the case the fee is not inclusive
+        ///      However, adding safeCast protects against future extension of infinity in the case the fee is not inclusive
         uint24 protocolFee = 100;
         uint24 swapFee = 10;
 
