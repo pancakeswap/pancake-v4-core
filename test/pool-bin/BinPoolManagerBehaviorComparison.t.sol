@@ -82,7 +82,7 @@ abstract contract LBFuzzer is LBHelper, BinTestHelper {
         // lb init
         lbPair = ILBPair(lbFactory.createLBPair(address(token0), address(token1), boundActiveId, boundBinStep));
 
-        // v4#bin init
+        // bin init
         key_ = PoolKey({
             currency0: currency0,
             currency1: currency1,
@@ -113,7 +113,7 @@ abstract contract LBFuzzer is LBHelper, BinTestHelper {
         (, bytes32 amountsLeft, uint256[] memory liquidityMinted) =
             lbPair.mint(address(this), mintParams.liquidityConfigs, address(this));
 
-        // calc v4 positon share before mint
+        // calc positon share before mint
         uint256[] memory sharesBefore = new uint256[](liquidityMinted.length);
         for (uint256 i = 0; i < liquidityMinted.length; i++) {
             uint24 id = uint24(uint256(mintParams.liquidityConfigs[i]));
@@ -121,7 +121,7 @@ abstract contract LBFuzzer is LBHelper, BinTestHelper {
             sharesBefore[i] = positionInfo.share;
         }
 
-        // v4#bin mint
+        // bin mint
         BalanceDelta delta = liquidityHelper.mint(key, mintParams, "");
 
         // check
@@ -155,7 +155,7 @@ abstract contract LBFuzzer is LBHelper, BinTestHelper {
 
     function swap(ILBPair lbPair, PoolKey memory key, bool swapForY, uint128 amountIn) public {
         amountIn = uint128(bound(amountIn, 0.1 ether, 10000 ether));
-        // v4#bin swap
+        // bin swap
         BinSwapHelper.TestSettings memory testSettings =
             BinSwapHelper.TestSettings({withdrawTokens: true, settleUsingTransfer: true});
 

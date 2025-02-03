@@ -25,7 +25,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  */
 contract DeployBinProtocolFeeControllerScript is BaseScript {
     function getDeploymentSalt() public pure override returns (bytes32) {
-        return keccak256("PANCAKE-V4-CORE/BinProtocolFeeController/0.91");
+        return keccak256("INFINITY-CORE-CORE/BinProtocolFeeController/0.91");
     }
 
     function run() public {

@@ -21,7 +21,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  */
 contract DeployVaultScript is BaseScript {
     function getDeploymentSalt() public pure override returns (bytes32) {
-        return keccak256("PANCAKE-V4-CORE/VAULT/0.90");
+        return keccak256("INFINITY-CORE/VAULT/0.90");
     }
 
     function run() public {

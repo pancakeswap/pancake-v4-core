@@ -36,7 +36,7 @@ abstract contract V3Fuzzer is V3Helper, Deployers, Fuzzers, IUniswapV3MintCallba
         router = new CLPoolManagerRouter(vault, manager);
 
         (currency0, currency1) = deployCurrencies(2 ** 255);
-        // ensure router has enough allowance to move tokens, required for v4
+        // ensure router has enough allowance to move tokens, required for infinity
         IERC20(Currency.unwrap(currency0)).approve(address(router), type(uint256).max);
         IERC20(Currency.unwrap(currency1)).approve(address(router), type(uint256).max);
     }
@@ -78,26 +78,26 @@ abstract contract V3Fuzzer is V3Helper, Deployers, Fuzzers, IUniswapV3MintCallba
         int256 liquidityDeltaUnbound,
         bool tight
     ) internal {
-        ICLPoolManager.ModifyLiquidityParams memory v4LiquidityParams = ICLPoolManager.ModifyLiquidityParams({
+        ICLPoolManager.ModifyLiquidityParams memory infinityLiquidityParams = ICLPoolManager.ModifyLiquidityParams({
             tickLower: lowerTickUnsanitized,
             tickUpper: upperTickUnsanitized,
             liquidityDelta: liquidityDeltaUnbound,
             salt: 0
         });
 
-        v4LiquidityParams = tight
-            ? createFuzzyLiquidityParamsWithTightBound(key_, v4LiquidityParams, sqrtPriceX96, 20)
-            : createFuzzyLiquidityParams(key_, v4LiquidityParams, sqrtPriceX96);
+        infinityLiquidityParams = tight
+            ? createFuzzyLiquidityParamsWithTightBound(key_, infinityLiquidityParams, sqrtPriceX96, 20)
+            : createFuzzyLiquidityParams(key_, infinityLiquidityParams, sqrtPriceX96);
 
         v3Pool.mint(
             address(this),
-            v4LiquidityParams.tickLower,
-            v4LiquidityParams.tickUpper,
-            uint128(int128(v4LiquidityParams.liquidityDelta)),
+            infinityLiquidityParams.tickLower,
+            infinityLiquidityParams.tickUpper,
+            uint128(int128(infinityLiquidityParams.liquidityDelta)),
             ""
         );
 
-        router.modifyPosition(key_, v4LiquidityParams, "");
+        router.modifyPosition(key_, infinityLiquidityParams, "");
     }
 
     function swap(IUniswapV3Pool pool, PoolKey memory key_, bool zeroForOne, int128 amountSpecified)
@@ -115,7 +115,7 @@ abstract contract V3Fuzzer is V3Helper, Deployers, Fuzzers, IUniswapV3MintCallba
             zeroForOne ? MIN_PRICE_LIMIT : MAX_PRICE_LIMIT,
             ""
         );
-        // v3 can handle bigger numbers than v4, so if we exceed int128, check that the next call reverts
+        // v3 can handle bigger numbers than infinity version, so if we exceed int128, check that the next call reverts
         bool overflows = false;
         if (
             amount0Delta > type(int128).max || amount1Delta > type(int128).max || amount0Delta < type(int128).min
@@ -123,7 +123,7 @@ abstract contract V3Fuzzer is V3Helper, Deployers, Fuzzers, IUniswapV3MintCallba
         ) {
             overflows = true;
         }
-        // v4 swap
+        // infinity version swap
         ICLPoolManager.SwapParams memory swapParams = ICLPoolManager.SwapParams({
             zeroForOne: zeroForOne,
             amountSpecified: amountSpecified,
@@ -136,14 +136,14 @@ abstract contract V3Fuzzer is V3Helper, Deployers, Fuzzers, IUniswapV3MintCallba
         try router.swap(key_, swapParams, testSettings, "") returns (BalanceDelta delta_) {
             delta = delta_;
         } catch (bytes memory reason) {
-            require(overflows, "v4 should not overflow");
+            require(overflows, "infinity version should not overflow");
             assertEq(bytes4(reason), SafeCast.SafeCastOverflow.selector);
             delta = toBalanceDelta(0, 0);
             amount0Delta = 0;
             amount1Delta = 0;
         }
 
-        // because signs for v3 and v4 swaps are inverted, add values up to get the difference
+        // because signs for v3 and infinity version swaps are inverted, add values up to get the difference
         amount0Diff = amount0Delta + delta.amount0();
         amount1Diff = amount1Delta + delta.amount1();
     }

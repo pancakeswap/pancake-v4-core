@@ -24,7 +24,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  */
 contract DeployCLPoolManagerScript is BaseScript {
     function getDeploymentSalt() public pure override returns (bytes32) {
-        return keccak256("PANCAKE-V4-CORE/CLPoolManager/0.90");
+        return keccak256("INFINITY-CORE/CLPoolManager/0.90");
     }
 
     function run() public {
