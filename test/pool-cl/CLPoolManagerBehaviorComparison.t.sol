@@ -136,7 +136,7 @@ abstract contract V3Fuzzer is V3Helper, Deployers, Fuzzers, IUniswapV3MintCallba
         try router.swap(key_, swapParams, testSettings, "") returns (BalanceDelta delta_) {
             delta = delta_;
         } catch (bytes memory reason) {
-            require(overflows, "infinity should not overflow");
+            require(overflows, "infinity version should not overflow");
             assertEq(bytes4(reason), SafeCast.SafeCastOverflow.selector);
             delta = toBalanceDelta(0, 0);
             amount0Delta = 0;
