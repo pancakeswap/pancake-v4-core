@@ -143,7 +143,7 @@ abstract contract V3Fuzzer is V3Helper, Deployers, Fuzzers, IUniswapV3MintCallba
             amount1Delta = 0;
         }
 
-        // because signs for v3 and infinity swaps are inverted, add values up to get the difference
+        // because signs for v3 and infinity version swaps are inverted, add values up to get the difference
         amount0Diff = amount0Delta + delta.amount0();
         amount1Diff = amount1Delta + delta.amount1();
     }
