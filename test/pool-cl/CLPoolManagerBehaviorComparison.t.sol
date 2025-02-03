@@ -123,7 +123,7 @@ abstract contract V3Fuzzer is V3Helper, Deployers, Fuzzers, IUniswapV3MintCallba
         ) {
             overflows = true;
         }
-        // infinity swap
+        // infinity version swap
         ICLPoolManager.SwapParams memory swapParams = ICLPoolManager.SwapParams({
             zeroForOne: zeroForOne,
             amountSpecified: amountSpecified,
