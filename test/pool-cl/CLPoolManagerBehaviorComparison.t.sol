@@ -115,7 +115,7 @@ abstract contract V3Fuzzer is V3Helper, Deployers, Fuzzers, IUniswapV3MintCallba
             zeroForOne ? MIN_PRICE_LIMIT : MAX_PRICE_LIMIT,
             ""
         );
-        // v3 can handle bigger numbers than infinity, so if we exceed int128, check that the next call reverts
+        // v3 can handle bigger numbers than infinity version, so if we exceed int128, check that the next call reverts
         bool overflows = false;
         if (
             amount0Delta > type(int128).max || amount1Delta > type(int128).max || amount0Delta < type(int128).min
