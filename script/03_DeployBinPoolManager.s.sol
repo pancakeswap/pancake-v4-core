@@ -9,28 +9,28 @@ import {Create3Factory} from "pancake-create3-factory/src/Create3Factory.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
+ *
  * Step 1: Deploy
  * forge script script/03_DeployBinPoolManager.s.sol:DeployBinPoolManagerScript -vvv \
  *     --rpc-url $RPC_URL \
  *     --broadcast \
  *     --slow
  *
- * Step 2: Get the ABI-encoded form of the constructor arguments
- * cast abi-encode "Constructor(address)" <vault_addr>
- *
- * Step 3: Verify
+ * Step 2: Verify
  * forge verify-contract <address> BinPoolManager --watch --chain <chain_id> \
- *    --constructor-args <constructor_args_from_step2>
+ *    --constructor-args `cast abi-encode "Constructor(address)" <vault_addr>`
+ *
  */
 contract DeployBinPoolManagerScript is BaseScript {
     function getDeploymentSalt() public pure override returns (bytes32) {
-        return keccak256("INFINITY-CORE/BinPoolManager/0.90");
+        return keccak256("INFINITY-CORE/BinPoolManager/0.97");
     }
 
     function run() public {
         Create3Factory factory = Create3Factory(getAddressFromConfig("create3Factory"));
 
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        address deployer = vm.addr(deployerPrivateKey);
         vm.startBroadcast(deployerPrivateKey);
 
         address vault = getAddressFromConfig("vault");
@@ -41,7 +41,7 @@ contract DeployBinPoolManagerScript is BaseScript {
 
         /// @dev prepare the payload to transfer ownership from deployer to real owner
         bytes memory afterDeploymentExecutionPayload =
-            abi.encodeWithSelector(Ownable.transferOwnership.selector, getAddressFromConfig("poolOwner"));
+            abi.encodeWithSelector(Ownable.transferOwnership.selector, deployer);
 
         address binPoolManager = factory.deploy(
             getDeploymentSalt(), creationCode, keccak256(creationCode), 0, afterDeploymentExecutionPayload, 0
