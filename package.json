@@ -1,6 +1,6 @@
 {
-  "name": "pancake-v4-core",
-  "description": "Pancakeswap smart contracts",
+  "name": "infinity-core",
+  "description": "Inifinity core contracts",
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
