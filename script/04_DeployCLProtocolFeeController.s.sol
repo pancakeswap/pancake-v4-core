@@ -51,9 +51,7 @@ contract DeployCLProtocolFeeControllerScript is BaseScript {
         console.log("CLProtocolFeeController contract deployed at ", clProtocolFeeController);
 
         /// @notice set the protocol fee controller for the clPoolManager
-        IProtocolFees(clPoolManager).setProtocolFeeController(
-            ProtocolFeeController(getAddressFromConfig("clProtocolFeeController"))
-        );
+        IProtocolFees(clPoolManager).setProtocolFeeController(ProtocolFeeController(clProtocolFeeController));
 
         vm.stopBroadcast();
     }
