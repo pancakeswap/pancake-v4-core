@@ -51,9 +51,7 @@ contract DeployBinProtocolFeeControllerScript is BaseScript {
         console.log("BinProtocolFeeController contract deployed at ", binProtocolFeeController);
 
         /// @notice set the protocol fee controller for the clPoolManager
-        IProtocolFees(binPoolManager).setProtocolFeeController(
-            ProtocolFeeController(getAddressFromConfig("binProtocolFeeController"))
-        );
+        IProtocolFees(binPoolManager).setProtocolFeeController(ProtocolFeeController(binProtocolFeeController));
 
         vm.stopBroadcast();
     }
