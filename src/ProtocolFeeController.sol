@@ -19,7 +19,7 @@ contract ProtocolFeeController is IProtocolFeeController, Ownable2Step {
     error InvalidPoolManager();
 
     /// @notice throw when the protocol fee split ratio is invalid i.e. greater than 100%
-    error InvliadProtocolFeeSplitRatio();
+    error InvalidProtocolFeeSplitRatio();
 
     /// @notice 100% in hundredths of a bip
     uint256 public constant ONE_HUNDRED_PERCENT_RATIO = 1e6;
@@ -42,7 +42,7 @@ contract ProtocolFeeController is IProtocolFeeController, Ownable2Step {
     /// @notice Set the ratio of the protocol fee in the total fee
     /// @param newProtocolFeeSplitRatio 30e4 would mean 30% of the total fee goes to protocol
     function setProtocolFeeSplitRatio(uint256 newProtocolFeeSplitRatio) external onlyOwner {
-        if (newProtocolFeeSplitRatio > ONE_HUNDRED_PERCENT_RATIO) revert InvliadProtocolFeeSplitRatio();
+        if (newProtocolFeeSplitRatio > ONE_HUNDRED_PERCENT_RATIO) revert InvalidProtocolFeeSplitRatio();
 
         uint256 oldProtocolFeeSplitRatio = protocolFeeSplitRatio;
         protocolFeeSplitRatio = newProtocolFeeSplitRatio;
@@ -109,7 +109,7 @@ contract ProtocolFeeController is IProtocolFeeController, Ownable2Step {
         return fee + (fee << 12);
     }
 
-    /// @notice Override the default protcool fee for the pool
+    /// @notice Override the default protocol fee for the pool
     /// @dev this could be used for marketing campaign where PCS takes 0 protocol fee for a pool for a period
     /// @param newProtocolFee 1000 = 0.1%, and max at 4000 = 0.4%. If set at 0.1%, this means 0.1% of amountIn for each swap will go to protocol
     function setProtocolFee(PoolKey memory key, uint24 newProtocolFee) external onlyOwner {

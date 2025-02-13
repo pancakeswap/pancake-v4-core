@@ -98,7 +98,7 @@ contract ProtocolFeeControllerTest is Test, BinTestHelper, TokenFixture {
         }
 
         if (newProtocolFeeSplitRatio > controller.ONE_HUNDRED_PERCENT_RATIO()) {
-            vm.expectRevert(ProtocolFeeController.InvliadProtocolFeeSplitRatio.selector);
+            vm.expectRevert(ProtocolFeeController.InvalidProtocolFeeSplitRatio.selector);
             controller.setProtocolFeeSplitRatio(newProtocolFeeSplitRatio);
         } else {
             vm.expectEmit(true, true, true, true);

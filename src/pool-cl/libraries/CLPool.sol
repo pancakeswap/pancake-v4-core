@@ -31,7 +31,7 @@ library CLPool {
     using ProtocolFeeLibrary for uint16;
     using LPFeeLibrary for uint24;
 
-    /// @notice Thrown when trying to initalize an already initialized pool
+    /// @notice Thrown when trying to initialize an already initialized pool
     error PoolAlreadyInitialized();
 
     /// @notice Thrown when trying to interact with a non-initialized pool
