@@ -33,6 +33,9 @@ contract ProtocolFeeControllerTest is Test, BinTestHelper, TokenFixture {
     using BinPoolParametersHelper for bytes32;
     using ProtocolFeeLibrary for *;
 
+    /// @notice 100% in hundredths of a bip
+    uint256 private constant ONE_HUNDRED_PERCENT_RATIO = 1e6;
+
     Vault vault;
     CLPoolManager clPoolManager;
     BinPoolManager binPoolManager;
@@ -97,7 +100,7 @@ contract ProtocolFeeControllerTest is Test, BinTestHelper, TokenFixture {
             controller.setProtocolFeeSplitRatio(newProtocolFeeSplitRatio);
         }
 
-        if (newProtocolFeeSplitRatio > controller.ONE_HUNDRED_PERCENT_RATIO()) {
+        if (newProtocolFeeSplitRatio > ONE_HUNDRED_PERCENT_RATIO) {
             vm.expectRevert(ProtocolFeeController.InvalidProtocolFeeSplitRatio.selector);
             controller.setProtocolFeeSplitRatio(newProtocolFeeSplitRatio);
         } else {
@@ -163,7 +166,7 @@ contract ProtocolFeeControllerTest is Test, BinTestHelper, TokenFixture {
         ProtocolFeeController controller = new ProtocolFeeController(address(clPoolManager));
 
         // ignore extreme case where splitRatio is over 90% to avoid precision loss
-        splitRatio = uint24(bound(splitRatio, 0, controller.ONE_HUNDRED_PERCENT_RATIO() * 9 / 10));
+        splitRatio = uint24(bound(splitRatio, 0, ONE_HUNDRED_PERCENT_RATIO * 9 / 10));
         controller.setProtocolFeeSplitRatio(splitRatio);
 
         // try to simulate the calculation the process of FE initialization pool
@@ -199,7 +202,7 @@ contract ProtocolFeeControllerTest is Test, BinTestHelper, TokenFixture {
     function testProtocolFeeForPool(uint24 lpFee, uint256 protocolFeeRatio) public {
         lpFee = uint24(bound(lpFee, 0, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE));
         ProtocolFeeController controller = new ProtocolFeeController(address(clPoolManager));
-        protocolFeeRatio = bound(protocolFeeRatio, 0, controller.ONE_HUNDRED_PERCENT_RATIO());
+        protocolFeeRatio = bound(protocolFeeRatio, 0, ONE_HUNDRED_PERCENT_RATIO);
         controller.setProtocolFeeSplitRatio(protocolFeeRatio);
 
         PoolKey memory key = PoolKey({
@@ -227,7 +230,7 @@ contract ProtocolFeeControllerTest is Test, BinTestHelper, TokenFixture {
             // protocol fee should be protocolFeeRatio of the total fee
             uint24 totalFee = protocolFeeZeroForOne.calculateSwapFee(lpFee);
             assertApproxEqAbs(
-                totalFee * controller.protocolFeeSplitRatio() / controller.ONE_HUNDRED_PERCENT_RATIO(),
+                totalFee * controller.protocolFeeSplitRatio() / ONE_HUNDRED_PERCENT_RATIO,
                 protocolFeeZeroForOne,
                 // keeping the error within 0.01% (can't avoid due to precision loss)
                 100
@@ -273,7 +276,7 @@ contract ProtocolFeeControllerTest is Test, BinTestHelper, TokenFixture {
     function testCLPoolInitWithProtolFeeControllerFuzz(uint24 lpFee, uint256 newProtocolFeeRatio) public {
         lpFee = uint24(bound(lpFee, 0, LPFeeLibrary.ONE_HUNDRED_PERCENT_FEE));
         ProtocolFeeController controller = new ProtocolFeeController(address(clPoolManager));
-        newProtocolFeeRatio = bound(newProtocolFeeRatio, 0, controller.ONE_HUNDRED_PERCENT_RATIO());
+        newProtocolFeeRatio = bound(newProtocolFeeRatio, 0, ONE_HUNDRED_PERCENT_RATIO);
 
         clPoolManager.setProtocolFeeController(controller);
         controller.setProtocolFeeSplitRatio(newProtocolFeeRatio);
@@ -307,7 +310,7 @@ contract ProtocolFeeControllerTest is Test, BinTestHelper, TokenFixture {
             // protocol fee should be the given ratio of the total fee
             uint24 totalFee = protocolFeeZeroForOne.calculateSwapFee(actualLpFee);
             assertApproxEqAbs(
-                totalFee * controller.protocolFeeSplitRatio() / controller.ONE_HUNDRED_PERCENT_RATIO(),
+                totalFee * controller.protocolFeeSplitRatio() / ONE_HUNDRED_PERCENT_RATIO,
                 protocolFeeZeroForOne,
                 // keeping the error within 0.05% (can't avoid due to precision loss)
                 500
@@ -318,7 +321,7 @@ contract ProtocolFeeControllerTest is Test, BinTestHelper, TokenFixture {
     function testBinPoolInitWithProtolFeeControllerFuzz(uint24 lpFee, uint256 newProtocolFeeRatio) public {
         lpFee = uint24(bound(lpFee, 0, LPFeeLibrary.TEN_PERCENT_FEE));
         ProtocolFeeController controller = new ProtocolFeeController(address(binPoolManager));
-        newProtocolFeeRatio = bound(newProtocolFeeRatio, 0, controller.ONE_HUNDRED_PERCENT_RATIO());
+        newProtocolFeeRatio = bound(newProtocolFeeRatio, 0, ONE_HUNDRED_PERCENT_RATIO);
 
         binPoolManager.setProtocolFeeController(controller);
         controller.setProtocolFeeSplitRatio(newProtocolFeeRatio);
@@ -352,7 +355,7 @@ contract ProtocolFeeControllerTest is Test, BinTestHelper, TokenFixture {
             // protocol fee should be the given ratio of the total fee
             uint24 totalFee = protocolFeeZeroForOne.calculateSwapFee(actualLpFee);
             assertApproxEqAbs(
-                totalFee * controller.protocolFeeSplitRatio() / controller.ONE_HUNDRED_PERCENT_RATIO(),
+                totalFee * controller.protocolFeeSplitRatio() / ONE_HUNDRED_PERCENT_RATIO,
                 protocolFeeZeroForOne,
                 // keeping the error within 0.01% (can't avoid due to precision loss)
                 100
@@ -443,7 +446,7 @@ contract ProtocolFeeControllerTest is Test, BinTestHelper, TokenFixture {
 
         assertEq(
             clPoolManager.protocolFeesAccrued(currency0),
-            100 ether * uint256(actualProtocolFee >> 12) / controller.ONE_HUNDRED_PERCENT_RATIO()
+            100 ether * uint256(actualProtocolFee >> 12) / ONE_HUNDRED_PERCENT_RATIO
         );
 
         // lp fee should be roughly 0.1 ether, allow 2% error
@@ -518,7 +521,7 @@ contract ProtocolFeeControllerTest is Test, BinTestHelper, TokenFixture {
 
         assertEq(
             binPoolManager.protocolFeesAccrued(currency0),
-            100 ether * uint256(actualProtocolFee >> 12) / controller.ONE_HUNDRED_PERCENT_RATIO()
+            100 ether * uint256(actualProtocolFee >> 12) / ONE_HUNDRED_PERCENT_RATIO
         );
 
         // lp fee should be roughly 0.2 ether
@@ -560,10 +563,8 @@ contract ProtocolFeeControllerTest is Test, BinTestHelper, TokenFixture {
 
     function _calculateLPFeeThreshold(ProtocolFeeController controller) internal view returns (uint24) {
         return uint24(
-            (
-                (controller.ONE_HUNDRED_PERCENT_RATIO() / controller.protocolFeeSplitRatio() - 1)
-                    * ProtocolFeeLibrary.MAX_PROTOCOL_FEE
-            ) / (controller.ONE_HUNDRED_PERCENT_RATIO() - ProtocolFeeLibrary.MAX_PROTOCOL_FEE)
+            ((ONE_HUNDRED_PERCENT_RATIO / controller.protocolFeeSplitRatio() - 1) * ProtocolFeeLibrary.MAX_PROTOCOL_FEE)
+                / (ONE_HUNDRED_PERCENT_RATIO - ProtocolFeeLibrary.MAX_PROTOCOL_FEE)
         );
     }
 }

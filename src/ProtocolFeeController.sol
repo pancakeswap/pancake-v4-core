@@ -22,7 +22,7 @@ contract ProtocolFeeController is IProtocolFeeController, Ownable2Step {
     error InvalidProtocolFeeSplitRatio();
 
     /// @notice 100% in hundredths of a bip
-    uint256 public constant ONE_HUNDRED_PERCENT_RATIO = 1e6;
+    uint256 private constant ONE_HUNDRED_PERCENT_RATIO = 1e6;
 
     /// @notice The ratio of the protocol fee in the total fee, expressed in hundredths of a bip i.e. 1e4 is 1%
     /// @dev The default value is 33% i.e. protocol fee should be 33% of the total fee
