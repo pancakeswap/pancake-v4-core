@@ -43,7 +43,7 @@ abstract contract ProtocolFees is IProtocolFees, Owner {
     /// @dev Revert if call to protocolFeeController fails or if return value is not 32 bytes
     /// However if the call to protocolFeeController succeed, it can still revert if the return value is too large
     /// @return protocolFee The protocol fee for the pool
-    function _fetchProtocolFee(PoolKey memory key) internal returns (uint24 protocolFee) {
+    function _fetchProtocolFee(PoolKey memory key) internal view returns (uint24 protocolFee) {
         if (address(protocolFeeController) != address(0)) {
             address targetProtocolFeeController = address(protocolFeeController);
             bytes memory data = abi.encodeCall(IProtocolFeeController.protocolFeeForPool, (key));
@@ -52,7 +52,7 @@ abstract contract ProtocolFees is IProtocolFees, Owner {
             uint256 returnData;
             assembly ("memory-safe") {
                 // only load the first 32 bytes of the return data to prevent gas griefing
-                success := call(gas(), targetProtocolFeeController, 0, add(data, 0x20), mload(data), 0, 32)
+                success := staticcall(gas(), targetProtocolFeeController, add(data, 0x20), mload(data), 0, 32)
 
                 // load the return data
                 returnData := mload(0)

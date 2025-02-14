@@ -1,9 +1,9 @@
 {
-  "CLPoolManagerBytecodeSize": "20886",
+  "CLPoolManagerBytecodeSize": "20885",
   "addLiquidity_fromEmpty": "343791",
   "addLiquidity_fromNonEmpty": "161744",
   "addLiquidity_nativeToken": "225761",
-  "clPoolManager initcode hash (without constructor params, as uint256)": "43498189724800683414039944409888665118981458752163755806370462274516389565331",
+  "clPoolManager initcode hash (without constructor params, as uint256)": "69937990386781985587033718064809012542744488478546742857206997773238707862066",
   "donateBothTokens": "162089",
   "gasDonateOneToken": "107144",
   "initializeWithoutHooks": "145737",

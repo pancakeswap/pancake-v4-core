@@ -19,10 +19,10 @@ contract ProtocolFeeController is IProtocolFeeController, Ownable2Step {
     error InvalidPoolManager();
 
     /// @notice throw when the protocol fee split ratio is invalid i.e. greater than 100%
-    error InvliadProtocolFeeSplitRatio();
+    error InvalidProtocolFeeSplitRatio();
 
     /// @notice 100% in hundredths of a bip
-    uint256 public constant ONE_HUNDRED_PERCENT_RATIO = 1e6;
+    uint256 private constant ONE_HUNDRED_PERCENT_RATIO = 1e6;
 
     /// @notice The ratio of the protocol fee in the total fee, expressed in hundredths of a bip i.e. 1e4 is 1%
     /// @dev The default value is 33% i.e. protocol fee should be 33% of the total fee
@@ -42,7 +42,7 @@ contract ProtocolFeeController is IProtocolFeeController, Ownable2Step {
     /// @notice Set the ratio of the protocol fee in the total fee
     /// @param newProtocolFeeSplitRatio 30e4 would mean 30% of the total fee goes to protocol
     function setProtocolFeeSplitRatio(uint256 newProtocolFeeSplitRatio) external onlyOwner {
-        if (newProtocolFeeSplitRatio > ONE_HUNDRED_PERCENT_RATIO) revert InvliadProtocolFeeSplitRatio();
+        if (newProtocolFeeSplitRatio > ONE_HUNDRED_PERCENT_RATIO) revert InvalidProtocolFeeSplitRatio();
 
         uint256 oldProtocolFeeSplitRatio = protocolFeeSplitRatio;
         protocolFeeSplitRatio = newProtocolFeeSplitRatio;
@@ -109,7 +109,7 @@ contract ProtocolFeeController is IProtocolFeeController, Ownable2Step {
         return fee + (fee << 12);
     }
 
-    /// @notice Override the default protcool fee for the pool
+    /// @notice Override the default protocol fee for the pool
     /// @dev this could be used for marketing campaign where PCS takes 0 protocol fee for a pool for a period
     /// @param newProtocolFee 1000 = 0.1%, and max at 4000 = 0.4%. If set at 0.1%, this means 0.1% of amountIn for each swap will go to protocol
     function setProtocolFee(PoolKey memory key, uint24 newProtocolFee) external onlyOwner {
@@ -124,8 +124,11 @@ contract ProtocolFeeController is IProtocolFeeController, Ownable2Step {
     /// @param currency The currency of the protocol fee
     /// @param amount The amount of the protocol fee to collect, 0 means collect all
     function collectProtocolFee(address recipient, Currency currency, uint256 amount) external onlyOwner {
+        // balance check to handle fee-on-transfer tokens
+        uint256 balanceBefore = currency.balanceOf(recipient);
         IProtocolFees(poolManager).collectProtocolFees(recipient, currency, amount);
+        uint256 balanceAfter = currency.balanceOf(recipient);
 
-        emit ProtocolFeeCollected(currency, amount);
+        emit ProtocolFeeCollected(currency, balanceAfter - balanceBefore);
     }
 }

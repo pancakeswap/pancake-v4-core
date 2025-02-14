@@ -17,9 +17,7 @@ gas_limit = "300000000"
 bytecode_hash = "none"
 
 [fuzz]
-# used for both fuzz and invariant tests for local development
-# not sure why but [profile.default.fuzz] just doesn't work for invariant tests
-runs = 1000
+runs = 5 # change this for higher number of fuzz runs locally
 
 [profile.ci.fuzz]
 runs = 10000

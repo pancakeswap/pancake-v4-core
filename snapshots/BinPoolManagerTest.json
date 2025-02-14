@@ -1,7 +1,7 @@
 {
-  "BinPoolManagerBytecodeSize": "23822",
+  "BinPoolManagerBytecodeSize": "23821",
   "BinPoolManagerTest": "292661",
-  "binPoolManager initcode hash (without constructor params, as uint256)": "73425840329377707764016122574450195738786283045901954729586336840188059167782",
+  "binPoolManager initcode hash (without constructor params, as uint256)": "86819153192491064271307073571725897487337363688428763335923728549485318549268",
   "testBurnNativeCurrency": "146154",
   "testExtLoadPoolActiveId": "272",
   "testGasBurnHalfBin": "141152",
