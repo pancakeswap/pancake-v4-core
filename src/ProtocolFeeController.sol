@@ -124,8 +124,11 @@ contract ProtocolFeeController is IProtocolFeeController, Ownable2Step {
     /// @param currency The currency of the protocol fee
     /// @param amount The amount of the protocol fee to collect, 0 means collect all
     function collectProtocolFee(address recipient, Currency currency, uint256 amount) external onlyOwner {
+        // balance check to handle fee-on-transfer tokens
+        uint256 balanceBefore = currency.balanceOf(recipient);
         IProtocolFees(poolManager).collectProtocolFees(recipient, currency, amount);
+        uint256 balanceAfter = currency.balanceOf(recipient);
 
-        emit ProtocolFeeCollected(currency, amount);
+        emit ProtocolFeeCollected(currency, balanceAfter - balanceBefore);
     }
 }

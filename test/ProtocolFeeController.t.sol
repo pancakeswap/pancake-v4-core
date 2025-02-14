@@ -403,6 +403,56 @@ contract ProtocolFeeControllerTest is Test, BinTestHelper, TokenFixture {
         }
     }
 
+    /// @dev when collectProtocolFee with amt=0, event should emit amount collected
+    function testCollectProtocolFee_CollectAllFee() public {
+        // init protocol fee controller and bind it to clPoolManager
+        ProtocolFeeController controller = new ProtocolFeeController(address(clPoolManager));
+        clPoolManager.setProtocolFeeController(controller);
+
+        // init pool with protocol fee controller
+        PoolKey memory key = PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            hooks: IHooks(address(0)),
+            poolManager: clPoolManager,
+            fee: 2000,
+            parameters: bytes32(0).setTickSpacing(10)
+        });
+        clPoolManager.initialize(key, Constants.SQRT_RATIO_1_1);
+
+        // add some liquidity
+        CLPoolManagerRouter router = new CLPoolManagerRouter(vault, clPoolManager);
+        IERC20(Currency.unwrap(currency0)).approve(address(router), 10000 ether);
+        IERC20(Currency.unwrap(currency1)).approve(address(router), 10000 ether);
+        router.modifyPosition(
+            key,
+            ICLPoolManager.ModifyLiquidityParams({tickLower: -10, tickUpper: 10, liquidityDelta: 1000000 ether, salt: 0}),
+            ""
+        );
+
+        // swap to generate protocol fee
+        // by default splitRatio=33.33% if lpFee is 0.2% then protocol fee should be roughly 0.1%
+        router.swap(
+            key,
+            ICLPoolManager.SwapParams({
+                zeroForOne: true,
+                amountSpecified: -100 ether,
+                sqrtPriceLimitX96: TickMath.MIN_SQRT_RATIO + 1
+            }),
+            CLPoolManagerRouter.SwapTestSettings({withdrawTokens: true, settleUsingTransfer: true}),
+            ""
+        );
+
+        // verify protocol fee accrued > 0
+        uint256 protocolFeesAccrued = clPoolManager.protocolFeesAccrued(currency0);
+        assertGt(protocolFeesAccrued, 0);
+
+        // collect all fee
+        vm.expectEmit();
+        emit ProtocolFeeController.ProtocolFeeCollected(currency0, protocolFeesAccrued);
+        controller.collectProtocolFee(makeAddr("recipient"), currency0, 0);
+    }
+
     function testCollectProtocolFeeForCLPool() public {
         // init protocol fee controller and bind it to clPoolManager
         ProtocolFeeController controller = new ProtocolFeeController(address(clPoolManager));
@@ -480,6 +530,8 @@ contract ProtocolFeeControllerTest is Test, BinTestHelper, TokenFixture {
 
         // collect half
         uint256 protocolFeeAmount = clPoolManager.protocolFeesAccrued(currency0);
+        vm.expectEmit();
+        emit ProtocolFeeController.ProtocolFeeCollected(currency0, protocolFeeAmount / 2);
         controller.collectProtocolFee(makeAddr("recipient"), currency0, protocolFeeAmount / 2);
 
         assertEq(clPoolManager.protocolFeesAccrued(currency0), protocolFeeAmount / 2);
